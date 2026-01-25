@@ -42,8 +42,7 @@ void handle_sigint(int)
 }
 
 int main() {
-    printf("=== 摄像头与编码器显示系统 ===\n");
-    
+        
     // 1. 初始化显示屏
     printf("1. 初始化显示屏...\n");
     ips200.init("/dev/fb0");
