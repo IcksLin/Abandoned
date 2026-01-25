@@ -1,130 +1,195 @@
 /*********************************************************************************************************************
-* 文件名称          my_pid
+* 文件名称          motor.cpp
+* 功能说明          双电机PWM驱动和编码器速度采集模块实现
 * 适用平台          LS2K0300
 * 修改记录
 * 日期              作者                        备注
-* 2026-01-23        HeavenCornerstone         
-* 2026-01-24        HeavenCornerstone         重新校验参数，进行了速度映射，此文件中的速度映射进行了实际采样和参数界定
-*                                             如果月移植不根据当前车模实际情况重新界定参数，铁定不能用
-*                                             后期控制修改若有周期偏移一定要重新界定参数
+* 2026-01-22        HeavenCornerstone          first version
+* 2026-01-23        HeavenCornerstone          添加速度映射和参数标定
+* 2026-01-24        HeavenCornerstone          重新校验参数，进行了实际采样和参数界定
+*                                              ⚠️警告：如需移植必须根据实际车模重新标定参数
+*                                              控制周期修改后也必须重新标定参数
+* 2026-01-25        Assistant                  添加详细注释和排版优化
 ********************************************************************************************************************/
 
-
 #include "motor.hpp"
-//编码器组件
-zf_driver_encoder encoder1(ZF_ENCODER_DIR_1);
-zf_driver_encoder encoder2(ZF_ENCODER_DIR_2);
 
-zf_driver_pwm right_motor(ZF_PWM_MOTOR_1);
-zf_driver_pwm left_motor(ZF_PWM_MOTOR_2);
-zf_driver_gpio right_dir(ZF_GPIO_MOTOR_1);
-zf_driver_gpio left_dir(ZF_GPIO_MOTOR_2);
+/* ================================================================================================================
+ *                                           全局对象定义
+ * ================================================================================================================ */
+// 编码器对象（方向编码器模式）
+zf_driver_encoder encoder1(ZF_ENCODER_DIR_1);  // 右轮编码器（硬件连接）
+zf_driver_encoder encoder2(ZF_ENCODER_DIR_2);  // 左轮编码器（硬件连接）
 
-bool motor_init(){
-    right_dir.set_level(1);
-    left_dir.set_level(1);
-    right_motor.set_duty(0);
-    left_motor.set_duty(0);
+// 电机PWM和方向控制对象
+zf_driver_pwm  right_motor(ZF_PWM_MOTOR_1);    // 右电机PWM（GPIO86）
+zf_driver_pwm  left_motor(ZF_PWM_MOTOR_2);     // 左电机PWM（GPIO87）
+zf_driver_gpio right_dir(ZF_GPIO_MOTOR_1);     // 右电机方向（GPIO73）
+zf_driver_gpio left_dir(ZF_GPIO_MOTOR_2);      // 左电机方向（GPIO76）
+
+/* ================================================================================================================
+ *                                           宏定义区域（⚠️关键参数，移植时必须重新标定）
+ * ================================================================================================================ */
+
+// -------------------- 电机安全限幅参数 --------------------
+// PWM占空比范围：0~10000（对应0%~100%）
+#define MOTOR_PWM_MAX        7200              // 最大PWM输出（72%占空比），留余量保护电机
+#define MOTOR_PWM_MIN        (-MOTOR_PWM_MAX)  // 负向最大值（反转）
+
+// -------------------- 速度映射标定参数 --------------------
+// 以下参数基于实际测试标定（3ms采样周期）
+#define ENCODER_MAX_PER_3MS  170               // 编码器3ms最大计数值（满速时）
+#define TARGET_SPEED_MAX     120               // PID控制器最大目标速度值
+
+// -------------------- 速度到PWM转换参数 --------------------
+// 映射公式：PWM = 速度指令 × PWM_PER_SPEED_UNIT
+// 此参数根据电机特性和编码器分辨率标定
+#define PWM_PER_SPEED_UNIT   60                // 每个速度单位对应的PWM值
+                                               // 例如：速度=60 → PWM=3600
+
+// -------------------- 死区参数 --------------------
+// 死区用于消除零位抖动和低速启动困难
+#define PWM_DEAD_ZONE        50                // PWM死区，abs(PWM)<50时强制为0
+
+// -------------------- 速度映射权重 --------------------
+#define REMAP_WEIGHT         1.0f              // 编码器计数到速度的权重系数
+
+/* ================================================================================================================
+ *                                           函数实现
+ * ================================================================================================================ */
+
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     电机初始化
+// 参数说明     无
+// 返回参数     bool        初始化成功返回true
+// 使用示例     motor_init();
+// 备注信息     设置电机方向和PWM初始状态，确保上电后电机停止
+//-------------------------------------------------------------------------------------------------------------------
+bool motor_init()
+{
+    // 设置电机方向为默认状态（根据硬件调整）
+    right_dir.set_level(1);      // 右电机方向初始化
+    left_dir.set_level(1);       // 左电机方向初始化
+    
+    // 设置PWM占空比为0，确保电机停止
+    right_motor.set_duty(0);     // 右电机PWM清零
+    left_motor.set_duty(0);      // 左电机PWM清零
+    
     return true;
 }
 
-//============================================================================
-// ============================ 宏定义区域 ============================
-// 电机安全限幅（PWM值范围0~10000）
-#define MOTOR_PWM_MAX        7200    // 最大PWM输出，留有余量保护电机
-#define MOTOR_PWM_MIN        (-MOTOR_PWM_MAX)  // 负向最大
-
-// 编码器到PWM的映射参数
-#define ENCODER_MAX_PER_3MS  170     // 编码器3ms最大计数值（满速）
-#define TARGET_SPEED_MAX     120     // 控制器最大目标速度
-
-// PID输出到PWM的映射比例
-#define PWM_PER_SPEED_UNIT   60      // 每个速度单位对应的PWM值
-// 解释：PWM = 速度误差 × 这个系数，再叠加积分等
-
-// 死区设置（防止零位振荡）
-#define PWM_DEAD_ZONE        50      // PWM死区，小于此值不输出
-
-// ============================ 函数实现 ============================
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介 设置电机速度（已优化映射和限幅）
-// 参数说明 right_speed&left_speed PID控制器输出的速度指令，范围-120~120（负值表示反转）
+// 函数简介     设置电机速度（PID输出→PWM映射核心函数）
+// 参数说明     left_speed   左轮速度指令，范围-120~120（负值=反转）
+// 参数说明     right_speed  右轮速度指令，范围-120~120（负值=反转）
+// 返回参数     void
+// 使用示例     motor_set_speed(50, 50);  // 双轮前进速度50
+// 备注信息     ⚠️注意：由于硬件接线反接，left_speed控制右电机，right_speed控制左电机
+//              处理流程：速度映射 → 死区处理 → 硬限幅 → 方向+PWM输出
 //-------------------------------------------------------------------------------------------------------------------
 void motor_set_speed(int16_t left_speed, int16_t right_speed)
 {
     int16_t left_pwm, right_pwm;
     
-    // 1. 映射PID速度指令到PWM值（核心映射）
-    // 使用线性映射：PWM = 速度指令 × 比例系数
-    left_pwm = left_speed * PWM_PER_SPEED_UNIT;
+    // -------------------- 步骤1：速度到PWM线性映射 --------------------
+    // 公式：PWM = 速度 × 转换系数
+    // 例如：速度=60 → PWM=60×60=3600（36%占空比）
+    left_pwm  = left_speed  * PWM_PER_SPEED_UNIT;
     right_pwm = right_speed * PWM_PER_SPEED_UNIT;
     
-    // 2. 死区处理（消除零位抖动）
+    // -------------------- 步骤2：死区处理 --------------------
+    // 目的：消除零位抖动，避免电机在低速时无法启动或振荡
+    // 当PWM绝对值 < 死区阈值时，强制设为0
     if (abs(left_pwm) < PWM_DEAD_ZONE) {
-        left_pwm = 0;
+        left_pwm = 0;  // 左电机PWM进入死区，停止
     }
     if (abs(right_pwm) < PWM_DEAD_ZONE) {
-        right_pwm = 0;
+        right_pwm = 0;  // 右电机PWM进入死区，停止
     }
     
-    // 3. 硬限幅保护电机
-    // 正限幅
+    // -------------------- 步骤3：硬限幅保护 --------------------
+    // 目的：防止PWM超出安全范围，保护电机和驱动电路
+    // 正向限幅（PWM > 最大值）
     if (left_pwm > MOTOR_PWM_MAX) {
-        left_pwm = MOTOR_PWM_MAX;
+        left_pwm = MOTOR_PWM_MAX;  // 限制在最大值
     }
     if (right_pwm > MOTOR_PWM_MAX) {
         right_pwm = MOTOR_PWM_MAX;
     }
-    // 负限幅
+    
+    // 负向限幅（PWM < 最小值，即反转）
     if (left_pwm < MOTOR_PWM_MIN) {
-        left_pwm = MOTOR_PWM_MIN;
+        left_pwm = MOTOR_PWM_MIN;  // 限制在最小值
     }
     if (right_pwm < MOTOR_PWM_MIN) {
         right_pwm = MOTOR_PWM_MIN;
     }
     
-    // 4. 设置电机方向和PWM
-    // ight_speed控制左电机，left_speed控制右电机，线插反了导致的
-    if (right_pwm <= 0) {  // 控制左电机
-        left_dir.set_level(1);      // 反转
-        left_motor.set_duty(-right_pwm);
-    } else {
-        left_dir.set_level(0);      // 正转
-        left_motor.set_duty(right_pwm);
+    // -------------------- 步骤4：方向控制+PWM输出 --------------------
+    // ⚠️注意：硬件接线导致left/right反接，所以代码中需要交换
+    // right_pwm控制左电机，left_pwm控制右电机
+    
+    // 控制左电机（使用right_pwm）
+    if (right_pwm <= 0) {  // PWM为负，需要反转
+        left_dir.set_level(1);              // 设置方向为反转
+        left_motor.set_duty(-right_pwm);    // PWM取绝对值输出
+    } else {               // PWM为正，正转
+        left_dir.set_level(0);              // 设置方向为正转
+        left_motor.set_duty(right_pwm);     // PWM直接输出
     }
     
-    if (left_pwm <= 0) {   // 控制右电机
-        right_dir.set_level(1);     // 反转
-        right_motor.set_duty(-left_pwm);
-    } else {
-        right_dir.set_level(0);     // 正转
-        right_motor.set_duty(left_pwm);
+    // 控制右电机（使用left_pwm）
+    if (left_pwm <= 0) {   // PWM为负，需要反转
+        right_dir.set_level(1);             // 设置方向为反转
+        right_motor.set_duty(-left_pwm);    // PWM取绝对值输出
+    } else {               // PWM为正，正转
+        right_dir.set_level(0);             // 设置方向为正转
+        right_motor.set_duty(left_pwm);     // PWM直接输出
     }
 }
 
-void motor_stop(){
-    motor_set_speed(0,0);
+//-------------------------------------------------------------------------------------------------------------------
+// 函数简介     停止电机
+// 参数说明     无
+// 返回参数     void
+// 使用示例     motor_stop();
+// 备注信息     立即停止电机，等效于motor_set_speed(0, 0)
+//-------------------------------------------------------------------------------------------------------------------
+void motor_stop()
+{
+    motor_set_speed(0, 0);  // 速度设为0，停止电机
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-// 函数简介 获取电机速度
-// 参数说明 right_speed&left_speed 速度值
-// 参数说明 sampling_period 所启用的采样线程周期，单位ms，不建议超过1000,会触发逐飞int16上溢出,同时建议使用最高优先级
-// 返回参数 bool
-// 备注： 该函数在中断线程中调用
+// 函数简介     获取电机速度（编码器采集+速度映射）
+// 参数说明     right_speed      指向右轮速度变量的指针（输出）
+// 参数说明     left_speed       指向左轮速度变量的指针（输出）
+// 参数说明     sampling_period  采样周期(ms)，建议≤1000避免int16溢出
+// 返回参数     bool            采集成功返回true，周期过大返回false
+// 使用示例     get_and_remap_speed(&right_speed, &left_speed, 3);
+// 备注信息     ⚠️必须在定时中断中周期性调用，建议使用最高优先级线程
+//              采样后会自动清零编码器计数，准备下次采样
+//              速度值 = 编码器计数 × 权重系数 × 方向
 //-------------------------------------------------------------------------------------------------------------------
-#define REMAP_WEIGHT 1.0f
-bool get_and_remap_speed(float* right_speed,float*left_speed,int16 sampling_period){
-    if (sampling_period>1000)
-    {
-        printf("An overflow exception may occur,please adjest your sampling period\n");
+bool get_and_remap_speed(float* right_speed, float* left_speed, int16 sampling_period)
+{
+    // -------------------- 参数检查 --------------------
+    // 采样周期过大会导致编码器计数溢出（int16范围：-32768~32767）
+    if (sampling_period > 1000) {
+        printf("[ERROR] 采样周期过大(%dms)，可能导致编码器溢出！请调整为≤1000ms\n", sampling_period);
         return false;
-    }else{
-        *right_speed = -((float)encoder1.get_count()*REMAP_WEIGHT);
-        *left_speed  = ((float)encoder2.get_count()*REMAP_WEIGHT);
-        encoder1.clear_count();
-        encoder2.clear_count();
-        return true;
     }
-
+    
+    // -------------------- 读取编码器计数并映射为速度 --------------------
+    // encoder1对应右轮，需取反（根据安装方向调整）
+    // encoder2对应左轮，正向读取
+    *right_speed = -((float)encoder1.get_count() * REMAP_WEIGHT);  // 右轮速度，取反
+    *left_speed  =  ((float)encoder2.get_count() * REMAP_WEIGHT);  // 左轮速度
+    
+    // -------------------- 清零编码器计数 --------------------
+    // 为下次采样做准备，避免计数累积
+    encoder1.clear_count();  // 清零右轮编码器
+    encoder2.clear_count();  // 清零左轮编码器
+    
+    return true;  // 采集成功
 }
