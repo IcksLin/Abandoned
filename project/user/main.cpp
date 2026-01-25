@@ -62,9 +62,9 @@ int main()
     // 3.初始化DRV驱动
     printf("3. 初始化DRV驱动...\n");
     motor_init();
+    left_speed = 0;
     right_speed = 0;
-    right_speed = 0;
-    motor_set_speed(right_speed, right_speed);
+    motor_set_speed(left_speed, right_speed);
 
     // 4. 初始化摄像头
     printf("4. 初始化摄像头...\n");
@@ -78,7 +78,7 @@ int main()
     // }
 
     // 5. 初始化PID控制器
-    printf("5.初始化PID控制器...\n");
+    printf("5. 初始化PID控制器...\n");
     pid_r.init(1.5, 0.03, 0.1, 1, 120, -120, 60, -60);
     pid_l.init(1.5, 0.03, 0.1, 1, 120, -120, 60, -60);
 
