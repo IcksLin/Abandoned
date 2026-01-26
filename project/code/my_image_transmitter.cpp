@@ -1,133 +1,277 @@
 #include "my_image_transmitter.hpp"
 
+// ============================================================================
+// 全局设备对象定义
+// ============================================================================
 
+/// @brief TCP客户端设备对象，用于建立TCP网络连接和收发数据
+zf_driver_tcp_client tcp_client_dev;
 
-#define ZF_IMAGE_MAGIC 0x5A465644u // 'ZFVD'
+/// @brief RGB图像数据指针，指向摄像头采集的RGB图像首地址
+uint16* rgb_image = nullptr;
 
+// ============================================================================
+// 函数声明与封装
+// ============================================================================
 
-// 构造 & 析构
-zf_driver_image_client::zf_driver_image_client() : m_seq(0) {}
-zf_driver_image_client::~zf_driver_image_client() {}
-
-// 初始化
-int8 zf_driver_image_client::init(const char *ip_addr, uint32 port)
+/**
+ * @brief TCP发送数据全局包装函数
+ * @param buf 要发送的数据缓冲区指针
+ * @param len 要发送的数据字节长度
+ * @return uint32 实际成功发送的字节数
+ * @note 封装tcp_client_dev.send_data成员函数，适配普通函数指针格式要求
+ *       供seekfree_assistant_interface_init调用，无需手动调用
+ */
+uint32 tcp_send_wrap(const uint8 *buf, uint32 len)
 {
-    return m_tcp.init(ip_addr, port);
+    return tcp_client_dev.send_data_all(buf, len);
 }
 
-// 将 Mat 编码为 JPEG 并发送
-int32 zf_driver_image_client::send_mat_as_jpeg(const cv::Mat &mat, int quality, int timeout_ms)
+/**
+ * @brief TCP接收数据全局包装函数
+ * @param buf 接收数据的缓冲区指针
+ * @param len 最大可接收的字节长度
+ * @return uint32 实际成功接收的字节数
+ * @note 封装tcp_client_dev.read_data成员函数，适配普通函数指针格式要求
+ *       供seekfree_assistant_interface_init调用，无需手动调用
+ */
+uint32 tcp_read_wrap(uint8 *buf, uint32 len)
 {
-    if (mat.empty()) return -1;
-
-    std::vector<int> params;
-    params.push_back(cv::IMWRITE_JPEG_QUALITY);
-    params.push_back(quality);
-
-    std::vector<uchar> buf;
-    bool ok = cv::imencode(".jpg", mat, buf, params);
-    if (!ok) return -1;
-
-    zf_image_packet_header_t hdr;
-    hdr.magic = htonl(ZF_IMAGE_MAGIC);
-    hdr.format = htons(1); // JPEG
-    hdr.reserved = 0;
-    hdr.width = htonl((uint32_t)mat.cols);
-    hdr.height = htonl((uint32_t)mat.rows);
-    hdr.payload_len = htonl((uint32_t)buf.size());
-    hdr.seq = htonl(++m_seq);
-
-    // 先发送头部，再发送数据
-    int32 sent = 0;
-    int32 s = m_tcp.send_data_all(reinterpret_cast<const uint8*>(&hdr), sizeof(hdr), timeout_ms);
-    if (s <= 0) return -1;
-    sent += s;
-
-    s = m_tcp.send_data_all(buf.data(), (uint32_t)buf.size(), timeout_ms);
-    if (s < 0) return -1;
-    sent += s;
-    return sent;
+    return tcp_client_dev.read_data(buf, len);
 }
 
 
-// 在头文件中定义常量
-#define IMG_CHANNEL_ID    1       // 图片通道ID，可根据需要修改
-#define IMG_FORMAT_GRAY8  1       // 8位灰度图格式码
-#define JUSTFLOAT_END     0x7F800000  // JustFloat前导帧结尾标识
+/// @brief 图像数据拷贝缓冲区
+/// @note 二维数组存储，用于存放格式转换后的摄像头图像数据，供上位机发送使用
+uint16 image_copy[UVC_HEIGHT][UVC_WIDTH];
 
-/*********************************************************************************************************************
- * 函数简介     发送灰度原始数据（按照JustFloat协议）
- * 参数说明     data         灰度图像数据指针
- * 参数说明     width        图像宽度
- * 参数说明     height       图像高度
- * 参数说明     timeout_ms   超时时间(毫秒)
- * 返回参数     int32        成功发送的总字节数，-1表示失败
- * 备注信息     使用JustFloat协议格式，先发送前导帧，再发送图像数据
- ********************************************************************************************************************/
-int32 zf_driver_image_client::send_gray_raw(const uint8_t *data, uint32 width, uint32 height, int timeout_ms)
+// ============================================================================
+// 初始化函数
+// ============================================================================
+
+/**
+ * @brief 图像传输初始化函数
+ * @return bool 初始化是否成功
+ * @retval true  初始化成功
+ * @retval false 初始化失败
+ * 
+ * 主要完成以下初始化工作：
+ * 1. 初始化TCP客户端连接到指定服务器
+ * 2. 注册数据发送和接收回调函数
+ * 3. 分配RGB图像数据缓冲区内存
+ * 4. 配置摄像头信息（灰度模式）
+ */
+bool img_transmitter_init()
 {
-    if (!data || width == 0 || height == 0) {
-        printf("错误：无效的图像参数\r\n");
-        return -1;
+    // 1. 初始化TCP客户端，连接到指定的服务器IP和端口
+    if (tcp_client_dev.init(SERVER_IP, SERVER_PORT) != 0)
+    {
+        std::cerr << "Failed to init TCP client to " 
+                  << SERVER_IP << ":" << SERVER_PORT << "\n";
+        return false;  // 初始化失败
     }
 
-    // 计算图像数据大小（检查溢出）
-    uint64_t payload_len64 = (uint64_t)width * (uint64_t)height;
-    if (payload_len64 == 0 || payload_len64 > 0xFFFFFFFFu) {
-        printf("错误：图像尺寸过大或为0\r\n");
-        return -1;
-    }
-    uint32_t image_size = (uint32_t)payload_len64;
+    // 2. 注册数据发送和接收回调函数，供底层通信模块使用
+    seekfree_assistant_interface_init(tcp_send_wrap, tcp_read_wrap);
 
-    // 构造前导帧（7个32位单元）
-    // 协议要求：int preFrame[7] = { IMG_ID, IMG_SIZE, IMG_WIDTH, IMG_HEIGHT, IMG_FORMAT, 0x7F800000, 0x7F800000 };
-    uint32_t preFrame[7];
-    preFrame[0] = (uint32_t)IMG_CHANNEL_ID;  // IMG_ID
-    preFrame[1] = (uint32_t)image_size;       // IMG_SIZE (bytes)
-    preFrame[2] = (uint32_t)width;            // IMG_WIDTH
-    preFrame[3] = (uint32_t)height;           // IMG_HEIGHT
-    preFrame[4] = (uint32_t)IMG_FORMAT_GRAY8; // IMG_FORMAT
-    preFrame[5] = JUSTFLOAT_END;                // JustFloat end marker (+Inf bit pattern)
-    preFrame[6] = JUSTFLOAT_END;                // JustFloat end marker (+Inf bit pattern)
-
-    // 为了兼容不同主机字节序，显式把前导帧转换为 little-endian（FireWater 常以 little-endian 位模式解析）
-    auto to_le32 = [](uint32_t v)->uint32_t {
-    #if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        return __builtin_bswap32(v);
-    #else
-        return v;
-    #endif
-    };
-
-    uint32_t preFrame_le[7];
-    for (int i = 0; i < 7; ++i) preFrame_le[i] = to_le32(preFrame[i]);
-
-    // 发送前导帧（28 字节）
-    int32_t header_sent = m_tcp.send_data_all(reinterpret_cast<const uint8_t*>(preFrame_le),
-                                              sizeof(preFrame_le),
-                                              timeout_ms);
-    if (header_sent != (int32_t)sizeof(preFrame_le)) {
-        printf("发送前导帧失败: 期望 %zu 字节，实际 %d 字节\r\n",
-               sizeof(preFrame_le), header_sent);
-        return -1;
+    // 3. 分配RGB图像数据缓冲区内存，用于存放摄像头采集到的图像数据
+    rgb_image = new uint16[UVC_WIDTH * UVC_HEIGHT];
+    if (rgb_image == nullptr)
+    {
+        std::cerr << "Failed to allocate memory for RGB image buffer\n";
+        return false;  // 内存分配失败
     }
 
-    // 发送图像数据（灰度 8bit 连续数据）
-    int32_t data_sent = m_tcp.send_data_all(data, image_size, timeout_ms);
-    if (data_sent != (int32_t)image_size) {
-        printf("发送图像数据失败: 期望 %u 字节，实际 %d 字节\r\n",
-               image_size, data_sent);
-        return -1;
+    // 4. 配置摄像头信息为RGB565模式
+    seekfree_assistant_camera_information_config(
+        SEEKFREE_ASSISTANT_RGB565, 
+        image_copy[0], 
+        UVC_WIDTH, 
+        UVC_HEIGHT
+    );
+
+    return true;  // 初始化成功
+}
+
+// ============================================================================
+// 图像发送函数
+// ============================================================================
+
+/**
+ * @brief 发送RGB565图像数据到上位机（包含字节顺序转换）
+ * @param rgb_image_ptr 指向原始RGB565图像数据的指针
+ * @param width 图像宽度（像素）
+ * @param height 图像高度（像素）
+ * @return bool 发送是否成功
+ * @note 函数会处理RGB565数据的高低字节交换，确保上位机能正确解析彩色图像
+ *       如果图像尺寸与预设尺寸不匹配，会进行适当调整或拒绝发送
+ */
+bool rgb_img_transmitter(const uint16_t* rgb_image_ptr, uint32_t width, uint32_t height, bool flip_vertical)
+{
+    // 参数有效性检查
+    if (rgb_image_ptr == nullptr || width == 0 || height == 0)
+    {
+        std::cerr << "Error: Invalid parameters in rgb_img_transmitter: "
+                  << "image_ptr=" << static_cast<const void*>(rgb_image_ptr)
+                  << ", width=" << width
+                  << ", height=" << height << "\n";
+        return false;
     }
 
-    int32_t total_sent = header_sent + data_sent;
-    m_seq++;
-
-    // 可选调试输出
-    if ((m_seq % 10) == 0) {
-        printf("JustFloat 发送: ch=%d size=%u w=%u h=%u fmt=%d total=%d\r\n",
-               IMG_CHANNEL_ID, image_size, width, height, IMG_FORMAT_GRAY8, total_sent);
+    uint32_t src_pixels = width * height;
+    uint32_t dst_pixels = UVC_WIDTH * UVC_HEIGHT;
+    
+    // 情况1：源图像尺寸与目标缓冲区完全匹配（最优情况）
+    if (width == UVC_WIDTH && height == UVC_HEIGHT)
+    {
+        if (flip_vertical)
+        {
+            // 垂直翻转处理：逐行倒序拷贝
+            for (uint32_t row = 0; row < height; row++)
+            {
+                // 计算源图像和目标图像的行偏移
+                uint32_t src_row_offset = row * width;  // 源图像从第0行开始
+                uint32_t dst_row_offset = (height - 1 - row) * width;  // 目标图像从最后一行开始
+                
+                for (uint32_t col = 0; col < width; col++)
+                {
+                    uint16_t original_pixel = rgb_image_ptr[src_row_offset + col];
+                    uint16_t swapped_pixel = __builtin_bswap16(original_pixel);
+                    ((uint16_t*)image_copy[0])[dst_row_offset + col] = swapped_pixel;
+                }
+            }
+        }
+        else
+        {
+            // 无翻转，直接处理
+            for (uint32_t i = 0; i < src_pixels; i++)
+            {
+                uint16_t original_pixel = rgb_image_ptr[i];
+                uint16_t swapped_pixel = __builtin_bswap16(original_pixel);
+                ((uint16_t*)image_copy[0])[i] = swapped_pixel;
+            }
+        }
     }
+    // 情况2：源图像像素数小于等于目标缓冲区
+    else if (src_pixels <= dst_pixels)
+    {
+        // 检查是否需要调整尺寸以适应目标缓冲区
+        bool need_scaling = (width != UVC_WIDTH) || (height != UVC_HEIGHT);
+        
+        if (flip_vertical)
+        {
+            if (!need_scaling && width == UVC_WIDTH && height <= UVC_HEIGHT)
+            {
+                // 宽度匹配，高度较小，直接垂直翻转并居中
+                uint32_t vertical_padding = (UVC_HEIGHT - height) / 2;  // 上下边距
+                
+                // 清空整个缓冲区
+                memset(image_copy[0], 0, dst_pixels * sizeof(uint16_t));
+                
+                // 逐行处理并垂直翻转
+                for (uint32_t row = 0; row < height; row++)
+                {
+                    uint32_t src_row_offset = row * width;
+                    uint32_t dst_row_offset = (UVC_HEIGHT - 1 - row - vertical_padding) * UVC_WIDTH;
+                    
+                    for (uint32_t col = 0; col < width; col++)
+                    {
+                        uint16_t original_pixel = rgb_image_ptr[src_row_offset + col];
+                        uint16_t swapped_pixel = ((original_pixel & 0x00FF) << 8) | 
+                                                 ((original_pixel & 0xFF00) >> 8);
+                        ((uint16_t*)image_copy[0])[dst_row_offset + col] = swapped_pixel;
+                    }
+                }
+            }
+            else
+            {
+                // 简单处理：不进行缩放，只处理能放入的部分，并垂直翻转
+                uint32_t rows_to_copy = std::min(height, (uint32_t)UVC_HEIGHT);
+                uint32_t cols_to_copy = std::min(width, (uint32_t)UVC_WIDTH);
+                
+                // 清空整个缓冲区
+                memset(image_copy[0], 0, dst_pixels * sizeof(uint16_t));
+                
+                // 垂直翻转并拷贝
+                for (uint32_t row = 0; row < rows_to_copy; row++)
+                {
+                    uint32_t src_row_offset = row * width;
+                    uint32_t dst_row_offset = (rows_to_copy - 1 - row) * UVC_WIDTH;
+                    
+                    for (uint32_t col = 0; col < cols_to_copy; col++)
+                    {
+                        uint16_t original_pixel = rgb_image_ptr[src_row_offset + col];
+                        uint16_t swapped_pixel = ((original_pixel & 0x00FF) << 8) | 
+                                                 ((original_pixel & 0xFF00) >> 8);
+                        ((uint16_t*)image_copy[0])[dst_row_offset + col] = swapped_pixel;
+                    }
+                }
+            }
+        }
+        else
+        {
+            // 无翻转，直接拷贝并交换字节顺序
+            for (uint32_t i = 0; i < src_pixels; i++)
+            {
+                uint16_t original_pixel = rgb_image_ptr[i];
+                uint16_t swapped_pixel = ((original_pixel & 0x00FF) << 8) | 
+                                         ((original_pixel & 0xFF00) >> 8);
+                ((uint16_t*)image_copy[0])[i] = swapped_pixel;
+            }
+            
+            // 清空剩余缓冲区
+            if (src_pixels < dst_pixels)
+            {
+                memset(((uint16_t*)image_copy[0]) + src_pixels, 0, 
+                       (dst_pixels - src_pixels) * sizeof(uint16_t));
+            }
+        }
+    }
+    // 情况3：源图像像素数大于目标缓冲区
+    else
+    {
+        std::cerr << "Error: Source image (" << width << "x" << height 
+                  << " = " << src_pixels << " pixels) is larger than buffer capacity (" 
+                  << UVC_WIDTH << "x" << UVC_HEIGHT << " = " << dst_pixels 
+                  << " pixels). Operation aborted.\n";
+        return false;
+    }
+    
+    // 发送处理后的图像数据到上位机
+    seekfree_assistant_camera_send();
+    
+    return true;
+}
 
-    return total_sent;
+// ============================================================================
+// 辅助函数（可根据需要添加）
+// ============================================================================
+
+/**
+ * @brief 检查传输模块是否已准备好
+ * @return bool 模块准备状态
+ * 
+ * 可用于在发送图像前检查模块初始化状态和连接状态
+ */
+bool is_transmitter_ready()
+{
+    // 此处可添加更详细的状态检查逻辑
+    return (rgb_image != nullptr);
+}
+
+/**
+ * @brief 释放传输模块资源
+ * 
+ * 在程序退出或模块不再使用时调用，避免内存泄漏
+ */
+void img_transmitter_deinit()
+{
+    if (rgb_image != nullptr)
+    {
+        delete[] rgb_image;
+        rgb_image = nullptr;
+    }
+    
+    // 可根据需要添加TCP客户端关闭逻辑
+    // tcp_client_dev.close();
 }
