@@ -74,20 +74,13 @@ int32_t send_picture_to_Serve()
     {
         send_timer.start();
         is_first_call = false;
+        printf("HTTP流媒体服务器模式运行中...\n");
     }
     
-    // 1. 检查TCP连接状态
-    static bool connection_warning_shown = false;
-    if (!connection_warning_shown)
-    {
-        printf("图像传输客户端已初始化，目标: %s:%d\n", SERVER_IP, SERVER_PORT);
-        connection_warning_shown = true;
-    }
-    
-    // 2. 等待并获取摄像头图像
+    // 1. 等待并获取摄像头图像
     if (uvc.wait_image_refresh() != 0)
     {
-        printf("等待摄像头图像刷新失败\n");
+        // printf("等待摄像头图像刷新失败\n");
         return -1;
     }
     
@@ -98,45 +91,27 @@ int32_t send_picture_to_Serve()
         return -1;
     }
     
-    // 3. 发送灰度图像到服务器
-    send_timer.start();  // 开始发送计时
-    int32_t sent_bytes = img_client.send_gray_raw(img_ptr, UVC_WIDTH, UVC_HEIGHT, 1000);
-    send_timer.stop();   // 结束发送计时
+    // 2. 更新HTTP服务器帧数据
+    send_timer.start();  // 开始计时
+    
+    // 构造cv::Mat但不拷贝数据（引用zf_device_uvc内部缓存）
+    cv::Mat frame(UVC_HEIGHT, UVC_WIDTH, CV_8UC1, img_ptr);
+    camera_server.update_frame(frame);
+    
+    send_timer.stop();   // 结束计时
     
     frame_count++;
     
-    // 4. 处理发送结果
-    if (sent_bytes > 0)
+    // 3. 打印统计信息（每60帧）
+    if (frame_count % 60 == 0)
     {
-        // 成功发送
-        if (frame_count % 10 == 0)  // 每10帧显示一次详细信息
-        {
-            float fps = 1000.0f / send_timer.elapsed_ms();  // 计算本次发送的瞬时FPS
-            
-            printf("[帧号:%04u] 发送成功: %u字节 | 尺寸: %ux%u | 耗时: %dms | FPS: %.1f\n",
-                   frame_count, sent_bytes, UVC_WIDTH, UVC_HEIGHT, 
-                   send_timer.elapsed_ms(), fps);
-        }
-        else
-        {
-            // 普通帧显示简单信息
-            printf("[%04u] ✓ %u字节\n", frame_count, sent_bytes);
-        }
-    }
-    else
-    {
-        // 发送失败
-        printf("[帧号:%04u] 发送失败\n", frame_count);
-        
-        // 可以考虑在这里添加重连逻辑
-        // if (should_reconnect) {
-        //     printf("尝试重新连接服务器...\n");
-        //     img_client.init(SERVER_IP, SERVER_PORT);
-        // }
+        float fps = 1000.0f / (send_timer.elapsed_ms() + 1); // 避免除0
+        printf("[帧号:%04u]推流更新耗时: %dms | 估算FPS: %.1f\n",
+                frame_count, send_timer.elapsed_ms(), fps);
     }
     
-    // 5. 可选：在本地显示屏上显示图像（如果需要）
+    // 4. 在本地显示屏上显示图像
     ips200.show_gray_image(10, 10, img_ptr, UVC_WIDTH, UVC_HEIGHT);
     
-    return sent_bytes;
+    return 1; // 返回正数表示成功
 }

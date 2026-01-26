@@ -41,6 +41,11 @@ void handle_sigint(int)
     g_stop = 1;
 }
 
+void camera_task_func()
+{
+    send_picture_to_Serve();
+}
+
 int main()
 {
 
@@ -70,12 +75,12 @@ int main()
     printf("4. 初始化摄像头...\n");
     // zf_device_uvc uvc;
     uvc.init("/dev/video0");
-    // printf("4.1. TCP图像传输组件初始化...\n");
-    // if (img_client.init(SERVER_IP, SERVER_PORT) != 0) {
-    //     std::cerr << "Failed to init image client to " << SERVER_IP << ":" << SERVER_PORT << "\n";
-    //     // 仍可选择退出或继续尝试；此示例直接退出
-    //     return -1;
-    // }
+    printf("4.1. HTTP图像传输服务器初始化...\n");
+    if (camera_server.start_server(8080) != 0) {
+        printf("HTTP Server启动失败\n");
+    } else {
+        printf("HTTP Server启动成功，端口: 8080\n");
+    }
 
     // 5. 初始化PID控制器
     printf("5. 初始化PID控制器...\n");
@@ -90,6 +95,8 @@ int main()
     zf_driver_pit_rt key_scan;
     zf_driver_pit_rt encoder_get;
     zf_driver_pit_rt pid_control_thread;
+    zf_driver_pit_rt camera_thread;
+
     if (key_scan.init_ms(KEY_SCAN_PERIOD, key_scan_handler, 98, true) != 0)
     {
         printf("定时器初始化失败\n");
@@ -121,8 +128,14 @@ int main()
         printf("pid control thread init successfully,period:%dms\n", PID_CONTROL_PERIOD);
     }
 
-
-
+    if (camera_thread.init_ms(30, camera_task_func, 96, true) != 0)
+    {
+        printf("Camera thread init failed\n");
+    }
+    else
+    {
+        printf("Camera thread init successfully, period: 30ms\n");
+    }
 
     // 主循环，运行菜单系统
     while (true)
