@@ -20,5 +20,5 @@ void camera_test();
 
 void show_all_of_the_component();
 void show_all_of_the_component_without_ips();
-int32_t send_picture_to_Serve();
+void send_picture_to_Serve();
 #endif // __MY_TASK_FUNCTION_HPP__
