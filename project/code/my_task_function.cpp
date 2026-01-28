@@ -69,3 +69,12 @@ void send_picture_to_Serve()
     uvc.wait_image_refresh();
     rgb_img_transmitter(rgb_img_ptr, UVC_WIDTH, UVC_HEIGHT,true);
 }
+
+void tracking()
+{
+    //图像获取与处理
+    image_proc();
+    gray_img_with_centerline_transmitter(img_gray, UVC_WIDTH, IMG_H, Mline, Mline_num, true, true);
+    
+}
+

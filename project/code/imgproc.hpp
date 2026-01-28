@@ -7,7 +7,48 @@
 #include <string>       
 #include <opencv2/opencv.hpp>
 #include <cmath>
+
 #include "my_global.hpp"
+//角点识别
+typedef enum {
+    LOST_PT = 0x01,    //丢线     000001
+    S_PT    = 0x02,    //直道     000010
+    T_PT    = 0x04,    //弯道     000100
+    L_PT    = 0x08,    //L角点    001000
+    Y_PT    = 0x10,    //Y角点    010000
+    INVAL_PT= 0x20,    //无效角点 100000
+
+    //角点组掩码
+    SUPPABLE_PT = L_PT | Y_PT,                  //可补线的边线--L角点 Y角点
+    NORMAL_PT   = S_PT | T_PT,                  //无元素的普通边线--直道 弯道
+    TRABLE_PT   = S_PT | T_PT | L_PT | Y_PT,    //可巡线的边线--直到 弯道 L角点 Y角点
+    INTRABLE_PT = LOST_PT | INVAL_PT            //不可巡线的边线--丢失 无效
+} PT_Judge_TypeDef;
+
+typedef struct{
+    PT_Judge_TypeDef pt,per_pt;
+    uint8 pt_cnt;
+
+    void pt_identify(PT_Judge_TypeDef &out, float nms_val, int linelen);
+} PT_Identify_Typedef;
+
+//状态机
+typedef struct{
+    char id;
+    uint8 flag;
+    void (*func)(void); // 函数指针
+} ElementFlag_TypeDef;
+
+//环岛内部状态机
+typedef enum{
+    init_circle=0,
+    begin_circle,
+    into_circle,
+    in_circle,
+    out_circle,
+    outof_circle
+}Circle_Flag_TypeDef;
+
 
 #define PI 3.14159265358979323846f
 #define clip(value, low, high) \
@@ -51,45 +92,6 @@
 /*------------------------预瞄点参数宏定义------------------------*/
 #define AIM_IDX                 30          //预瞄点索引
 
-//角点识别
-typedef enum {
-    LOST_PT = 0x01,    //丢线     000001
-    S_PT    = 0x02,    //直道     000010
-    T_PT    = 0x04,    //弯道     000100
-    L_PT    = 0x08,    //L角点    001000
-    Y_PT    = 0x10,    //Y角点    010000
-    INVAL_PT= 0x20,    //无效角点 100000
-
-    //角点组掩码
-    SUPPABLE_PT = L_PT | Y_PT,                  //可补线的边线--L角点 Y角点
-    NORMAL_PT   = S_PT | T_PT,                  //无元素的普通边线--直道 弯道
-    TRABLE_PT   = S_PT | T_PT | L_PT | Y_PT,    //可巡线的边线--直到 弯道 L角点 Y角点
-    INTRABLE_PT = LOST_PT | INVAL_PT            //不可巡线的边线--丢失 无效
-} PT_Judge_TypeDef;
-
-typedef struct{
-    PT_Judge_TypeDef pt,per_pt;
-    uint8 pt_cnt;
-
-    void pt_identify(PT_Judge_TypeDef &out, float nms_val, int linelen);
-} PT_Identify_Typedef;
-
-//状态机
-typedef struct{
-    char id;
-    uint8 flag;
-    void (*func)(void); // 函数指针
-} ElementFlag_TypeDef;
-
-//环岛内部状态机
-typedef enum{
-    init_circle=0,
-    begin_circle,
-    into_circle,
-    in_circle,
-    out_circle,
-    outof_circle
-}Circle_Flag_TypeDef;
 
 /*------------------------其他宏定义------------------------*/
 #define IMG_AT(img, x, y)   (img[(y) * (IMG_W) + (x)])     // 用于访问图像数据
@@ -131,8 +133,8 @@ void save_per_map(void);
 void point_per(const cv::Mat& M, float x, float y, int& x_out, int& y_out);
 
 void line_process(uint8_t height_start, uint8_t height_min);
-void search_Lline(uint8_t height_start, uint8_t height_min);
-void search_Rline(uint8_t height_start, uint8_t height_min);
+void search_Lline(int height_start, int height_min);
+void search_Rline(int height_start, int height_min);
 void perspective_transform_points(int pts_in[][2],int num,float pts_out[][2]);
 void blur_points(float pts_in[][2], int num, float pts_out[][2]);   //三角滤波
 void resample_points(float pts_in[][2], int num1, float pts_out[][2], int *num2);   //点集等距采样

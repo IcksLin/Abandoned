@@ -30,6 +30,11 @@ uint32 tcp_send_wrap(const uint8 *buf, uint32 len);
 uint32 tcp_read_wrap(uint8 *buf, uint32 len);
 bool img_transmitter_init();
 bool rgb_img_transmitter(const uint16_t* rgb_image_ptr, uint32_t width, uint32_t height, bool flip_vertical = false);
+bool gray_img_with_centerline_transmitter(const uint8_t* gray_image_ptr, 
+                                          uint32_t width, uint32_t height,
+                                          float (*Mline)[2], int Mline_num,
+                                          bool flip_vertical,
+                                          bool flip_horizontal);
 bool is_transmitter_ready();
 void img_transmitter_deinit();
 

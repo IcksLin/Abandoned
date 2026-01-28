@@ -10,6 +10,7 @@
 
 
 #include "my_pid.hpp"
+#include <cmath>
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介 构造函数
@@ -74,14 +75,15 @@ MyPID::~MyPID()
 // 使用示例 pid.init(1.0f, 0.01f, 0.1f, 0.1f, 100.0f, -100.0f, 1000.0f, -1000.0f);
 // 备注信息 初始化PID控制器的基本参数
 //-------------------------------------------------------------------------------------------------------------------
-void MyPID::init(float Kp, float Ti, float Kd,
+void MyPID::init(float Kp, float Ti, float ki_change, float Kd,
                  float error_filter,
                  float output_max, float output_min,
                  float integral_max, float integral_min)
 {
     this->Kp = Kp;
     this->Ti = Ti;
-    this->Ki = Kp * Ti * 5.20f; // 积分增益，可根据实际调整
+    this->ki_change = ki_change;
+    this->Ki = Kp * Ti * ki_change; // 积分增益，可根据实际调整
     this->Kd = Kd;
     this->integral = 0.0f;
     this->prev_error = 0.0f;
@@ -361,3 +363,75 @@ bool MyPID::is_enabled(void) const
 {
     return enable;
 }
+
+//方向控制用PID--------------------------------------------------------------------------------------------------------
+PDController::PDController() 
+    : Kp(0.5f), Kp2(0.0f), Kd(0.05f), 
+      last_error(0.0f), error(0.0f),        
+      output_limit(100.0f) {               
+}
+
+PDController::PDController(float kp, float kp2, float kd, float limit)
+    : Kp(kp), Kp2(kp2), Kd(kd), 
+      last_error(0.0f), error(0.0f),        
+      output_limit(std::abs(limit)) {      
+    if (output_limit < 0.0f) {
+        output_limit = 100.0f;  
+    }
+}
+// ==================== 参数设置函数 ====================
+
+void PDController::setParameters(float kp, float kp2, float kd) {
+    Kp = kp;
+    Kp2 = kp2;
+    Kd = kd;
+}
+
+void PDController::setKp(float kp) {
+    Kp = kp;
+}
+
+void PDController::setKp2(float kp2) {
+    Kp2 = kp2;
+}
+
+void PDController::setKd(float kd) {
+    Kd = kd;
+}
+
+void PDController::setOutputLimit(float limit) {
+    output_limit = std::abs(limit);
+}
+
+void PDController::reset() {
+    last_error = 0.0f;
+    error = 0.0f;
+}
+
+float PDController::compute(float actual, float target) {
+    // 计算误差
+    error = target - actual;
+    
+    // 计算误差变化率
+    float error_delta = error - last_error;
+    
+    // 计算控制输出
+    float output = error * Kp                     // 线性比例项
+                 + error * std::fabs(error) * Kp2  // 非线性比例项
+                 + error_delta * Kd;              // 微分项
+    
+    // 更新误差记录
+    last_error = error;
+    
+    // 输出限幅
+    if (output > output_limit) {
+        output = output_limit;
+    } else if (output < -output_limit) {
+        output = -output_limit;
+    }
+    
+    return output;
+}
+
+
+

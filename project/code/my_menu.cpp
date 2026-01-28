@@ -381,7 +381,9 @@ void MyMenu::menu_mode_0(uint8 cl_action)
     }
     
     // 显示模式0信息
-    show_all_of_the_component_without_ips();
+    // show_all_of_the_component_without_ips();
+    printf("0.1");
+    tracking();
 }
 
 void MyMenu::menu_mode_1(uint8 cl_action)
@@ -400,7 +402,10 @@ void MyMenu::menu_mode_1(uint8 cl_action)
     }
     
     // 显示模式1信息
-    send_picture_to_Serve();
+    // send_picture_to_Serve();
+    printf("0.1");
+
+    tracking();
 }
 
 void MyMenu::menu_mode_2(uint8 cl_action)
@@ -419,8 +424,9 @@ void MyMenu::menu_mode_2(uint8 cl_action)
     }
     
     // 显示模式2信息
-    ips_display->clear();
-    ips_display->show_string(0, 0, "Mode 2 Active");
+    printf("0.1");
+
+    tracking();
 }
 
 void MyMenu::menu_mode_3(uint8 cl_action)

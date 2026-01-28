@@ -52,7 +52,7 @@
 
 class zf_device_uvc
 {
-private:
+public:
     cv::VideoCapture  cap;        // opencv摄像头句柄
     cv::Mat           frame_mjpg; // MJPG原始图像缓存
     cv::Mat           frame_gray; // 灰度图像缓存

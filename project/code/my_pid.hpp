@@ -18,6 +18,8 @@
 #define PID_LIMIT(val, min, max) (((val) < (min)) ? (min) : ((val) > (max)) ? (max) : (val))
 #define PID_ABS(x) ((x) > 0 ? (x) : -(x))
 
+
+//轮胎速度控制用--------------------------------------------------------------------
 /*
  * PID控制器类（增强版）
  * 在原有基础上扩展了主流高级功能，包括积分分离、反向控制、微分低通滤波、使能开关、先行项等。
@@ -28,6 +30,7 @@ private:
     // 基础PID参数
     float Kp, Ki, Kd;
     float Ti;                 // 积分时间常数
+    float ki_change;          // 积分增益
     float integral;
     float prev_error, last_error, before_last_error;
     float error_filter;       // 死区阈值
@@ -73,6 +76,7 @@ public:
 // 函数简介 PID控制器初始化
 // 参数说明 Kp              比例增益
 // 参数说明 Ti              积分时间常数
+// 参数说明 ki_change       积分增益
 // 参数说明 Kd              微分增益
 // 参数说明 error_filter    死区阈值
 // 参数说明 output_max      输出最大值
@@ -80,10 +84,10 @@ public:
 // 参数说明 integral_max    积分最大值
 // 参数说明 integral_min    积分最小值
 // 返回参数 无
-// 使用示例 pid.init(1.0f, 0.01f, 0.1f, 0.1f, 100.0f, -100.0f, 1000.0f, -1000.0f);
-// 备注信息 初始化PID控制器的基本参数
+// 使用示例 pid.init(1.0f, 0.01f,0, 0.1f, 0.1f, 100.0f, -100.0f, 1000.0f, -1000.0f);
+// 备注信息 初始化PID控制器的基本参数,当增益设置为0时表示禁用积分
 //-------------------------------------------------------------------------------------------------------------------
-    void init(float Kp, float Ti, float Kd,
+    void init(float Kp, float Ti, float ki_change, float Kd,
               float error_filter,
               float output_max, float output_min,
               float integral_max, float integral_min);
@@ -211,5 +215,45 @@ public:
 //-------------------------------------------------------------------------------------------------------------------
     bool is_enabled(void) const;
 };
+
+//方向控制用PID--------------------------------------------------------------------------------------------------------
+class PDController {
+private:
+    // PID 参数
+    float Kp;           // 比例系数
+    float Kp2;          // 非线性比例系数
+    float Kd;           // 微分系数
+    
+    // 状态变量
+    float last_error;   // 上一次误差
+    float error;        // 当前误差
+    
+    // 限制参数
+    float output_limit; // 输出限制
+
+public:
+    PDController();
+    
+    PDController(float kp, float kp2, float kd, float limit);
+    
+    ~PDController() = default;
+    
+    PDController(const PDController&) = delete;
+    PDController& operator=(const PDController&) = delete;
+    
+    void setParameters(float kp, float kp2, float kd);
+    
+    void setKp(float kp);
+    void setKp2(float kp2);
+    void setKd(float kd);
+    
+    void setOutputLimit(float limit);
+    
+    void reset();
+    
+    float compute(float actual, float target);
+};
+
+
 
 #endif

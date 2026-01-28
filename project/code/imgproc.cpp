@@ -9,7 +9,7 @@ Mat frame_color;                // 用于处理的图像帧
 Mat frame_gray;                 // 灰度图像帧
 Mat frame_bin;                  // 二值图像帧
 
-uint8_t* img_gray;              // 灰度图像指针
+uint8_t* img_gray = nullptr;              // 灰度图像指针
 AimPoint_TypeDef aim_point; 
 
 
@@ -288,7 +288,8 @@ void findline_lefthand_adaptive(int x, int y){
             step++;
             turn = 0;
         }
-        frame_color.at<Vec3b>(y,x) = Vec3b(0,0,255);
+        
+        uvc.frame_rgb.at<Vec3b>(y,x) = Vec3b(0,0,255);
     }
     Lline_num = step;
 }
@@ -328,135 +329,272 @@ void findline_righthand_adaptive(int x, int y){
             step++;
             turn = 0;
         }
-        frame_color.at<Vec3b>(y,x) = Vec3b(0,255,0);
+        uvc.frame_rgb.at<Vec3b>(y,x) = Vec3b(0,0,255);
     }
     Rline_num = step;
 }
 
 // 寻找左起始点并巡线
-void search_Lline(uint8_t height_start, uint8_t height_min){
-    uint8_t begin_x,begin_y;
-    bool found_flag;
+// 修正版：使用有符号 int，加入边界检查，避免 wrap-around
+void search_Lline(int height_start, int height_min)
+{
+    int begin_x, begin_y;
+    bool found_flag = false;
 
-    /*寻找左边起始线*/
-    begin_y = height_start - all_block_size/2 - 2;  //从指定起点开始向上
-    begin_x = all_block_size/2 + 1;                 //最左边 要大于all_block_size/2
-    found_flag = 0;
+    // 从左侧开始
+    begin_y = height_start - all_block_size / 2 - 2;  // 可能为负，下面会裁剪
+    begin_x = all_block_size / 2 + 1;
 
-    //如果该起始点为边线外则（即黑点）按x轴向内寻找
-    if (IMG_AT(img_gray, begin_x, begin_y) <= start_thre){
-        //最多到中心
-        for(;begin_x<IMG_W/2 - CAR_IMGAGE_W/2;begin_x++) {
-            uint8_t i=0;
-            //发现白点
-            if (IMG_AT(img_gray, begin_x, begin_y) > start_thre){
-                //向内再延伸check_dis个像素点 判断是否为噪点
-                for (i=1;i<=CHECK_DIS;i++){
-                    //为噪点
-                    if (IMG_AT(img_gray, begin_x+i, begin_y) <= start_thre){
-                        begin_x += i+1; //再移动对应个像素点后继续
+    // 裁剪起点到合法范围
+    if (begin_y < 0) begin_y = 0;
+    if (begin_y >= IMG_H) begin_y = IMG_H - 1;
+    if (begin_x < 0) begin_x = 0;
+    if (begin_x >= IMG_W) begin_x = IMG_W - 1;
+
+    // 如果起始点为黑点（边线外）则按 x 轴向内寻找白点
+    auto safe_IMG_AT = [&](int x, int y)->int {
+        if (x < 0 || x >= (int)IMG_W || y < 0 || y >= (int)IMG_H) return 0; // treat out-of-bounds as black
+        return IMG_AT(img_gray, x, y);
+    };
+
+    if (safe_IMG_AT(begin_x, begin_y) <= start_thre)
+    {
+        int right_limit = IMG_W / 2 - CAR_IMGAGE_W / 2;
+        if (right_limit < 0) right_limit = 0;
+        // iterate x to the right, but ensure we don't overflow
+        for (int x = begin_x; x < right_limit; /* increment inside */)
+        {
+            int i = 0;
+            if (safe_IMG_AT(x, begin_y) > start_thre)
+            {
+                // 检查后续 CHECK_DIS 个像素是否为噪点, 且不要越界
+                bool is_noise = false;
+                for (i = 1; i <= CHECK_DIS; ++i)
+                {
+                    int xi = x + i;
+                    if (xi >= (int)IMG_W) { is_noise = true; break; } // 到边界视作噪点/结束
+                    if (safe_IMG_AT(xi, begin_y) <= start_thre)
+                    {
+                        // 是噪点，跳过到 x + i + 1（但确保不越界）
+                        x = x + i + 1;
+                        if (x >= (int)IMG_W) x = IMG_W - 1;
+                        is_noise = true;
                         break;
                     }
                 }
+                if (is_noise)
+                {
+                    // 继续主循环（x 已更新）
+                    if (x >= right_limit) break;
+                    continue;
+                }
             }
-            //不是噪点
-            if (i > CHECK_DIS){
-                found_flag = 1;
+
+            // 如果 i > CHECK_DIS 表示不是噪点（即连续 CHECK_DIS 点都为白）
+            // 但是上面我们 only set i upto CHECK_DIS; check condition:
+            // If last loop ran fully (i == CHECK_DIS + 1) -> not noise
+            // Simpler: re-evaluate region to decide
+            // 直接判定当前点及周围是否满足为真实边线
+            bool accept = false;
+            // 检查当前点后续 CHECK_DIS 是否全为白 (作为简单判定)
+            bool ok = true;
+            for (int k = 0; k <= CHECK_DIS; ++k)
+            {
+                int xi = x + k;
+                if (xi >= (int)IMG_W || safe_IMG_AT(xi, begin_y) <= start_thre) { ok = false; break; }
+            }
+            if (ok) accept = true;
+
+            if (accept)
+            {
+                begin_x = x;
+                found_flag = true;
                 break;
+            }
+            else
+            {
+                // 否则移动到下一个像素继续
+                x++;
+                if (x >= right_limit) break;
             }
         }
     }
-    //否则（即白点）按y轴
-    else{
-        for (;begin_y > height_min;begin_y--){
-            uint8_t i=0;
-            //发现黑点 则判断是否为噪点
-            if (IMG_AT(img_gray, begin_x, begin_y) <= start_thre){
-                //向上再延伸check_dis个像素点 判断是否为噪点
-                for (i=1;i<=CHECK_DIS;i++){
-                    //为噪点
-                    if (IMG_AT(img_gray, begin_x, begin_y-i) > start_thre){
-                        begin_y -= i+1; //再移动对应个像素点后继续
+    else
+    {
+        // 起点为白点，则按 y 轴向上寻找黑点
+        for (int y = begin_y; y > height_min && y >= 0; --y)
+        {
+            int i = 0;
+            if (safe_IMG_AT(begin_x, y) <= start_thre)
+            {
+                bool is_noise = false;
+                for (i = 1; i <= CHECK_DIS; ++i)
+                {
+                    int yi = y - i;
+                    if (yi < 0) { is_noise = true; break; }
+                    if (safe_IMG_AT(begin_x, yi) > start_thre)
+                    {
+                        // 噪点，继续从 y - (i+1) 处搜索
+                        y = y - (i + 1);
+                        if (y < height_min) y = height_min;
+                        is_noise = true;
                         break;
                     }
                 }
+                if (is_noise) continue;
             }
-            //不是噪点
-            if (i > CHECK_DIS) {
-                found_flag = 1;
+
+            // 不是噪点，判定为起点
+            // 简单判定：当前点连续 CHECK_DIS 皆为黑
+            bool ok = true;
+            for (int k = 0; k <= CHECK_DIS; ++k)
+            {
+                int yi = y - k;
+                if (yi < 0 || safe_IMG_AT(begin_x, yi) > start_thre) { ok = false; break; }
+            }
+            if (ok)
+            {
+                begin_y = y;
+                found_flag = true;
                 break;
             }
+            // 否则继续上移
         }
     }
-    //如果找到起始点则开始巡左线
-    if (found_flag) {
+
+    if (found_flag)
+    {
         Lline_num = POINTS_MAX_LEN;
-        //开始巡线
-        findline_lefthand_adaptive(begin_x, begin_y);   //左手巡线(输入原始图像）
+        findline_lefthand_adaptive(begin_x, begin_y);
     }
-    else Lline_num = 0;
+    else
+    {
+        Lline_num = 0;
+    }
 }
 
 // 寻找右起始点并巡线
-void search_Rline(uint8_t height_start, uint8_t height_min){
-    uint8_t begin_x,begin_y;
-    bool found_flag;
-    /*寻找右边边起始线*/
-    begin_y = height_start - all_block_size/2 - 2;  //从指定起点开始向上
-    begin_x = IMG_W - all_block_size/2 - 2;  //要比 IMG_W - all_block_size/2 - 1 小
-    found_flag = 0;
-    //如果该起始点为边线外则（即黑点）按x轴向内寻找
-    if (IMG_AT(img_gray, begin_x, begin_y) <= start_thre){
-        //最多到中心
-        for(;begin_x>IMG_W/2+CAR_IMGAGE_W/2;begin_x--) {
-            uint8_t i=0;
-            //发现白点
-            if (IMG_AT(img_gray, begin_x, begin_y) > start_thre){
-                //向内再延伸check_dis个像素点 判断是否为噪点
-                for (i=1;i<=CHECK_DIS;i++){
-                    //为噪点
-                    if (IMG_AT(img_gray, begin_x-i, begin_y) <= start_thre){
-                        begin_x -= i+1; //再移动对应个像素点后继续
+// 修正版右侧搜索：同样用 int，加入边界检查
+void search_Rline(int height_start, int height_min)
+{
+    int begin_x, begin_y;
+    bool found_flag = false;
+
+    begin_y = height_start - all_block_size / 2 - 2;
+    begin_x = IMG_W - all_block_size / 2 - 2;
+
+    if (begin_y < 0) begin_y = 0;
+    if (begin_y >= IMG_H) begin_y = IMG_H - 1;
+    if (begin_x < 0) begin_x = 0;
+    if (begin_x >= IMG_W) begin_x = IMG_W - 1;
+
+    auto safe_IMG_AT = [&](int x, int y)->int {
+        if (x < 0 || x >= (int)IMG_W || y < 0 || y >= (int)IMG_H) return 0;
+        return IMG_AT(img_gray, x, y);
+    };
+
+    if (safe_IMG_AT(begin_x, begin_y) <= start_thre)
+    {
+
+        int left_limit = IMG_W / 2 + CAR_IMGAGE_W / 2;
+        if (left_limit < 0) left_limit = 0;
+        // iterate x to the left
+        for (int x = begin_x; x > left_limit; /* decrement inside */)
+        {
+            int i = 0;
+            if (safe_IMG_AT(x, begin_y) > start_thre)
+            {
+                // 检查左侧 CHECK_DIS 个像素
+                bool is_noise = false;
+                for (i = 1; i <= CHECK_DIS; ++i)
+                {
+                    int xi = x - i;
+                    if (xi < 0) { is_noise = true; break; } // 到边界当噪点处理
+                    if (safe_IMG_AT(xi, begin_y) <= start_thre)
+                    {
+                        // 噪点，移动到 x - (i+1)
+                        x = x - (i + 1);
+                        if (x < 0) x = 0;
+                        is_noise = true;
                         break;
                     }
                 }
+                if (is_noise)
+                {
+                    if (x <= left_limit) break;
+                    continue;
+                }
             }
-            //不是噪点
-            if (i > CHECK_DIS){
-                found_flag = 1;
+
+            // 简单判定：检查当前及其左侧 CHECK_DIS 是否全为��� -> 接受
+            bool ok = true;
+            for (int k = 0; k <= CHECK_DIS; ++k)
+            {
+                int xi = x - k;
+                if (xi < 0 || safe_IMG_AT(xi, begin_y) <= start_thre) { ok = false; break; }
+            }
+
+            if (ok)
+            {
+                begin_x = x;
+                found_flag = true;
+                break;
+            }
+            else
+            {
+                // 继续左移
+                x--;
+                if (x <= left_limit) break;
+            }
+        }
+    }
+    else
+    {
+        for (int y = begin_y; y > height_min && y >= 0; --y)
+        {
+            int i = 0;
+            if (safe_IMG_AT(begin_x, y) <= start_thre)
+            {
+                bool is_noise = false;
+                for (i = 1; i <= CHECK_DIS; ++i)
+                {
+                    int yi = y - i;
+                    if (yi < 0) { is_noise = true; break; }
+                    if (safe_IMG_AT(begin_x, yi) > start_thre)
+                    {
+                        y = y - (i + 1);
+                        if (y < height_min) y = height_min;
+                        is_noise = true;
+                        break;
+                    }
+                }
+                if (is_noise) continue;
+            }
+
+            bool ok = true;
+            for (int k = 0; k <= CHECK_DIS; ++k)
+            {
+                int yi = y - k;
+                if (yi < 0 || safe_IMG_AT(begin_x, yi) > start_thre) { ok = false; break; }
+            }
+            if (ok)
+            {
+                begin_y = y;
+                found_flag = true;
                 break;
             }
         }
     }
-    //否则（即白点）按y轴
-    else{
-        for (;begin_y > height_min;begin_y--){
-            uint8_t i=0;
-            //在阈值范围内 则判断是否为噪点
-            if (IMG_AT(img_gray, begin_x, begin_y) <= start_thre){
-                //向上再延伸check_dis个像素点 判断是否为噪点
-                for (i=1;i<=CHECK_DIS;i++){
-                    //为噪点
-                    if (IMG_AT(img_gray, begin_x, begin_y-i) > start_thre){
-                        begin_y -= i+1; //再移动对应个像素点后继续
-                        break;
-                    }
-                }
-            }
-            //不是噪点
-            if (i > CHECK_DIS) {
-                found_flag = 1;
-                break;
-            }
-        }
-    }
-    //如果找到则巡线
-    if (found_flag) {
+
+    if (found_flag)
+    {
         Rline_num = POINTS_MAX_LEN;
-        //开始巡线
-        findline_righthand_adaptive(begin_x, begin_y);   //右手巡线(输入原始图像）
+        findline_righthand_adaptive(begin_x, begin_y);
     }
-    else Rline_num = 0;
+    else
+    {
+        Rline_num = 0;
+    }
 }
 
 // 对点集三角滤波

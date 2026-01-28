@@ -25,21 +25,13 @@ std::atomic<bool> circle_flag(0);      //圆环减速标志位
 void image_proc(){   
     /*----------图像处理----------*/
     // 等待采样数据
-    // Image_Get(frame_color);
-    gray_img_ptr = uvc.get_gray_image_ptr();
     uvc.wait_image_refresh();
-    frame_color = cv::Mat(UVC_HEIGHT, UVC_WIDTH, CV_8UC3, gray_img_ptr);
+    img_gray = uvc.get_gray_image_ptr();
 
-    // 转换
-    cv::cvtColor(frame_color,frame_gray,cv::COLOR_BGR2GRAY);    // 转换灰度帧
     start_thre = get_otsu_thres(img_gray,0,IMG_W,TRACK_HEIGHT_MAX,IMG_H);      // 二值化
-    
     //状态机决策
     sta_decision();
-    //计算偏差角
-    // aim_angle_compute();
-    //偏差角赋值
-    // Turn_Set_Angle(aim_point.angle);
+
 }
 
 /**
@@ -207,21 +199,25 @@ void sta_decision(void){
     //初始状态为不巡线 即保持上次状态
     aim_point.flag = 0;
     cur_sta->func();
-
     /*确定最终巡线*/
-    if (aim_point.flag){
+    std::cout << "是否进入寻线：" << aim_point.flag << std::endl;
+    if (1){
+        std ::cout << "巡线选择："<<std::endl;
         //不巡或无效或丢失的线
         if (Mline == L2Mline && (Lline_pt & TRABLE_PT)) {
             Mline_num = sampled_Lline_num;
             track_leftline();
+            std ::cout << "左边线" << std::endl;
         }
         else if (Mline == R2Mline && (Rline_pt & TRABLE_PT)) {
             Mline_num = sampled_Rline_num;
             track_rightline();
+            std ::cout << "右边线" << std::endl;
         }
         else {
             //不巡线
             aim_point.flag = 0;
+            std::cout << "不巡线" << std::endl;
         }
     }
 }
@@ -230,11 +226,11 @@ void sta_decision(void){
  * @brief 正常行驶状态机处理 
  */
 void normal_proc(void){
-    // 边线处理
+    // // 边线处理
     line_process(IMG_H,IMG_H/2);
-    //角点识别
-    lines_ptIdentify();
+    // //角点识别
 
+    lines_ptIdentify();
     //预瞄点赋值
     aim_point.idx = AIM_IDX;
 

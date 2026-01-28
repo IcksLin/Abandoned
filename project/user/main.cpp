@@ -35,11 +35,6 @@
 
 #include "my_global.hpp"
 
-static volatile sig_atomic_t g_stop = 0;
-void handle_sigint(int)
-{
-    g_stop = 1;
-}
 
 int main()
 {
@@ -70,17 +65,13 @@ int main()
     printf("4. 初始化摄像头...\n");
     // zf_device_uvc uvc;
     uvc.init("/dev/video0");
-    // printf("4.1. TCP图像传输组件初始化...\n");
-    // if (img_client.init(SERVER_IP, SERVER_PORT) != 0) {
-    //     std::cerr << "Failed to init image client to " << SERVER_IP << ":" << SERVER_PORT << "\n";
-    //     // 仍可选择退出或继续尝试；此示例直接退出
-    //     return -1;
-    // }
+
 
     // 5. 初始化PID控制器
     printf("5. 初始化PID控制器...\n");
-    pid_r.init(1.5, 0.03, 0.1, 1, 120, -120, 60, -60);
-    pid_l.init(1.5, 0.03, 0.1, 1, 120, -120, 60, -60);
+    pid_r.init(1.5, 0.03, 2.20f, 0.1, 1, 120, -120, 60, -60);
+    pid_l.init(1.5, 0.03, 2.20f, 0.1, 1, 120, -120, 60, -60);
+    pid_angle.setParameters(4.0f, 0.0f, 0.1f);
 
     // 6. 初始化菜单系统
     printf("6. 初始化菜单系统...\n");

@@ -76,6 +76,7 @@
 #include "my_task_function.hpp"
 #include "motor.hpp"
 #include "my_timestamp.hpp"
+#include "decision.hpp"
 #include "my_key.hpp"
 #include "my_menu.hpp"
 #include "my_pid.hpp"

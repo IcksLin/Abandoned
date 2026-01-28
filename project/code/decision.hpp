@@ -2,6 +2,7 @@
 #define __DECISION_HPP__
 
 #include "zf_common_typedef.hpp"
+// #include "my_global.hpp"
 #include "imgproc.hpp"
 
 extern std::atomic<bool> circle_flag;
