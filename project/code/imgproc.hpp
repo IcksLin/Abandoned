@@ -117,6 +117,8 @@ typedef struct{
 extern int Lline_num, Rline_num;
 extern int sampled_Lline_num, sampled_Rline_num;
 extern int Mline_num;
+// 边线数组声明
+extern int Lline[][2], Rline[][2];                      // 原始边线
 extern float sampled_Lline[][2],sampled_Rline[][2];     // 等距采样
 extern float L2Mline[][2], R2Mline[][2];                // 左右得到的中线
 extern float (*Mline)[2];                               // 最终中线

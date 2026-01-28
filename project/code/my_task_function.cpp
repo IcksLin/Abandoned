@@ -77,13 +77,14 @@ void tracking()
     
     // 传输灰度图像 + 三条边线（左边线、右边线、中线）
     // 参数说明：
-    //   - sampled_Lline, sampled_Lline_num: 左边线坐标和点数（蓝色）
-    //   - sampled_Rline, sampled_Rline_num: 右边线坐标和点数（红色）
+    //   - Lline, Lline_num: 原始左边线坐标和点数（蓝色）
+    //   - Rline, Rline_num: 原始右边线坐标和点数（红色）
     //   - Mline, Mline_num: 中线坐标和点数（绿色）
     //   - true, true: 垂直翻转和水平翻转（根据你的摄像头安装方向调整）
+    // 注意：Lline和Rline是int类型，需要reinterpret_cast转换为float类型
     gray_img_with_centerline_transmitter(img_gray, UVC_WIDTH, IMG_H, 
-                                        sampled_Lline, sampled_Lline_num,
-                                        sampled_Rline, sampled_Rline_num,
+                                        reinterpret_cast<float(*)[2]>(Lline), Lline_num,
+                                        reinterpret_cast<float(*)[2]>(Rline), Rline_num,
                                         Mline, Mline_num,
                                         true, true);
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
