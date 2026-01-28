@@ -67,8 +67,6 @@ void line_process(uint8_t height_start, uint8_t height_min){
     // 左右巡线
     search_Lline(height_start, height_min);
     search_Rline(height_start, height_min);
-
-
     // 点集透视
     perspective_transform_points(Lline,Lline_num,per_Lline);
     // 点集滤波
@@ -79,13 +77,14 @@ void line_process(uint8_t height_start, uint8_t height_min){
     local_angle_points(sampled_Lline,sampled_Lline_num,dangle_Lline);
     // 极大角度
     nms_angle(dangle_Lline,sampled_Lline_num,&nms_Lline,&nms_Lline_idx);
+    track_leftline();
+
     // 右边线处理
     perspective_transform_points(Rline,Rline_num,per_Rline);
     blur_points(per_Rline,Rline_num,blurred_Rline);
     resample_points(blurred_Rline,Rline_num,sampled_Rline,&sampled_Rline_num);
     local_angle_points(sampled_Rline,sampled_Rline_num,dangle_Rline);
     nms_angle(dangle_Rline,sampled_Rline_num,&nms_Rline,&nms_Rline_idx);
-    track_leftline();
     track_rightline();
     
 }

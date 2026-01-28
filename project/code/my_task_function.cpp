@@ -87,6 +87,16 @@ void tracking()
                                         reinterpret_cast<float(*)[2]>(Rline), Rline_num,
                                         Mline, Mline_num,
                                         true, true);
+
+    ips200.show_gray_image(0,0,img_gray,UVC_WIDTH,IMG_H);
+    for(int i=0;i<Lline_num;i++){
+        ips200.draw_point(Lline[i][0],Lline[i][1],RGB565_BLUE);
+    }
+    for (int i = 0; i < Rline_num; i++)
+    {
+        ips200.draw_point(Rline[i][0], Rline[i][1], RGB565_RED);
+    }
+    
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
 }
 

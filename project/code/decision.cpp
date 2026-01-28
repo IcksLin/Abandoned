@@ -26,11 +26,32 @@ void image_proc(){
     /*----------图像处理----------*/
     // 等待采样数据
     uvc.wait_image_refresh();
-    img_gray = uvc.get_gray_image_ptr();
+    //采集并180度倒转图像，补偿摄像头倒转安置
+    uint8* temp_gray_ptr = uvc.get_gray_image_ptr();
+     if (temp_gray_ptr == nullptr) {
+        printf("Error: Unable to get gray image from UVC device.\n");
+        return ;
+    }
+    if (img_gray == nullptr) {
+        img_gray = new uint8_t[IMG_W * IMG_H];
+    }
+    for (int y = 0; y < IMG_H; y++) {
+        for (int x = 0; x < IMG_W; x++) {
+            // 计算原始位置（翻转后）
+            int src_y = IMG_H - 1 - y;
+            int src_x = IMG_W - 1 - x;
+            
+            // 拷贝像素
+            img_gray[y * IMG_W + x] = temp_gray_ptr[src_y * IMG_W + src_x];
+        }
+    }
+
+    // img_gray = uvc.get_gray_image_ptr();
 
     start_thre = get_otsu_thres(img_gray,0,IMG_W,TRACK_HEIGHT_MAX,IMG_H);      // 二值化
     //状态机决策
     line_process(IMG_H,IMG_H/2);
+    // sta_decision();
 
 }
 
@@ -200,24 +221,19 @@ void sta_decision(void){
     aim_point.flag = 0;
     cur_sta->func();
     /*确定最终巡线*/
-    std::cout << "是否进入寻线：" << aim_point.flag << std::endl;
     if (aim_point.flag){
-        std ::cout << "巡线选择："<<std::endl;
         //不巡或无效或丢失的线
         if (Mline == L2Mline && (Lline_pt & TRABLE_PT)) {
             Mline_num = sampled_Lline_num;
             track_leftline();
-            std ::cout << "左边线" << std::endl;
         }
         else if (Mline == R2Mline && (Rline_pt & TRABLE_PT)) {
             Mline_num = sampled_Rline_num;
             track_rightline();
-            std ::cout << "右边线" << std::endl;
         }
         else {
             //不巡线
             aim_point.flag = 0;
-            std::cout << "不巡线" << std::endl;
         }
     }
 }
