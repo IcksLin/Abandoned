@@ -75,6 +75,7 @@ void tracking()
     //图像获取与处理
     image_proc();
     gray_img_with_centerline_transmitter(img_gray, UVC_WIDTH, IMG_H, Mline, Mline_num, true, true);
+    // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
     
 }
 

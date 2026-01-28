@@ -30,7 +30,7 @@ void image_proc(){
 
     start_thre = get_otsu_thres(img_gray,0,IMG_W,TRACK_HEIGHT_MAX,IMG_H);      // 二值化
     //状态机决策
-    sta_decision();
+    line_process(IMG_H,IMG_H/2);
 
 }
 
@@ -201,7 +201,7 @@ void sta_decision(void){
     cur_sta->func();
     /*确定最终巡线*/
     std::cout << "是否进入寻线：" << aim_point.flag << std::endl;
-    if (1){
+    if (aim_point.flag){
         std ::cout << "巡线选择："<<std::endl;
         //不巡或无效或丢失的线
         if (Mline == L2Mline && (Lline_pt & TRABLE_PT)) {

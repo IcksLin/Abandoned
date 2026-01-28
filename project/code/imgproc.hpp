@@ -1,6 +1,7 @@
 #ifndef _IMGPROC_HPP__
 #define _IMGPROC_HPP_
 #include "zf_common_typedef.hpp"
+#include "zf_device_uvc.hpp"
 #include <iostream>      
 #include <fstream>       
 #include <iomanip>       
@@ -8,7 +9,7 @@
 #include <opencv2/opencv.hpp>
 #include <cmath>
 
-#include "my_global.hpp"
+extern zf_device_uvc uvc;
 //角点识别
 typedef enum {
     LOST_PT = 0x01,    //丢线     000001

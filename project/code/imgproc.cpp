@@ -1,4 +1,5 @@
 #include "imgproc.hpp"
+// #include "my_global.hpp"
 using namespace cv;
 
 /*决策变量******************/
@@ -67,33 +68,26 @@ void line_process(uint8_t height_start, uint8_t height_min){
     search_Lline(height_start, height_min);
     search_Rline(height_start, height_min);
 
-    // 巡到的线小于LINE_LOST_LENGTH个则判断为丢线 不进行后续处理
-    //左边线
-    if (Lline_num <= LINE_LOST_LENGTH)
-        sampled_Lline_num = 0;  //表示丢线
-    else{
-        // 点集透视
-        perspective_transform_points(Lline,Lline_num,per_Lline);
-        // 点集滤波
-        blur_points(per_Lline,Lline_num,blurred_Lline);
-        // 点集采样
-        resample_points(blurred_Lline,Lline_num,sampled_Lline,&sampled_Lline_num);
-        // 点集角度
-        local_angle_points(sampled_Lline,sampled_Lline_num,dangle_Lline);
-        // 极大角度
-        nms_angle(dangle_Lline,sampled_Lline_num,&nms_Lline,&nms_Lline_idx);
-    }
 
-    //右边线
-    if (Rline_num <= LINE_LOST_LENGTH)
-        sampled_Rline_num = 0;  //表示丢线
-    else{
-        perspective_transform_points(Rline,Rline_num,per_Rline);
-        blur_points(per_Rline,Rline_num,blurred_Rline);
-        resample_points(blurred_Rline,Rline_num,sampled_Rline,&sampled_Rline_num);
-        local_angle_points(sampled_Rline,sampled_Rline_num,dangle_Rline);
-        nms_angle(dangle_Rline,sampled_Rline_num,&nms_Rline,&nms_Rline_idx);
-    }
+    // 点集透视
+    perspective_transform_points(Lline,Lline_num,per_Lline);
+    // 点集滤波
+    blur_points(per_Lline,Lline_num,blurred_Lline);
+    // 点集采样
+    resample_points(blurred_Lline,Lline_num,sampled_Lline,&sampled_Lline_num);
+    // 点集角度
+    local_angle_points(sampled_Lline,sampled_Lline_num,dangle_Lline);
+    // 极大角度
+    nms_angle(dangle_Lline,sampled_Lline_num,&nms_Lline,&nms_Lline_idx);
+    // 右边线处理
+    perspective_transform_points(Rline,Rline_num,per_Rline);
+    blur_points(per_Rline,Rline_num,blurred_Rline);
+    resample_points(blurred_Rline,Rline_num,sampled_Rline,&sampled_Rline_num);
+    local_angle_points(sampled_Rline,sampled_Rline_num,dangle_Rline);
+    nms_angle(dangle_Rline,sampled_Rline_num,&nms_Rline,&nms_Rline_idx);
+    track_leftline();
+    track_rightline();
+    
 }
 
 //大津法二值化 返回阈值
@@ -289,7 +283,7 @@ void findline_lefthand_adaptive(int x, int y){
             turn = 0;
         }
         
-        uvc.frame_rgb.at<Vec3b>(y,x) = Vec3b(0,0,255);
+        // uvc.frame_rgb.at<Vec3b>(y,x) = Vec3b(0,0,255);
     }
     Lline_num = step;
 }
@@ -329,7 +323,7 @@ void findline_righthand_adaptive(int x, int y){
             step++;
             turn = 0;
         }
-        uvc.frame_rgb.at<Vec3b>(y,x) = Vec3b(0,0,255);
+        // uvc.frame_rgb.at<Vec3b>(y,x) = Vec3b(0,0,255);
     }
     Rline_num = step;
 }
