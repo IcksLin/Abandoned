@@ -96,7 +96,10 @@ typedef enum{
 
 /*------------------------其他宏定义------------------------*/
 #define IMG_AT(img, x, y)   (img[(y) * (IMG_W) + (x)])     // 用于访问图像数据
-
+extern cv::Mat ud_map_cv;
+/*去畸变矩阵*/
+extern float undistort_map_x[IMG_H][IMG_W];
+extern float undistort_map_y[IMG_H][IMG_W];
 /*-------------------------全局变量-------------------------*/
 extern cv::Mat frame_color;         // 用于处理的图像帧
 extern cv::Mat frame_gray;          // 灰度图像帧
@@ -147,5 +150,5 @@ void track_leftline(float dist=ROAD_W*M2PIX/2);    //从左边线跟踪中线
 void track_rightline(float dist=ROAD_W*M2PIX/2);   //从右边线跟踪中线 
 
 void supplement_line(float pts_in[][2],int* num,int corner_index,float dist);   //补线
-
+void load_undistort_map(void);
 #endif

@@ -88,14 +88,20 @@ void tracking()
                                         Mline, Mline_num,
                                         true, true);
 
-    ips200.show_gray_image(0,0,img_gray,UVC_WIDTH,IMG_H);
-    for(int i=0;i<Lline_num;i++){
-        ips200.draw_point(Lline[i][0],Lline[i][1],RGB565_BLUE);
-    }
-    for (int i = 0; i < Rline_num; i++)
-    {
-        ips200.draw_point(Rline[i][0], Rline[i][1], RGB565_RED);
-    }
+    // ips200.show_gray_image(0,0,img_gray,UVC_WIDTH,IMG_H);
+    // for(int i=0;i<sampled_Lline_num;i++){
+    //     printf("Lline[%d]: (%f, %f)\n", i, sampled_Lline[i][0], sampled_Lline[i][1]);
+    //     ips200.draw_point(30+sampled_Lline[i][0],60+sampled_Lline[i][1],RGB565_BLUE);
+    // }
+    // printf("line start");
+    // for (int i = 0; i < sampled_Rline_num; i++)
+    // {
+    //     printf("Rline[%d]: (%f, %f)\n", i, sampled_Rline[i][0], sampled_Rline[i][1]);
+    //     ips200.draw_point(30+sampled_Rline[i][0],60+sampled_Rline[i][1],RGB565_RED);
+    // }
+    // printf("line end");
+    // system_delay_ms(50);
+    ips200.clear();
     
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
 }

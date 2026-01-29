@@ -13,7 +13,11 @@ Mat frame_bin;                  // 二值图像帧
 uint8_t* img_gray = nullptr;              // 灰度图像指针
 AimPoint_TypeDef aim_point; 
 
-
+/*--图片去畸--*/
+cv::Mat ud_map_cv;
+/*去畸变矩阵*/
+float undistort_map_x[IMG_H][IMG_W];
+float undistort_map_y[IMG_H][IMG_W];
 /*图像变量******************/
 
 /**************边线处理变量*/
@@ -68,6 +72,7 @@ void line_process(uint8_t height_start, uint8_t height_min){
     search_Lline(height_start, height_min);
     search_Rline(height_start, height_min);
     // 点集透视
+    // save_per_map();
     perspective_transform_points(Lline,Lline_num,per_Lline);
     // 点集滤波
     blur_points(per_Lline,Lline_num,blurred_Lline);
@@ -217,6 +222,49 @@ void save_per_map(void) {
     fout.close();
     
     // std::cout << "透视映射已保存到 maps/per_map.txt" << std::endl;
+}
+
+void load_undistort_map(void){
+    // 正式打开
+    std ::ifstream fin("maps/undistort_map.txt");
+    std ::string line;
+    int line_count = 0;
+    while (getline(fin, line) && line_count < IMG_H) {
+        if (line.empty()) break; // 空行终止读取
+        std ::istringstream iss(line); // 按空格拆分读取映射表
+        for (int x = 0; x < IMG_W; x++) iss >> undistort_map_x[line_count][x];
+        line_count++;
+    }
+    while (line.empty()) getline(fin, line);
+    line_count = 0;
+    while (getline(fin, line) && line_count < IMG_H) {
+        std ::istringstream iss(line);
+        for (int x = 0; x < IMG_W; x++) iss >> undistort_map_y[line_count][x];
+        line_count++;
+    }
+    fin.close();
+
+    ud_map_cv = Mat(IMG_H, IMG_W, CV_16SC2); 
+    int16_t* map1_ptr = (int16_t*)ud_map_cv.data; // 获取矩阵数据指针
+    // 逐像素组合map_x和map_y
+    for (int y = 0; y < IMG_H; y++) {
+        for (int x = 0; x < IMG_W; x++) {
+            int idx = y * IMG_W + x; // 一维索引
+            // 获取原始去畸变坐标
+            int16_t orig_x = undistort_map_x[y][x];
+            int16_t orig_y = undistort_map_y[y][x];
+            
+            // 对去畸变坐标翻转
+            int16_t flip_x = IMG_W - 1 - orig_x; // 左右翻转
+            int16_t flip_y = IMG_H - 1 - orig_y; // 上下翻转
+            
+            // 将翻转后的坐标写入映射表
+            map1_ptr[2*idx] = flip_x;   
+            map1_ptr[2*idx + 1] = flip_y; 
+        }
+    }
+
+    std ::cout << "-图片去畸变文件加载成功-" << std ::endl;
 }
 
 // /*******************************显示函数*********************************/

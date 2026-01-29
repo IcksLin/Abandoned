@@ -21,13 +21,26 @@ std::atomic<bool> circle_flag(0);      //圆环减速标志位
 
 /*--------------------------功能函数----------------------------*/
 
+//去畸变后Mat
+cv::Mat De_distortion_image;
+
 // 一次图像处理
 void image_proc(){   
     /*----------图像处理----------*/
     // 等待采样数据
     uvc.wait_image_refresh();
+    cv::remap(
+            uvc.frame_mjpg,            // 输入畸变图像
+            De_distortion_image,                   // 输出去畸变图像
+            ud_map_cv,                  // 转换后的OpenCV整型映射表
+            cv::Mat(),
+            cv::INTER_NEAREST,        // 最近邻插值
+            cv::BORDER_REPLICATE      // 边界填充
+        );
+
+    cv::cvtColor(De_distortion_image, frame_gray, cv::COLOR_BGR2GRAY);
     //采集并180度倒转图像，补偿摄像头倒转安置
-    uint8* temp_gray_ptr = uvc.get_gray_image_ptr();
+    uint8* temp_gray_ptr = reinterpret_cast<uint8_t*>(frame_gray.ptr(0));
      if (temp_gray_ptr == nullptr) {
         printf("Error: Unable to get gray image from UVC device.\n");
         return ;
@@ -45,8 +58,13 @@ void image_proc(){
             img_gray[y * IMG_W + x] = temp_gray_ptr[src_y * IMG_W + src_x];
         }
     }
+    
+    if(img_gray ==nullptr){
+        img_gray = new uint8_t[IMG_W * IMG_H];
+    }
 
     // img_gray = uvc.get_gray_image_ptr();
+    
 
     start_thre = get_otsu_thres(img_gray,0,IMG_W,TRACK_HEIGHT_MAX,IMG_H);      // 二值化
     //状态机决策
