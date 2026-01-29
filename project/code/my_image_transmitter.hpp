@@ -34,11 +34,11 @@ bool rgb_img_transmitter(const uint16_t* rgb_image_ptr, uint32_t width, uint32_t
 // 灰度图像 + 三条边线传输函数（左边线、右边线、中线）
 bool gray_img_with_centerline_transmitter(const uint8_t* gray_image_ptr, 
                                           uint32_t width, uint32_t height,
-                                          float (*Lline)[2], int Lline_num,
-                                          float (*Rline)[2], int Rline_num,
-                                          float (*Mline)[2], int Mline_num,
-                                          bool flip_vertical = false,
-                                          bool flip_horizontal = false);
+                                          uint8 (*Lline)[2], int Lline_num,
+                                          uint8 (*Rline)[2], int Rline_num,
+                                          uint8 (*Mline)[2], int Mline_num,
+                                          bool flip_vertical,
+                                          bool flip_horizontal);
 
 bool is_transmitter_ready();
 void img_transmitter_deinit();

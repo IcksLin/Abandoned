@@ -42,7 +42,7 @@ int main()
     save_per_map();
     //去畸变矩阵加载
     load_undistort_map();
-    
+
     // 1. 初始化显示屏
     printf("1. 初始化显示屏...\n");
     ips200.init("/dev/fb0");
@@ -126,7 +126,8 @@ int main()
     // 主循环，运行菜单系统
     while (true)
     {
-        menu_system.menu_system();
+        // menu_system.menu_system();
+        tracking();
         system_delay_ms(20);
     }
     return 0;

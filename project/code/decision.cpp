@@ -37,35 +37,9 @@ void image_proc(){
             cv::INTER_NEAREST,        // 最近邻插值
             cv::BORDER_REPLICATE      // 边界填充
         );
-
     cv::cvtColor(De_distortion_image, frame_gray, cv::COLOR_BGR2GRAY);
-    //采集并180度倒转图像，补偿摄像头倒转安置
-    uint8* temp_gray_ptr = reinterpret_cast<uint8_t*>(frame_gray.ptr(0));
-     if (temp_gray_ptr == nullptr) {
-        printf("Error: Unable to get gray image from UVC device.\n");
-        return ;
-    }
-    if (img_gray == nullptr) {
-        img_gray = new uint8_t[IMG_W * IMG_H];
-    }
-    for (int y = 0; y < IMG_H; y++) {
-        for (int x = 0; x < IMG_W; x++) {
-            // 计算原始位置（翻转后）
-            int src_y = IMG_H - 1 - y;
-            int src_x = IMG_W - 1 - x;
-            
-            // 拷贝像素
-            img_gray[y * IMG_W + x] = temp_gray_ptr[src_y * IMG_W + src_x];
-        }
-    }
-    
-    if(img_gray ==nullptr){
-        img_gray = new uint8_t[IMG_W * IMG_H];
-    }
 
-    // img_gray = uvc.get_gray_image_ptr();
-    
-
+    img_gray = reinterpret_cast<uint8_t*>(frame_gray.ptr(0));
     start_thre = get_otsu_thres(img_gray,0,IMG_W,TRACK_HEIGHT_MAX,IMG_H);      // 二值化
     //状态机决策
     line_process(IMG_H,IMG_H/2);

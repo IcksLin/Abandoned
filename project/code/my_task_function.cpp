@@ -82,26 +82,37 @@ void tracking()
     //   - Mline, Mline_num: 中线坐标和点数（绿色）
     //   - true, true: 垂直翻转和水平翻转（根据你的摄像头安装方向调整）
     // 注意：Lline和Rline是int类型，需要reinterpret_cast转换为float类型
-    gray_img_with_centerline_transmitter(img_gray, UVC_WIDTH, IMG_H, 
-                                        reinterpret_cast<float(*)[2]>(Lline), Lline_num,
-                                        reinterpret_cast<float(*)[2]>(Rline), Rline_num,
-                                        Mline, Mline_num,
-                                        true, true);
-
-    // ips200.show_gray_image(0,0,img_gray,UVC_WIDTH,IMG_H);
-    // for(int i=0;i<sampled_Lline_num;i++){
-    //     printf("Lline[%d]: (%f, %f)\n", i, sampled_Lline[i][0], sampled_Lline[i][1]);
-    //     ips200.draw_point(30+sampled_Lline[i][0],60+sampled_Lline[i][1],RGB565_BLUE);
-    // }
-    // printf("line start");
-    // for (int i = 0; i < sampled_Rline_num; i++)
-    // {
-    //     printf("Rline[%d]: (%f, %f)\n", i, sampled_Rline[i][0], sampled_Rline[i][1]);
-    //     ips200.draw_point(30+sampled_Rline[i][0],60+sampled_Rline[i][1],RGB565_RED);
-    // }
-    // printf("line end");
-    // system_delay_ms(50);
-    ips200.clear();
+    static uint8_t L_buf[IMG_H][2];
+    static uint8_t R_buf[IMG_H][2];
+    static uint8_t M_buf[IMG_H][2];
+    for (int i = 0; i < IMG_H; ++i) {
+        if (i < sampled_Lline_num) {
+            L_buf[i][0] = (uint8_t)std::max(0, std::min((int)L2Mline[i][0], 255));
+            L_buf[i][1] = (uint8_t)std::max(0, std::min((int)L2Mline[i][1], 255));
+        }
+        if (i < sampled_Rline_num) {
+            R_buf[i][0] = (uint8_t)std::max(0, std::min((int)R2Mline[i][0], 255));
+            R_buf[i][1] = (uint8_t)std::max(0, std::min((int)R2Mline[i][1], 255));
+        }
+        if (i < Mline_num) {
+            M_buf[i][0] = (uint8_t)std::max(0, std::min((int)Mline[i][0], 255)); // Mline是float也能直接转
+            M_buf[i][1] = (uint8_t)std::max(0, std::min((int)Mline[i][1], 255));
+        }
+    }
+    // gray_img_with_centerline_transmitter(
+    //     img_gray, UVC_WIDTH, IMG_H, 
+    //     nullptr, Lline_num, 
+    //     nullptr, Rline_num, 
+    //     nullptr, Mline_num, 
+    //     false, false // 根据需要设置翻转
+    // );
+     gray_img_with_centerline_transmitter(
+        img_gray, UVC_WIDTH, IMG_H, 
+        L_buf, Lline_num, 
+        R_buf, Rline_num, 
+        M_buf, Mline_num, 
+        false, false // 根据需要设置翻转
+    );
     
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
 }

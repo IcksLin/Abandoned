@@ -268,300 +268,88 @@ uint8 boundary_x3_buffer[BOUNDARY_MAX_LEN];  // 右边线X坐标
 uint8 boundary_y3_buffer[BOUNDARY_MAX_LEN];  // 右边线Y坐标
 bool gray_img_with_centerline_transmitter(const uint8_t* gray_image_ptr, 
                                           uint32_t width, uint32_t height,
-                                          float (*Lline)[2], int Lline_num,
-                                          float (*Rline)[2], int Rline_num,
-                                          float (*Mline)[2], int Mline_num,
+                                          uint8 (*Lline)[2], int Lline_num,
+                                          uint8 (*Rline)[2], int Rline_num,
+                                          uint8 (*Mline)[2], int Mline_num,
                                           bool flip_vertical,
                                           bool flip_horizontal)
 {
-    // ==================== 1. 参数有效性检查 ====================
-    if (gray_image_ptr == nullptr || width == 0 || height == 0)
-    {
-        std::cerr << "Error: Invalid image parameters in gray_img_with_centerline_transmitter: "
-                  << "image_ptr=" << static_cast<const void*>(gray_image_ptr)
-                  << ", width=" << width
-                  << ", height=" << height << "\n";
-        return false;
-    }
+    if (!gray_image_ptr || width == 0 || height == 0) return false;
 
-    // 边线参数检查（允许部分边线为空，但至少要有一条有效边线才发送边界）
-    bool has_valid_lline = (Lline != nullptr && Lline_num > 0 && Lline_num <= BOUNDARY_MAX_LEN);
-    bool has_valid_rline = (Rline != nullptr && Rline_num > 0 && Rline_num <= BOUNDARY_MAX_LEN);
-    bool has_valid_mline = (Mline != nullptr && Mline_num > 0 && Mline_num <= BOUNDARY_MAX_LEN);
+    // --- 1. 计算图像映射参数 ---
+    // 实际拷贝的尺寸（不能超过缓冲区）
+    uint32_t copy_w = std::min(width, (uint32_t)UVC_WIDTH);
+    uint32_t copy_h = std::min(height, (uint32_t)UVC_HEIGHT);
     
-    if (!has_valid_lline && !has_valid_rline && !has_valid_mline)
-    {
-        // 三条线都无效，打印警告但仍发送图像
-        std::cerr << "Warning: All boundary lines are invalid. Sending image only.\n";
-    }
+    // 垂直居中偏移量：如果图像矮于缓冲区，将其放在中间
+    int offset_y = (height < UVC_HEIGHT) ? (int)(UVC_HEIGHT - height) / 2 : 0;
+    int offset_x = 0; // 默认左对齐
 
-    uint32_t src_pixels = width * height;
-    uint32_t dst_pixels = UVC_WIDTH * UVC_HEIGHT;
+    // 清空图像缓冲区（背景置黑）
+    memset(gray_image_copy, 0, sizeof(gray_image_copy));
 
-    // 下面用于描述 image_copy 中实际写入的 block（用于把 Mline 映射到 image_copy）
-    int copy_offset_x = 0;      // 水平偏移（像素）
-    int copy_offset_y = 0;      // 垂直偏移（像素）
-    uint32_t copy_w = 0;        // 写入宽度（像素）
-    uint32_t copy_h = 0;        // 写入高度（像素）
-    bool used_center_vertical = false; // 用到了垂直居中逻辑
-    uint32_t vertical_padding = 0;
-    bool need_scaling = (width != UVC_WIDTH) || (height != UVC_HEIGHT);
+    // --- 2. 拷贝图像并处理翻转 ---
+    for (uint32_t row = 0; row < copy_h; ++row) {
+        // 计算目标行索引：考虑垂直翻转 + 垂直偏移
+        uint32_t dst_row = (flip_vertical ? (copy_h - 1 - row) : row) + offset_y;
+        
+        uint8_t* dst_ptr = &((uint8_t*)gray_image_copy)[dst_row * UVC_WIDTH];
+        const uint8_t* src_ptr = &gray_image_ptr[row * width];
 
-    // ==================== 2. 处理灰度图像（并记录 copy block 信息） ====================
-    // 情况1：源图像尺寸与目标缓冲区完全匹配（最优情况）
-    if (width == UVC_WIDTH && height == UVC_HEIGHT)
-    {
-        copy_offset_x = 0;
-        copy_offset_y = 0;
-        copy_w = UVC_WIDTH;
-        copy_h = UVC_HEIGHT;
-        used_center_vertical = false;
-
-        if (!flip_vertical && !flip_horizontal)
-        {
-            // 直接整块拷贝最快
-            memcpy(gray_image_copy[0], gray_image_ptr, src_pixels);
-        }
-        else
-        {
-            // 逐像素拷贝以实现翻转
-            for (uint32_t row = 0; row < height; ++row)
-            {
-                uint32_t dst_row = flip_vertical ? (height - 1 - row) : row;
-                uint32_t dst_row_offset = dst_row * UVC_WIDTH;
-                for (uint32_t col = 0; col < width; ++col)
-                {
-                    uint32_t dst_col = flip_horizontal ? (width - 1 - col) : col;
-                    ((uint8_t*)gray_image_copy[0])[dst_row_offset + dst_col] = gray_image_ptr[row * width + col];
-                }
-            }
+        for (uint32_t col = 0; col < copy_w; ++col) {
+            // 计算目标列索引：考虑水平翻转
+            uint32_t dst_col = (flip_horizontal ? (copy_w - 1 - col) : col) + offset_x;
+            dst_ptr[dst_col] = src_ptr[col];
         }
     }
-    // 情况2：源图像像素数小于等于目标缓冲区
-    else if (src_pixels <= dst_pixels)
-    {
-        if (!need_scaling && width == UVC_WIDTH && height <= UVC_HEIGHT)
-        {
-            // 宽度匹配，高度较小，垂直居中（代码原样）
-            vertical_padding = (UVC_HEIGHT - height) / 2;
-            copy_offset_x = 0;
-            copy_offset_y = 0; // 注意：我们在映射时特别处理 vertical_padding 的影响
-            copy_w = width;
-            copy_h = height;
-            used_center_vertical = true;
 
-            // 清空整个缓冲区
-            memset(gray_image_copy[0], 0, dst_pixels);
+    // --- 3. 映射赛道线坐标 ---
+    // 定义一个 lambda 闭包来统一处理坐标映射逻辑，确保线和图像是对齐的
+    auto map_points = [&](uint8 (*src_line)[2], int num, uint8* target_x, uint8* target_y) -> int {
+        int actual_num = std::min(num, BOUNDARY_MAX_LEN);
+        if (src_line == nullptr || actual_num <= 0) return 0;
 
-            // 垂直翻转/水平翻转并拷贝到 gray_image_copy 的合适位置
-            for (uint32_t row = 0; row < height; ++row)
-            {
-                // 目标行（结合原实现的 dst_row_offset 计算）
-                uint32_t dst_row;
-                if (flip_vertical)
-                {
-                    // 原实现：dst_row = UVC_HEIGHT - 1 - row - vertical_padding
-                    dst_row = UVC_HEIGHT - 1 - row - vertical_padding;
-                }
-                else
-                {
-                    // 将源行放到上边缘 + vertical_padding（也可选择放入从 vertical_padding 开始）
-                    dst_row = row + vertical_padding;
-                }
-                uint32_t dst_row_offset = dst_row * UVC_WIDTH;
+        for (int i = 0; i < actual_num; ++i) {
+            // 获取原始坐标（此时已经是 uint8）
+            int sx = src_line[i][0];
+            int sy = src_line[i][1];
 
-                if (!flip_horizontal)
-                {
-                    // 可整行拷贝
-                    memcpy(&((uint8_t*)gray_image_copy[0])[dst_row_offset],
-                           &gray_image_ptr[row * width],
-                           width);
-                }
-                else
-                {
-                    // 水平翻转需要逐像素拷贝
-                    for (uint32_t col = 0; col < width; ++col)
-                    {
-                        uint32_t dst_col = width - 1 - col;
-                        ((uint8_t*)gray_image_copy[0])[dst_row_offset + dst_col] = gray_image_ptr[row * width + col];
-                    }
-                }
-            }
+            // 执行与图像完全一致的翻转和偏移逻辑
+            int tx = (flip_horizontal ? ((int)copy_w - 1 - sx) : sx) + offset_x;
+            int ty = (flip_vertical ? ((int)copy_h - 1 - sy) : sy) + offset_y;
+
+            // 限制在 UVC 范围内，防止上位机结算错误
+            target_x[i] = (uint8)std::max(0, std::min(tx, (int)UVC_WIDTH - 1));
+            target_y[i] = (uint8)std::max(0, std::min(ty, (int)UVC_HEIGHT - 1));
         }
-        else
-        {
-            // 简单处理：不进行缩放，只处理能放入的部分
-            uint32_t rows_to_copy = std::min(height, (uint32_t)UVC_HEIGHT);
-            uint32_t cols_to_copy = std::min(width, (uint32_t)UVC_WIDTH);
-
-            copy_offset_x = 0;
-            copy_offset_y = 0;
-            copy_w = cols_to_copy;
-            copy_h = rows_to_copy;
-            used_center_vertical = false;
-
-            // 清空整个缓冲区
-            memset(gray_image_copy[0], 0, dst_pixels);
-
-            if (!flip_vertical && !flip_horizontal)
-            {
-                // 可以按行 memcpy
-                for (uint32_t row = 0; row < rows_to_copy; ++row)
-                {
-                    uint32_t src_row_offset = row * width;
-                    uint32_t dst_row_offset = row * UVC_WIDTH;
-                    memcpy(&((uint8_t*)gray_image_copy[0])[dst_row_offset],
-                           &gray_image_ptr[src_row_offset],
-                           cols_to_copy);
-                }
-            }
-            else
-            {
-                // 需要逐像素拷贝以实现任意翻转组合
-                for (uint32_t row = 0; row < rows_to_copy; ++row)
-                {
-                    uint32_t src_row_offset = row * width;
-                    uint32_t dst_row_index = flip_vertical ? (rows_to_copy - 1 - row) : row;
-                    uint32_t dst_row_offset = dst_row_index * UVC_WIDTH;
-
-                    for (uint32_t col = 0; col < cols_to_copy; ++col)
-                    {
-                        uint32_t dst_col = flip_horizontal ? (cols_to_copy - 1 - col) : col;
-                        ((uint8_t*)gray_image_copy[0])[dst_row_offset + dst_col] = gray_image_ptr[src_row_offset + col];
-                    }
-                }
-            }
-        }
-    }
-    // 情况3：源图像像素数大于目标缓冲区
-    else
-    {
-        std::cerr << "Error: Source image (" << width << "x" << height 
-                  << " = " << src_pixels << " pixels) is larger than buffer capacity (" 
-                  << UVC_WIDTH << "x" << UVC_HEIGHT << " = " << dst_pixels 
-                  << " pixels). Operation aborted.\n";
-        return false;
-    }
-
-    // ==================== 3. 处理三条边线数据（映射到 gray_image_copy 的坐标系并填充 boundary buffers） ====================
-    // Lambda函数：坐标映射逻辑（源图像坐标 -> 发送缓冲区坐标）
-    auto map_coordinate = [&](float fx, float fy, int &mapped_x, int &mapped_y) {
-        // 四舍五入到源像素坐标并裁剪到 source 范围
-        int src_x = static_cast<int>(std::lround(fx));
-        int src_y = static_cast<int>(std::lround(fy));
-        src_x = std::max(0, std::min(src_x, (int)width - 1));
-        src_y = std::max(0, std::min(src_y, (int)height - 1));
-
-        // 映射 X（水平）
-        if (used_center_vertical) {
-            uint32_t block_w = copy_w;
-            int rel_x = src_x;
-            if (flip_horizontal)
-                mapped_x = (int)(block_w - 1 - rel_x) + copy_offset_x;
-            else
-                mapped_x = rel_x + copy_offset_x;
-        } else {
-            uint32_t block_w = copy_w ? copy_w : UVC_WIDTH;
-            int rel_x = src_x;
-            if ((uint32_t)rel_x >= block_w) rel_x = block_w - 1;
-            if (flip_horizontal)
-                mapped_x = (int)(block_w - 1 - rel_x) + copy_offset_x;
-            else
-                mapped_x = rel_x + copy_offset_x;
-        }
-
-        // 映射 Y（垂直）
-        if (used_center_vertical) {
-            if (flip_vertical)
-                mapped_y = (int)(UVC_HEIGHT - 1 - src_y - vertical_padding);
-            else
-                mapped_y = src_y + (int)vertical_padding;
-        } else {
-            uint32_t block_h = copy_h ? copy_h : UVC_HEIGHT;
-            int rel_y = src_y;
-            if ((uint32_t)rel_y >= block_h) rel_y = block_h - 1;
-            if (flip_vertical)
-                mapped_y = (int)(block_h - 1 - rel_y) + copy_offset_y;
-            else
-                mapped_y = rel_y + copy_offset_y;
-        }
-
-        // 裁剪到 gray_image_copy 范围
-        mapped_x = std::max(0, std::min(mapped_x, (int)UVC_WIDTH - 1));
-        mapped_y = std::max(0, std::min(mapped_y, (int)UVC_HEIGHT - 1));
+        return actual_num;
     };
 
-    // 清空所有发送缓冲区
-    memset(boundary_x1_buffer, 0, BOUNDARY_MAX_LEN);
-    memset(boundary_y1_buffer, 0, BOUNDARY_MAX_LEN);
-    memset(boundary_x2_buffer, 0, BOUNDARY_MAX_LEN);
-    memset(boundary_y2_buffer, 0, BOUNDARY_MAX_LEN);
-    memset(boundary_x3_buffer, 0, BOUNDARY_MAX_LEN);
-    memset(boundary_y3_buffer, 0, BOUNDARY_MAX_LEN);
+    // 填充发送缓冲区
+    int n1 = map_points(Lline, Lline_num, boundary_x1_buffer, boundary_y1_buffer);
+    int n2 = map_points(Mline, Mline_num, boundary_x2_buffer, boundary_y2_buffer);
+    int n3 = map_points(Rline, Rline_num, boundary_x3_buffer, boundary_y3_buffer);
 
-    // 处理左边线（对应逐飞助手的第1条边界线，通常为蓝色）
-    if (has_valid_lline) {
-        int points = std::min(Lline_num, BOUNDARY_MAX_LEN);
-        for (int i = 0; i < points; ++i) {
-            int mapped_x, mapped_y;
-            map_coordinate(Lline[i][0], Lline[i][1], mapped_x, mapped_y);
-            boundary_x1_buffer[i] = static_cast<uint8>(mapped_x & 0xFF);
-            boundary_y1_buffer[i] = static_cast<uint8>(mapped_y & 0xFF);
-        }
-    }
+    // --- 4. 调用协议发送 ---
+    // 计算三条线中最大的点数
+    uint16_t max_points = (uint16_t)std::max({n1, n2, n3});
 
-    // 处理中线（对应逐飞助手的第2条边界线，通常为绿色）
-    if (has_valid_mline) {
-        int points = std::min(Mline_num, BOUNDARY_MAX_LEN);
-        for (int i = 0; i < points; ++i) {
-            int mapped_x, mapped_y;
-            map_coordinate(Mline[i][0], Mline[i][1], mapped_x, mapped_y);
-            boundary_x2_buffer[i] = static_cast<uint8>(mapped_x & 0xFF);
-            boundary_y2_buffer[i] = static_cast<uint8>(mapped_y & 0xFF);
-        }
-    }
+    seekfree_assistant_camera_boundary_config(
+        XY_BOUNDARY, max_points,
+        n1 ? boundary_x1_buffer : nullptr, 
+        n2 ? boundary_x2_buffer : nullptr, 
+        n3 ? boundary_x3_buffer : nullptr,
+        n1 ? boundary_y1_buffer : nullptr, 
+        n2 ? boundary_y2_buffer : nullptr, 
+        n3 ? boundary_y3_buffer : nullptr
+    );
 
-    // 处理右边线（对应逐飞助手的第3条边界线，通常为红色）
-    if (has_valid_rline) {
-        int points = std::min(Rline_num, BOUNDARY_MAX_LEN);
-        for (int i = 0; i < points; ++i) {
-            int mapped_x, mapped_y;
-            map_coordinate(Rline[i][0], Rline[i][1], mapped_x, mapped_y);
-            boundary_x3_buffer[i] = static_cast<uint8>(mapped_x & 0xFF);
-            boundary_y3_buffer[i] = static_cast<uint8>(mapped_y & 0xFF);
-        }
-    }
-
-    // 配置并发送边界（使用XY_BOUNDARY类型，支持任意坐标点）
-    if (has_valid_lline || has_valid_mline || has_valid_rline) {
-        // 取三条线中最大点数作为boundary_num（逐飞助手会根据实际点数显示）
-        uint16_t max_points = 0;
-        if (has_valid_lline) max_points = std::max(max_points, (uint16_t)std::min(Lline_num, BOUNDARY_MAX_LEN));
-        if (has_valid_mline) max_points = std::max(max_points, (uint16_t)std::min(Mline_num, BOUNDARY_MAX_LEN));
-        if (has_valid_rline) max_points = std::max(max_points, (uint16_t)std::min(Rline_num, BOUNDARY_MAX_LEN));
-
-        seekfree_assistant_camera_boundary_config(
-            XY_BOUNDARY,
-            max_points,
-            has_valid_lline ? boundary_x1_buffer : NULL,  // 左边线X
-            has_valid_mline ? boundary_x2_buffer : NULL,  // 中线X
-            has_valid_rline ? boundary_x3_buffer : NULL,  // 右边线X
-            has_valid_lline ? boundary_y1_buffer : NULL,  // 左边线Y
-            has_valid_mline ? boundary_y2_buffer : NULL,  // 中线Y
-            has_valid_rline ? boundary_y3_buffer : NULL   // 右边线Y
-        );
-    } else {
-        // 三条线都无效，不发送边界
-        seekfree_assistant_camera_boundary_config(XY_BOUNDARY, 0,
-                                                  NULL, NULL, NULL,
-                                                  NULL, NULL, NULL);
-    }
-
-    // ==================== 4. 配置并发送图像 ====================
-    seekfree_assistant_camera_information_config(SEEKFREE_ASSISTANT_GRAY,
-                                                 gray_image_copy[0],
-                                                 UVC_WIDTH,
-                                                 UVC_HEIGHT);
+    seekfree_assistant_camera_information_config(
+        SEEKFREE_ASSISTANT_GRAY, 
+        (uint8_t*)gray_image_copy, 
+        UVC_WIDTH, 
+        UVC_HEIGHT
+    );
 
     seekfree_assistant_camera_send();
 

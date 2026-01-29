@@ -118,6 +118,8 @@ typedef struct{
 
 /**************图像处理变量*/
 extern int Lline_num, Rline_num;
+extern float per_Lline[][2], per_Rline[][2];            // 透视边线
+extern float blurred_Lline[][2], blurred_Rline[][2];    // 滤波
 extern int sampled_Lline_num, sampled_Rline_num;
 extern int Mline_num;
 // 边线数组声明
