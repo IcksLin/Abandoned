@@ -38,8 +38,7 @@
 
 int main()
 {
-    // 加载透视矩阵
-    save_per_map();
+
     //去畸变矩阵加载
     load_undistort_map();
 
