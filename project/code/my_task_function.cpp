@@ -148,7 +148,10 @@ void updateDriveControl() {
 void tracking()
 {
     //图像获取与处理
+    my_timer.start();
     image_proc();
+    // uvc.wait_image_refresh();
+    my_timer.stop();
     
     // 传输灰度图像 + 三条边线（左边线、右边线、中线）
     // 参数说明：
@@ -160,32 +163,34 @@ void tracking()
     static uint8_t L_buf[IMG_H][2];
     static uint8_t R_buf[IMG_H][2];
     static uint8_t M_buf[IMG_H][2];
+    // std::cout << "DEBUG: L_num=" << Lline_num << " R_num=" << Rline_num << std::endl;
+
     for (int i = 0; i < IMG_H; ++i) {
+        // 只有在 i 小于有效点数时才进行转换和打印
+        if (i < sampled_Lline_num) {
+            L_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][0], 255));
+            L_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][1], 255));
+            
+            // 只打印有效点
+            // std::cout << "Lline[" << i << "]: (" << (int)L_buf[i][0] << ", " << (int)L_buf[i][1] << ")" << std::endl;
+        }
 
-        if (i < IMG_H&&i>=top_point) {
-            // --- 处理左线 ---
-            L_buf[i][0] = l_border[i]; // X坐标：数组里存的值
-            L_buf[i][1] = (uint8_t)i;  // Y坐标：当前的行索引
-
-            // --- 处理右线 ---
-            R_buf[i][0] = r_border[i]; // X坐标
-            R_buf[i][1] = (uint8_t)i;  // Y坐标
-
-            // --- 处理中线 ---
-            M_buf[i][0] = center_line[i]; // X坐标
-            M_buf[i][1] = (uint8_t)i;     // Y坐标
-            // std::cout << "L_buf[" << i << "]: (" << (int)L_buf[i][0] << ", " << (int)L_buf[i][1] << ")\n";
-            // std::cout << "M_buf[" << i << "]: (" << (int)M_buf[i][0] << ", " << (int)M_buf[i][1] << ")\n";
-            // std::cout << "R_buf[" << i << "]: (" << (int)R_buf[i][0] << ", " << (int)R_buf[i][1] << ")\n";  
-        } else {
-            // 超出寻线范围的部分，坐标置零或设置为特殊标记，防止在上位机显示乱线
-            L_buf[i][0] = 0; L_buf[i][1] = 0;
-            R_buf[i][0] = 0; R_buf[i][1] = 0;
-            M_buf[i][0] = 0; M_buf[i][1] = 0;
+        if (i < sampled_Rline_num) {
+            R_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][0], 255));
+            R_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][1], 255));
+            // std::cout << "Rline[" << i << "]: (" << (int)R_buf[i][0] << ", " << (int)R_buf[i][1] << ")" << std::endl;
         }
     }
-    printf("Left line length: %d, Right line length: %d, onto: %f\r", left_lenth, right_lenth, onto);
-    updateDriveControl(); 
+    printf("max_angle L: %.2f at idx %d, R: %.2f at idx %d, onto: %.2f       \r", nms_Lline, nms_Lline_idx, nms_Rline, nms_Rline_idx, onto);
+
+    // 调用修正后的函数
+    gray_img_with_centerline_transmitter(
+        img_gray, UVC_WIDTH, IMG_H, 
+        L_buf, Lline_num, 
+        R_buf, Rline_num, 
+        M_buf, Mline_num, 
+        false, false // 根据需要设置翻转
+    );
     // gray_img_with_centerline_transmitter(
     //     img_gray, UVC_WIDTH, IMG_H, 
     //     nullptr, Lline_num, 
@@ -193,13 +198,16 @@ void tracking()
     //     nullptr, Mline_num, 
     //     false, false // 根据需要设置翻转
     // );
-     gray_img_with_centerline_transmitter(
-        img_bin, UVC_WIDTH, IMG_H, 
-        L_buf, IMG_H, 
-        R_buf, IMG_H, 
-        M_buf, IMG_H, 
-        false, false // 根据需要设置翻转
-    );
+    // gray_img_with_centerline_transmitter(
+        // img_gray, UVC_WIDTH, IMG_H, 
+        // L_buf, Lline_num, 
+        // R_buf, Rline_num, 
+        // M_buf, Mline_num, 
+        // false, false // 根据需要设置翻转
+    // );
+    
+    //方向控制器启动（PD运算在线程中执行）
+    onto_pd_control_enable = 1;
     
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
 }

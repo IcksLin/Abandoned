@@ -4,6 +4,6 @@
 #include "zf_common_typedef.hpp"
 #include "imgproc.hpp"
 
-void image_proc();
+// void image_proc();
 
 #endif // __DECISION_HPP__

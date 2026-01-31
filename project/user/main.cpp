@@ -38,7 +38,7 @@
 
 int main()
 {
-
+    save_per_map();
     //去畸变矩阵加载
     load_undistort_map();
 
@@ -72,9 +72,10 @@ int main()
 
     // 5. 初始化PID控制器
     printf("5. 初始化PID控制器...\n");
-    pid_r.init(1.5, 0.03, 2.20f, 0.1, 1, 120, -120, 60, -60);
-    pid_l.init(1.5, 0.03, 2.20f, 0.1, 1, 120, -120, 60, -60);
-    pid_angle.setParameters(4.0f, 0.0f, 0.1f);
+    pid_r.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
+    pid_l.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
+    pid_angle.setParameters(0.2f, 0.01f, 0.3f);
+    pid_angle.setOutputLimit(30);
 
     // 6. 初始化菜单系统
     printf("6. 初始化菜单系统...\n");
@@ -127,7 +128,7 @@ int main()
     {
         // menu_system.menu_system();
         tracking();
-        system_delay_ms(20);
+        // system_delay_ms(10);
     }
     return 0;
 }
