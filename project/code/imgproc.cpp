@@ -6,6 +6,7 @@ using namespace cv;
 float onto = 0.0f;          // 最终处理方向，已限制幅度在-30~30.0f之间
 float angle_compensation = 6.7f; // 方向补偿量(静态最中间偏差)
 int middle_line_length = 0; // 中线长度
+float max_angle = 0.0f;        // 最大角点值,用于调试
 /******************图像变量*/
 //图像
 Mat frame_color;                // 用于处理的图像帧
@@ -65,6 +66,21 @@ cv::Mat M_Reverse = (cv::Mat_<float>(3, 3) <<
 -1.758288993023317e-17,0.014285714285714264,-2.071428571428567);
 /*边线处理变量**************/
 
+//巡线决策机
+Tracking_Decision_Machine_TypeDef tracking_decision_machine = {
+    .max_L_angle = 0.0f,        
+    .max_R_angle = 0.0f,        
+    .max_angle = 0.0f,          
+
+    .state = 0,                 
+    .state_time_locking = STATE_TIME_LOCKING,    
+
+    .longest_side = 0,          
+    .left_length = 0,           
+    .right_length = 0,          
+
+    .target_boundary = 0        
+};
 
 
 // 完整的一个边线处理
@@ -818,8 +834,13 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
         *num = current_idx + 1;
     } 
     else {
-        // 水平趋势：保持原样或更新预瞄
-        aim_point.idx = (corner_index + 5 < *num) ? (corner_index + 5) : (*num - 1);
+        // 水平趋势：从拐点坐标向下拉线，覆盖水平边线信息
+        for (int i = 0; i < corner_index; i++)
+        {
+            pts_in[i][0] = pts_in[corner_index][0];
+            pts_in[i][1] = pts_in[corner_index][1] + dist * (corner_index - i);
+        }
+        
     }
 }
 
@@ -911,12 +932,14 @@ void image_proc(){
     start_thre = get_otsu_thres(img_gray,0,IMG_W,TRACK_HEIGHT_MAX,IMG_H);      // 二值化
     //获取边线信息
     line_process(IMG_H,IMG_H/2);
-    
-    if(nms_Lline>75&&nms_Rline>75){
+
+    //很稳定，考虑直接使用===================================================================
+    if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE){
         //十字路口，补线
         supplement_line(sampled_Lline,&sampled_Lline_num,nms_Lline_idx,sampled_dist*M2PIX);
         supplement_line(sampled_Rline,&sampled_Rline_num,nms_Rline_idx,sampled_dist*M2PIX);   
     }
+    //====================================================================================
 
     //测试阶段巡迹,始终以长的边线为准
     if(sampled_Lline_num>sampled_Rline_num){
@@ -929,9 +952,20 @@ void image_proc(){
         Mline = R2Mline;
         middle_line_length = sampled_Rline_num;
     }
+    //获取最大角度
+    max_angle = std::max(nms_Lline, nms_Rline);
+
     //计算偏转角度
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
     
     // sta_decision();
 
+
+
 }
+
+// 元素函数，圆环
+// 直角最大角点弯曲率不会超过100,但赛道大圆环平均110以上，小圆环100以上
+//由于小圆环个个拐点可能不太好和直角区分，所以设置状态机，当检测到超过100度的点时判断可能出现圆环
+//此时同时检查两路线的最大拐点弯曲率，如果全部都大于60～80中的某一个值，则为十字路口误判，如果是单边最大值，记录该变，进入对应的左右圆环状态，准备切换边线寻线
+

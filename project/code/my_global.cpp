@@ -127,7 +127,7 @@ void pid_contol_handle()
 
     //测试代码
     if(onto_pd_control_enable==1){
-        target_speed_l = target_speed_r = 35;//添加基准速度
+        target_speed_l = target_speed_r = 40;//添加基准速度
         float onto_control = pid_angle.compute(0.0f, onto); // 计算角度修正值
 
         speed_to_pwm_r = (int16_t)pid_r.control(target_speed_r-onto_control, right_speed);  // 右轮PID计算

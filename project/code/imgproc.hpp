@@ -14,6 +14,7 @@ extern zf_device_uvc uvc;
 extern float onto;                  // 最终处理方向，已限制幅度在-30~30.0f之间
 extern float angle_compensation;    // 方向补偿量(静态最中间
 extern int middle_line_length; // 中线长度
+extern float max_angle;        // 最大角点值,用于调试
 //角点识别
 typedef enum {
     LOST_PT = 0x01,    //丢线     000001
@@ -30,30 +31,23 @@ typedef enum {
     INTRABLE_PT = LOST_PT | INVAL_PT            //不可巡线的边线--丢失 无效
 } PT_Judge_TypeDef;
 
+#define STATE_TIME_LOCKING     500              //状态时间锁定，防止抖动,循环周期改动之后记得调整
+//巡线决策机
 typedef struct{
-    PT_Judge_TypeDef pt,per_pt;
-    uint8 pt_cnt;
+    float max_L_angle;          //左边线最大角点值
+    float max_R_angle;          //右边线最大角点值
+    float max_angle;            //最大角点值
+    
 
-    void pt_identify(PT_Judge_TypeDef &out, float nms_val, int linelen);
-} PT_Identify_Typedef;
+    uint8_t state;              //当前状态
+    uint32_t state_time_locking;
 
-//状态机
-typedef struct{
-    char id;
-    uint8 flag;
-    void (*func)(void); // 函数指针
-} ElementFlag_TypeDef;
+    uint8_t longest_side;        //最长边线 0-左边线 1-右边线
+    uint8_t left_length;          //左边线长度
+    uint8_t right_length;         //右边线长度
 
-//环岛内部状态机
-typedef enum{
-    init_circle=0,
-    begin_circle,
-    into_circle,
-    in_circle,
-    out_circle,
-    outof_circle
-}Circle_Flag_TypeDef;
-
+    uint8_t target_boundary;     //最终巡线 0-左边线 1-右边线
+} Tracking_Decision_Machine_TypeDef;
 
 #define PI 3.14159265358979323846f
 #define clip(value, low, high) \
@@ -76,26 +70,11 @@ typedef enum{
 #define approx_idx          15              //平移采样索引距离
 
 /*-------------------------角点识别参数-------------------------*/
-//turn在直线和直角之间 Ypt在Ltp_up上
-#define STRAIGHT_UP             15
-#define LPT_LOW                 75
-#define LPT_UP                  93
-
-#define LINE_LOST_LENGTH        16          /* 丢线阈值 sample_line */
-#define LINE_ST_MIN_LEN         25          /* 直道最小长度 sample_line */
-
-#define __JUDGE_CNT             2           /* 判断次数阈值 从1开始 等于时切换 */ 
-
+#define CORNER_ANGLE_THRE      75.0f           //角点角度阈值
 
 /*------------------------正常巡线状态参数------------------------*/
 #define __N_DFT_LEN_THRE        30          /* 切换巡线长度差阈值 sample_line*/
-
-/*-------------------------右圆环状态参数-------------------------*/
-#define __RC_BEGIN_LOSE_THRE    1           /* 驶入圆环阶段 左边线丢失计数阈值 从0开始 等于时有效*/
-#define __RC_OUT_FIXED_ANGLE    20          /* 驶出圆环阶段 左边丢失 给固定角度 */
-
 /*------------------------预瞄点参数宏定义------------------------*/
-#define AIM_IDX                 30          //预瞄点索引
 
 
 /*------------------------其他宏定义------------------------*/
