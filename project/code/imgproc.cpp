@@ -1005,13 +1005,14 @@ void element_status(){
     {
         //非处理阶段，允许进入状态机检测
         //十字检测
-        if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE){
-            //两边均大于直角阈值，判断为十字路口
-            tracking_decision_machine.state = 1; //十字路口状态
-            tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
-            return;
+            if(sampled_Lline_num>LOST_LINE&&sampled_Rline_num>LOST_LINE){
+                if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE){
+                //两边均大于直角阈值且不丢线，判断为十字路口
+                tracking_decision_machine.state = 1; //十字路口状态
+                tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
+                return;
+            }
         }
-
         //圆环检测
         //读取两路线最大角度,发现大于圆环阈值则进入圆环判断
         if(std::max(nms_Lline, nms_Rline)>CIRCLE_ANGLE_THRE){
@@ -1027,13 +1028,13 @@ void element_status(){
                     return;
                     
                 }//放缓检测阈值
-                else if(nms_Lline>CORNER_ANGLE_THRE){
+                else if(nms_Lline>CIRCLE_ANGLE_THRE&&nms_Rline<CORNER_ANGLE_THRE){
                     //左边线大于直角阈值，右边线小于直角阈值，判断为左圆环
                     tracking_decision_machine.state = 2; //左圆环状态
                     tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
                     return;
                 }
-                else if(nms_Rline>CORNER_ANGLE_THRE){
+                else if(nms_Rline>CIRCLE_ANGLE_THRE&&nms_Lline<CORNER_ANGLE_THRE){
                     //右边线大于直角阈值，左边线小于直角阈值，判断为右圆环
                     tracking_decision_machine.state = 3; //右圆环状态
                     tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
