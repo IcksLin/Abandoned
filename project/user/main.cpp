@@ -75,7 +75,7 @@ int main()
     pid_r.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     pid_l.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     pid_angle.setParameters(0.2f, 0.01f, 0.3f);
-    pid_angle.setOutputLimit(30);
+    pid_angle.setOutputLimit(25);
 
     // 6. 初始化菜单系统
     printf("6. 初始化菜单系统...\n");

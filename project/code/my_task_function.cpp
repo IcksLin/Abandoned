@@ -148,10 +148,10 @@ void updateDriveControl() {
 void tracking()
 {
     //图像获取与处理
-    printf("max_angle L: %.2f at idx %d, R: %.2f at idx %d, onto: %.2f,time: %lld ms,max_corner: %.2f       \n", 
-        nms_Lline, nms_Lline_idx, nms_Rline,
-         nms_Rline_idx, onto
-         , my_timer.elapsed_ms(), max_angle);
+    // printf("max_angle L: %.2f at idx %d, R: %.2f at idx %d, onto: %.2f,time: %lld ms,max_corner: %.2f       \n", 
+    //     nms_Lline, nms_Lline_idx, nms_Rline,
+    //      nms_Rline_idx, onto
+    //      , my_timer.elapsed_ms(), max_angle);
     my_timer.stop();
     image_proc();
     // uvc.wait_image_refresh();
@@ -209,7 +209,7 @@ void tracking()
     // );
     
     //方向控制器启动（PD运算在线程中执行）
-    onto_pd_control_enable = 0;
+    onto_pd_control_enable = 1;
     my_timer.start();
 
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);

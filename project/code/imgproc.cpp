@@ -72,14 +72,21 @@ Tracking_Decision_Machine_TypeDef tracking_decision_machine = {
     .max_R_angle = 0.0f,        
     .max_angle = 0.0f,          
 
-    .state = 0,                 
+    .state = 0,  
+    .element_processing_flage = 0,            
     .state_time_locking = STATE_TIME_LOCKING,    
 
     .longest_side = 0,          
     .left_length = 0,           
     .right_length = 0,          
 
-    .target_boundary = 0        
+    .target_boundary = 0   //0左，1右     
+};
+
+Circle_Tracking_Machine_TypeDef cricle_decision_machine = {
+    .state = 0,         //初始状态
+    .state_locking = 0, //初始状态未上锁
+    .side = 0           //初始
 };
 
 
@@ -934,29 +941,38 @@ void image_proc(){
     line_process(IMG_H,IMG_H/2);
 
     //很稳定，考虑直接使用===================================================================
-    if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE){
-        //十字路口，补线
-        supplement_line(sampled_Lline,&sampled_Lline_num,nms_Lline_idx,sampled_dist*M2PIX);
-        supplement_line(sampled_Rline,&sampled_Rline_num,nms_Rline_idx,sampled_dist*M2PIX);   
-    }
+    // if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE){
+    //     //十字路口，补线
+    //     supplement_line(sampled_Lline,&sampled_Lline_num,nms_Lline_idx,sampled_dist*M2PIX);
+    //     supplement_line(sampled_Rline,&sampled_Rline_num,nms_Rline_idx,sampled_dist*M2PIX);   
+    // }
     //====================================================================================
 
     //测试阶段巡迹,始终以长的边线为准
-    if(sampled_Lline_num>sampled_Rline_num){
-        track_leftline();
-        Mline = L2Mline;
-        middle_line_length = sampled_Lline_num;
-    }else
-    {
-        track_rightline();
-        Mline = R2Mline;
-        middle_line_length = sampled_Rline_num;
-    }
+    // if(sampled_Lline_num>sampled_Rline_num){
+    //     track_leftline();
+    //     Mline = L2Mline;
+    //     middle_line_length = sampled_Lline_num;
+    // }else
+    // {
+    //     track_rightline();
+    //     Mline = R2Mline;
+    //     middle_line_length = sampled_Rline_num;
+    // }
+    
+    element_status();
+    no_element_process();
+    crossing_process();
+    circle_process();
+    auto_tracking();
+
     //获取最大角度
     max_angle = std::max(nms_Lline, nms_Rline);
 
     //计算偏转角度
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
+
+    printf("state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,nms_Lline,nms_Rline);
     
     // sta_decision();
 
@@ -964,8 +980,315 @@ void image_proc(){
 
 }
 
+//状态机初始化
+void tracking_decision_machine_init(){
+    tracking_decision_machine.max_angle = 0;
+    tracking_decision_machine.state = 0;
+    tracking_decision_machine.element_processing_flage = 0; //元素处理标志位，0未处理，1已处理
+    tracking_decision_machine.max_L_angle = 0;
+    tracking_decision_machine.max_R_angle = 0;
+    tracking_decision_machine.right_length = 0;
+    tracking_decision_machine.left_length = 0;
+    tracking_decision_machine.state_time_locking = STATE_TIME_LOCKING;
+    tracking_decision_machine.target_boundary = 0;
+    tracking_decision_machine.longest_side = 0;
+
+}
+
 // 元素函数，圆环
 // 直角最大角点弯曲率不会超过100,但赛道大圆环平均110以上，小圆环100以上
 //由于小圆环个个拐点可能不太好和直角区分，所以设置状态机，当检测到超过100度的点时判断可能出现圆环
 //此时同时检查两路线的最大拐点弯曲率，如果全部都大于60～80中的某一个值，则为十字路口误判，如果是单边最大值，记录该变，进入对应的左右圆环状态，准备切换边线寻线
+//总状态机函数，0无元素，1十字，2左圆环，3右圆环
+void element_status(){
+    if (!tracking_decision_machine.element_processing_flage)
+    {
+        //非处理阶段，允许进入状态机检测
+        //十字检测
+        if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE){
+            //两边均大于直角阈值，判断为十字路口
+            tracking_decision_machine.state = 1; //十字路口状态
+            tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
+            return;
+        }
 
+        //圆环检测
+        //读取两路线最大角度,发现大于圆环阈值则进入圆环判断
+        if(std::max(nms_Lline, nms_Rline)>CIRCLE_ANGLE_THRE){
+            //大于检测域值，进入圆环初步判断
+            if (sampled_Rline_num>=LOST_LINE&&sampled_Lline_num>=LOST_LINE)
+            {
+                //两边赛道未丢线，进入二级判断
+                if (nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE)
+                {
+                    //两边均大于直角阈值，判断为十字路口
+                    tracking_decision_machine.state = 1; //十字路口状态
+                    tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
+                    return;
+                    
+                }//放缓检测阈值
+                else if(nms_Lline>CORNER_ANGLE_THRE){
+                    //左边线大于直角阈值，右边线小于直角阈值，判断为左圆环
+                    tracking_decision_machine.state = 2; //左圆环状态
+                    tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
+                    return;
+                }
+                else if(nms_Rline>CORNER_ANGLE_THRE){
+                    //右边线大于直角阈值，左边线小于直角阈值，判断为右圆环
+                    tracking_decision_machine.state = 3; //右圆环状态
+                    tracking_decision_machine.element_processing_flage = 1; //进入元素处理阶段
+                    return;
+                }
+            }
+        }
+        //无元素检测到，状态机回到无元素状态
+        tracking_decision_machine.state = 0; //无元素状态
+
+    }
+}
+
+//无元素状态处理函数
+void no_element_process(){
+    if (tracking_decision_machine.state == 0)
+    {
+        tracking_decision_machine.element_processing_flage = 0; //元素处理标志位常态失活
+        //选择最长边线跟踪中线
+        if(sampled_Lline_num>sampled_Rline_num){
+            tracking_decision_machine.target_boundary = 0; //左边线最长
+        }else if(sampled_Rline_num>sampled_Lline_num){
+            tracking_decision_machine.target_boundary = 1; //右边线最长
+        }
+    }
+}
+
+//十字路口处理函数
+void crossing_process(){
+    if (tracking_decision_machine.state == 1)
+    {
+        if (nms_Lline>CORNER_ANGLE_THRE)
+        {   //左补线
+            supplement_line(sampled_Lline,&sampled_Lline_num,nms_Lline_idx,sampled_dist*M2PIX);
+        }
+        if (nms_Rline>CORNER_ANGLE_THRE)
+        {   //右补线
+            supplement_line(sampled_Rline,&sampled_Rline_num,nms_Rline_idx,sampled_dist*M2PIX);
+        }
+        //选择最长边线跟踪中线
+        if(sampled_Lline_num>sampled_Rline_num){
+            tracking_decision_machine.target_boundary = 0; //左边线最长
+        }else if(sampled_Rline_num>sampled_Lline_num){
+            tracking_decision_machine.target_boundary = 1; //右边线最长
+        }
+        //若相等，保持原有状态
+        
+    }
+    if(nms_Lline<CORNER_ANGLE_THRE&&nms_Rline<CORNER_ANGLE_THRE&&sampled_Rline_num>=LOST_LINE&&sampled_Lline_num>=LOST_LINE){
+        //两边均小于直角阈值且未丢线，失活元素处理状态
+        tracking_decision_machine.element_processing_flage = 0; 
+    }
+    
+}
+
+//圆环处理函数
+void circle_process(){
+    if(tracking_decision_machine.state == 2||tracking_decision_machine.state == 3){
+        //cricle_decision_machine
+        //圆环状态机部分
+        if(tracking_decision_machine.state == 2){
+            cricle_decision_machine.side = 2;
+        }
+        else if(tracking_decision_machine.state == 3){
+            cricle_decision_machine.side = 3;
+        }
+        
+        //左圆环处理===============================================================================
+        if(cricle_decision_machine.side == 2){
+            //拐点弯曲度判断,锁失活才切换
+            //状态0-1
+            if(!cricle_decision_machine.state_locking&&cricle_decision_machine.state == 0){
+                //最大弯曲度一边大一边小
+                if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline<CORNER_ANGLE_THRE){
+                    //第一状态
+                    cricle_decision_machine.state = 1;
+                }
+            }
+            //状态1-2
+            if(cricle_decision_machine.state==1){
+                //准备入环岛，此时巡左边线
+                tracking_decision_machine.target_boundary = 0;
+                 if (nms_Lline>CORNER_ANGLE_THRE)
+                {  //左补线
+                    supplement_line(sampled_Lline,&sampled_Lline_num,nms_Lline_idx,sampled_dist*M2PIX);
+                    cricle_decision_machine.state_locking = 0;
+                }
+                if(sampled_Lline_num>LOST_LINE){
+                    if(nms_Lline<CORNER_ANGLE_THRE){
+                        //不丢线且大弯曲度拐点消失切换状态，此时强制巡线边为左边圆线
+                        cricle_decision_machine.state = 2;
+                        //赋值，巡线目标：左边线，入环岛
+                        tracking_decision_machine.target_boundary = 0;
+                        //上锁
+                        cricle_decision_machine.state_locking = 1;
+                    }
+                }
+            }
+            //状态2-3
+            if(cricle_decision_machine.state==2){
+                //阶段二期间持续检测右边线情况且将目标设置为左边线
+                tracking_decision_machine.target_boundary = 0;
+                if (sampled_Rline_num<LOST_LINE)
+                {//右边线丢线,解锁
+                    cricle_decision_machine.state_locking = 0;
+                }   
+                if(sampled_Rline_num>=LOST_LINE&&sampled_Lline_num>=LOST_LINE&&cricle_decision_machine.state_locking){
+                    if(nms_Rline<CORNER_ANGLE_THRE){
+                        //当右边丢线后重新寻找到线且最大弯曲度不超过角点值，同时锁已经解除，切换状态
+                        cricle_decision_machine.state = 3;
+                        //上锁
+                        cricle_decision_machine.state_locking = 1;
+                    }
+
+                }
+            }
+            //状态3-4
+            if(cricle_decision_machine.state == 3){
+                tracking_decision_machine.target_boundary = 0;
+                //如果出现拐点则补线并解锁
+                if (nms_Rline>CORNER_ANGLE_THRE)
+                {  //右补线
+                    supplement_line(sampled_Rline,&sampled_Rline_num,nms_Rline_idx,sampled_dist*M2PIX);
+                    cricle_decision_machine.state_locking = 0;
+                }
+                
+                //当左边丢线或者出现拐点时均切换到状态四
+                if(cricle_decision_machine.state_locking == 0&&(sampled_Lline_num<LOST_LINE||nms_Lline>CORNER_ANGLE_THRE)){
+                    cricle_decision_machine.state = 4;
+                }
+            }
+            //状态4-0
+            if(cricle_decision_machine.state==4||cricle_decision_machine.state==0){
+                //4与0同等含义，此状态下初始化圆环标志位
+                cricle_decision_machine.state = 0;
+                cricle_decision_machine.state_locking = 0;
+            }
+
+        }
+
+        //右圆环处理===============================================================================
+        else if(cricle_decision_machine.side == 3){
+            //拐点弯曲度判断,锁失活才切换
+            //状态 0-1：识别到右圆环特征（右边有拐点，左边直）
+            if(!cricle_decision_machine.state_locking && cricle_decision_machine.state == 0){
+                if(nms_Rline > CORNER_ANGLE_THRE && nms_Lline < CORNER_ANGLE_THRE){
+                    cricle_decision_machine.state = 1;
+                }
+            }
+
+            //状态 1-2：准备入环阶段
+            if(cricle_decision_machine.state == 1){
+                tracking_decision_machine.target_boundary = 1;
+                
+                // 如果出现右拐点，进行右补线以稳定入环路径
+                if (nms_Rline > CORNER_ANGLE_THRE)
+                {  
+                    supplement_line(sampled_Rline, &sampled_Rline_num, nms_Rline_idx, sampled_dist * M2PIX);
+                    cricle_decision_machine.state_locking = 0;
+                }
+
+                if(sampled_Rline_num > LOST_LINE){
+                    // 当右侧大弯曲度拐点消失，说明车头已对准环内，切换到状态 2
+                    if(nms_Rline < CORNER_ANGLE_THRE){
+                        cricle_decision_machine.state = 2;
+                        // 强制巡线边切换为右边（环岛内圆线）
+                        tracking_decision_machine.target_boundary = 1;
+                        // 上锁，防止在环内误触发状态 0
+                        cricle_decision_machine.state_locking = 1;
+                    }
+                }
+            }
+
+            //状态 2-3：环岛内行驶阶段
+            if(cricle_decision_machine.state == 2){
+                // 持续巡右边线
+                tracking_decision_machine.target_boundary = 1;
+                
+                // 检测左边线（对侧）是否丢线，若丢线则解锁，准备找出口拐点
+                if (sampled_Lline_num < LOST_LINE)
+                {
+                    cricle_decision_machine.state_locking = 0;
+                }   
+                
+                // 当左边重新找到线（出口特征）且无大弯曲度时，准备切换
+                if(sampled_Lline_num >= LOST_LINE && sampled_Rline_num >= LOST_LINE && cricle_decision_machine.state_locking){
+                    if(nms_Lline < CORNER_ANGLE_THRE){
+                        cricle_decision_machine.state = 3;
+                        cricle_decision_machine.state_locking = 1;
+                    }
+                }
+            }
+
+            //状态 3-4：出环阶段
+            if(cricle_decision_machine.state == 3){
+                tracking_decision_machine.target_boundary = 1;
+                
+                // 如果左边出现拐点，进行左补线并解锁
+                if (nms_Lline > CORNER_ANGLE_THRE)
+                {  
+                    supplement_line(sampled_Lline, &sampled_Lline_num, nms_Lline_idx, sampled_dist * M2PIX);
+                    cricle_decision_machine.state_locking = 0;
+                }
+                
+                // 当右边（原巡线边）丢线或左边再次出现拐点，判定为完全出环
+                if(cricle_decision_machine.state_locking == 0 && (sampled_Rline_num < LOST_LINE || nms_Rline > CORNER_ANGLE_THRE)){
+                    cricle_decision_machine.state = 4;
+                }
+            }
+
+            //状态 4-0：重置与释放
+            if(cricle_decision_machine.state == 4 || cricle_decision_machine.state == 0){
+                cricle_decision_machine.state = 0;
+                cricle_decision_machine.state_locking = 0;
+                // 关键：释放全局处理标志位，允许 element_status 重新检测新元素
+                tracking_decision_machine.element_processing_flage = 0;
+            }
+        }
+
+    }else{
+        cricle_decision_machine.state = 0;
+        cricle_decision_machine.state_locking = 0;
+    }
+}
+
+//巡线函数，根据tracking_decision_machine.target_boundary优先巡线，若发现线丢失，则自动切换线
+void auto_tracking(){
+    // 0 代表优先巡左线
+    if(tracking_decision_machine.target_boundary == 0 && sampled_Lline_num > 5){
+        track_leftline();
+        Mline = L2Mline; 
+        middle_line_length = sampled_Lline_num;
+    }
+    // 1 代表优先巡右线
+    else if(tracking_decision_machine.target_boundary == 1 && sampled_Rline_num > 5){
+        track_rightline();
+        Mline = R2Mline;
+        middle_line_length = sampled_Rline_num;
+    }
+    // 自动兜底逻辑：当指定的目标线丢失（小于等于5个点）时，自动选择较长的一边
+    else if(sampled_Lline_num > sampled_Rline_num && sampled_Lline_num > 5){
+        track_leftline();
+        Mline = L2Mline;
+        middle_line_length = sampled_Lline_num;
+    }
+    else if(sampled_Rline_num > 5)
+    {
+        track_rightline();
+        Mline = R2Mline;
+        middle_line_length = sampled_Rline_num;
+    }
+    else
+    {
+        // 极端情况：双线全部丢失
+        middle_line_length = 0;
+        // 此处可以添加强制直行或停车保护逻辑
+    }
+}
