@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "WSL-Loongarch",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/ls_2k0300_env/opencv_4_10_build/include/opencv4/**"
+            ],
+            "defines": [],
+            "compilerPath": "/opt/ls_2k0300_env/bin/loongarch64-linux-gnu-g++",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-lp64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "/opt/ls_2k0300_env/opencv_4_10_build/include"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}

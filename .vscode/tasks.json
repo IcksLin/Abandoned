@@ -1,0 +1,37 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Prepare Out",
+            "type": "shell",
+            "command": "mkdir -p \"${workspaceFolder}/project/out\" && cd \"${workspaceFolder}/project/out\" && find . -mindepth 1 ! -name \"本文件夹作用.txt\" -exec rm -rf {} +",
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake",
+            "type": "shell",
+            "command": "cmake \"${workspaceFolder}/project/user\"",
+            "options": { "cwd": "${workspaceFolder}/project/out" },
+            "env": {
+                "PATH": "/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin:${env:PATH}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Make",
+            "type": "shell",
+            "command": "make -j24",
+            "options": { "cwd": "${workspaceFolder}/project/out" },
+            "env": {
+                "PATH": "/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin:${env:PATH}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build (CMake+Make)",
+            "dependsOrder": "sequence",
+            "dependsOn": ["Prepare Out", "CMake", "Make"],
+            "group": { "kind": "build", "isDefault": true }
+        }
+    ]
+}

@@ -1,0 +1,3 @@
+/home/icks/LoongArchCarSource/LS2K0300_Library-master/LS2K300_Library/Seekfree_LS2K0300_Opensource_Library/build/CMakeFiles/project.dir
+/home/icks/LoongArchCarSource/LS2K0300_Library-master/LS2K300_Library/Seekfree_LS2K0300_Opensource_Library/build/CMakeFiles/edit_cache.dir
+/home/icks/LoongArchCarSource/LS2K0300_Library-master/LS2K300_Library/Seekfree_LS2K0300_Opensource_Library/build/CMakeFiles/rebuild_cache.dir
