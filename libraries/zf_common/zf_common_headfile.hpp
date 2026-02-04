@@ -74,6 +74,8 @@
 //===================================================用户自定义文件===================================================
 #include "my_image_transmitter.hpp"
 #include "my_task_function.hpp"
+#include "IMU963R.hpp"
+#include "MadgwickAHRS.hpp"
 #include "motor.hpp"
 #include "my_timestamp.hpp"
 #include "decision.hpp"

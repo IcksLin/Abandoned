@@ -609,6 +609,54 @@ home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.cpp.s
 .PHONY : home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.cpp.s
 
+home/heavencornerstone/my_project/project/code/IMU963R.o: home/heavencornerstone/my_project/project/code/IMU963R.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/IMU963R.o
+
+# target to build an object file
+home/heavencornerstone/my_project/project/code/IMU963R.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/IMU963R.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/IMU963R.cpp.o
+
+home/heavencornerstone/my_project/project/code/IMU963R.i: home/heavencornerstone/my_project/project/code/IMU963R.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/IMU963R.i
+
+# target to preprocess a source file
+home/heavencornerstone/my_project/project/code/IMU963R.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/IMU963R.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/IMU963R.cpp.i
+
+home/heavencornerstone/my_project/project/code/IMU963R.s: home/heavencornerstone/my_project/project/code/IMU963R.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/IMU963R.s
+
+# target to generate assembly for a file
+home/heavencornerstone/my_project/project/code/IMU963R.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/IMU963R.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/IMU963R.cpp.s
+
+home/heavencornerstone/my_project/project/code/MadgwickAHRS.o: home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/MadgwickAHRS.o
+
+# target to build an object file
+home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.o
+
+home/heavencornerstone/my_project/project/code/MadgwickAHRS.i: home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/MadgwickAHRS.i
+
+# target to preprocess a source file
+home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.i
+
+home/heavencornerstone/my_project/project/code/MadgwickAHRS.s: home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/MadgwickAHRS.s
+
+# target to generate assembly for a file
+home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.s
+
 home/heavencornerstone/my_project/project/code/decision.o: home/heavencornerstone/my_project/project/code/decision.cpp.o
 .PHONY : home/heavencornerstone/my_project/project/code/decision.o
 
@@ -942,6 +990,12 @@ help:
 	@echo "... home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.o"
 	@echo "... home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.i"
 	@echo "... home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.s"
+	@echo "... home/heavencornerstone/my_project/project/code/IMU963R.o"
+	@echo "... home/heavencornerstone/my_project/project/code/IMU963R.i"
+	@echo "... home/heavencornerstone/my_project/project/code/IMU963R.s"
+	@echo "... home/heavencornerstone/my_project/project/code/MadgwickAHRS.o"
+	@echo "... home/heavencornerstone/my_project/project/code/MadgwickAHRS.i"
+	@echo "... home/heavencornerstone/my_project/project/code/MadgwickAHRS.s"
 	@echo "... home/heavencornerstone/my_project/project/code/decision.o"
 	@echo "... home/heavencornerstone/my_project/project/code/decision.i"
 	@echo "... home/heavencornerstone/my_project/project/code/decision.s"

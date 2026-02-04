@@ -69,20 +69,25 @@ int main()
     // zf_device_uvc uvc;
     uvc.init("/dev/video0");
 
+    // 5.初始化陀螺仪
+    printf("5. 初始化陀螺仪...\n");
+    imu963r.init();
+    system_delay_ms(100);
+
 
     // 5. 初始化PID控制器
-    printf("5. 初始化PID控制器...\n");
+    printf("6. 初始化PID控制器...\n");
     pid_r.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     pid_l.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     pid_angle.setParameters(0.2f, 0.01f, 0.3f);
     pid_angle.setOutputLimit(25);
 
     // 6. 初始化菜单系统
-    printf("6. 初始化菜单系统...\n");
+    printf("7. 初始化菜单系统...\n");
     menu_system.init_menu();
 
     //TCP图像传输组件初始化 --- IGNORE ---
-    printf("7. TCP图像传输组件初始化...\n");
+    printf("8. TCP图像传输组件初始化...\n");
     img_transmitter_init();
 
     // 初始化线程，可开始参数获取任务调度
@@ -127,8 +132,9 @@ int main()
     while (true)
     {
         // menu_system.menu_system();
-        tracking();
+        // tracking();
         // system_delay_ms(10);
+        show_all_of_the_component_without_ips();
     }
     return 0;
 }

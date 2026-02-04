@@ -1,0 +1,308 @@
+//=============================================================================================
+// MadgwickAHRS.cpp
+//=============================================================================================
+//
+// Implementation of Madgwick's IMU and AHRS algorithms.
+// C++ version with object-oriented design
+// See: http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/
+//
+// From the x-io website "Open-source resources available on this website are
+// provided under the GNU General Public Licence unless an alternative licence
+// is provided in source."
+//
+// Date			Author          Notes
+// 29/09/2011	SOH Madgwick    Initial release
+// 02/10/2011	SOH Madgwick	Optimised for reduced CPU load
+// 19/02/2012	SOH Madgwick	Magnetometer measurement is normalised
+// 2026/02/04   C++ Port        Object-oriented C++ implementation
+//
+//=============================================================================================
+
+#include "MadgwickAHRS.hpp"
+
+// Constructor
+MadgwickAHRS::MadgwickAHRS(float sampleFrequency, float beta)
+    : beta_(beta)
+    , invSampleFreq_(1.0f / sampleFrequency)
+    , q0_(1.0f)
+    , q1_(0.0f)
+    , q2_(0.0f)
+    , q3_(0.0f)
+    , roll_(0.0f)
+    , pitch_(0.0f)
+    , yaw_(0.0f)
+    , anglesComputed_(false)
+{
+}
+
+// Configuration methods
+void MadgwickAHRS::setSampleFrequency(float frequency) {
+    if (frequency > 0.0f) {
+        invSampleFreq_ = 1.0f / frequency;
+    }
+}
+
+void MadgwickAHRS::setBeta(float beta) {
+    if (beta > 0.0f) {
+        beta_ = beta;
+    }
+}
+
+// AHRS algorithm update (9-axis)
+void MadgwickAHRS::update(float gx, float gy, float gz, 
+                         float ax, float ay, float az, 
+                         float mx, float my, float mz) {
+	gx *= 0.0174533f;
+    gy *= 0.0174533f;
+    gz *= 0.0174533f;
+	
+    float recipNorm;
+    float s0, s1, s2, s3;
+    float qDot1, qDot2, qDot3, qDot4;
+    float hx, hy;
+    float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
+
+    // Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
+    if ((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
+        updateIMU(gx, gy, gz, ax, ay, az);
+        return;
+    }
+
+    // Rate of change of quaternion from gyroscope
+    qDot1 = 0.5f * (-q1_ * gx - q2_ * gy - q3_ * gz);
+    qDot2 = 0.5f * (q0_ * gx + q2_ * gz - q3_ * gy);
+    qDot3 = 0.5f * (q0_ * gy - q1_ * gz + q3_ * gx);
+    qDot4 = 0.5f * (q0_ * gz + q1_ * gy - q2_ * gx);
+
+    // Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
+    if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+
+        // Normalise accelerometer measurement
+        recipNorm = invSqrt(ax * ax + ay * ay + az * az);
+        ax *= recipNorm;
+        ay *= recipNorm;
+        az *= recipNorm;
+
+        // Normalise magnetometer measurement
+        recipNorm = invSqrt(mx * mx + my * my + mz * mz);
+        mx *= recipNorm;
+        my *= recipNorm;
+        mz *= recipNorm;
+
+        // Auxiliary variables to avoid repeated arithmetic
+        _2q0mx = 2.0f * q0_ * mx;
+        _2q0my = 2.0f * q0_ * my;
+        _2q0mz = 2.0f * q0_ * mz;
+        _2q1mx = 2.0f * q1_ * mx;
+        _2q0 = 2.0f * q0_;
+        _2q1 = 2.0f * q1_;
+        _2q2 = 2.0f * q2_;
+        _2q3 = 2.0f * q3_;
+        _2q0q2 = 2.0f * q0_ * q2_;
+        _2q2q3 = 2.0f * q2_ * q3_;
+        q0q0 = q0_ * q0_;
+        q0q1 = q0_ * q1_;
+        q0q2 = q0_ * q2_;
+        q0q3 = q0_ * q3_;
+        q1q1 = q1_ * q1_;
+        q1q2 = q1_ * q2_;
+        q1q3 = q1_ * q3_;
+        q2q2 = q2_ * q2_;
+        q2q3 = q2_ * q3_;
+        q3q3 = q3_ * q3_;
+
+        // Reference direction of Earth's magnetic field
+        hx = mx * q0q0 - _2q0my * q3_ + _2q0mz * q2_ + mx * q1q1 + _2q1 * my * q2_ + _2q1 * mz * q3_ - mx * q2q2 - mx * q3q3;
+        hy = _2q0mx * q3_ + my * q0q0 - _2q0mz * q1_ + _2q1mx * q2_ - my * q1q1 + my * q2q2 + _2q2 * mz * q3_ - my * q3q3;
+        _2bx = std::sqrt(hx * hx + hy * hy);
+        _2bz = -_2q0mx * q2_ + _2q0my * q1_ + mz * q0q0 + _2q1mx * q3_ - mz * q1q1 + _2q2 * my * q3_ - mz * q2q2 + mz * q3q3;
+        _4bx = 2.0f * _2bx;
+        _4bz = 2.0f * _2bz;
+
+        // Gradient decent algorithm corrective step
+        s0 = -_2q2 * (2.0f * q1q3 - _2q0q2 - ax) + _2q1 * (2.0f * q0q1 + _2q2q3 - ay) - _2bz * q2_ * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * q3_ + _2bz * q1_) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * q2_ * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+        s1 = _2q3 * (2.0f * q1q3 - _2q0q2 - ax) + _2q0 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q1_ * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + _2bz * q3_ * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q2_ + _2bz * q0_) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q3_ - _4bz * q1_) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+        s2 = -_2q0 * (2.0f * q1q3 - _2q0q2 - ax) + _2q3 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q2_ * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + (-_4bx * q2_ - _2bz * q0_) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q1_ + _2bz * q3_) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q0_ - _4bz * q2_) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+        s3 = _2q1 * (2.0f * q1q3 - _2q0q2 - ax) + _2q2 * (2.0f * q0q1 + _2q2q3 - ay) + (-_4bx * q3_ + _2bz * q1_) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * q0_ + _2bz * q2_) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * q1_ * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
+        recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+        s0 *= recipNorm;
+        s1 *= recipNorm;
+        s2 *= recipNorm;
+        s3 *= recipNorm;
+
+        // Apply feedback step
+        qDot1 -= beta_ * s0;
+        qDot2 -= beta_ * s1;
+        qDot3 -= beta_ * s2;
+        qDot4 -= beta_ * s3;
+    }
+
+    // Integrate rate of change of quaternion to yield quaternion
+    q0_ += qDot1 * invSampleFreq_;
+    q1_ += qDot2 * invSampleFreq_;
+    q2_ += qDot3 * invSampleFreq_;
+    q3_ += qDot4 * invSampleFreq_;
+
+    // Normalise quaternion
+    recipNorm = invSqrt(q0_ * q0_ + q1_ * q1_ + q2_ * q2_ + q3_ * q3_);
+    q0_ *= recipNorm;
+    q1_ *= recipNorm;
+    q2_ *= recipNorm;
+    q3_ *= recipNorm;
+    anglesComputed_ = false;
+}
+
+// IMU algorithm update (6-axis)
+void MadgwickAHRS::updateIMU(float gx, float gy, float gz, 
+                            float ax, float ay, float az) {
+    float recipNorm;
+    float s0, s1, s2, s3;
+    float qDot1, qDot2, qDot3, qDot4;
+    float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2, _8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
+
+    // Convert gyroscope degrees/sec to radians/sec
+    gx *= 0.0174533f;
+    gy *= 0.0174533f;
+    gz *= 0.0174533f;
+
+	
+
+    // Rate of change of quaternion from gyroscope
+    qDot1 = 0.5f * (-q1_ * gx - q2_ * gy - q3_ * gz);
+    qDot2 = 0.5f * (q0_ * gx + q2_ * gz - q3_ * gy);
+    qDot3 = 0.5f * (q0_ * gy - q1_ * gz + q3_ * gx);
+    qDot4 = 0.5f * (q0_ * gz + q1_ * gy - q2_ * gx);
+
+    // Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
+    if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+
+        // Normalise accelerometer measurement
+        recipNorm = invSqrt(ax * ax + ay * ay + az * az);
+        ax *= recipNorm;
+        ay *= recipNorm;
+        az *= recipNorm;
+
+        // Auxiliary variables to avoid repeated arithmetic
+        _2q0 = 2.0f * q0_;
+        _2q1 = 2.0f * q1_;
+        _2q2 = 2.0f * q2_;
+        _2q3 = 2.0f * q3_;
+        _4q0 = 4.0f * q0_;
+        _4q1 = 4.0f * q1_;
+        _4q2 = 4.0f * q2_;
+        _8q1 = 8.0f * q1_;
+        _8q2 = 8.0f * q2_;
+        q0q0 = q0_ * q0_;
+        q1q1 = q1_ * q1_;
+        q2q2 = q2_ * q2_;
+        q3q3 = q3_ * q3_;
+
+        // Gradient decent algorithm corrective step
+        s0 = _4q0 * q2q2 + _2q2 * ax + _4q0 * q1q1 - _2q1 * ay;
+        s1 = _4q1 * q3q3 - _2q3 * ax + 4.0f * q0q0 * q1_ - _2q0 * ay - _4q1 + _8q1 * q1q1 + _8q1 * q2q2 + _4q1 * az;
+        s2 = 4.0f * q0q0 * q2_ + _2q0 * ax + _4q2 * q3q3 - _2q3 * ay - _4q2 + _8q2 * q1q1 + _8q2 * q2q2 + _4q2 * az;
+        s3 = 4.0f * q1q1 * q3_ - _2q1 * ax + 4.0f * q2q2 * q3_ - _2q2 * ay;
+        recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3); // normalise step magnitude
+        s0 *= recipNorm;
+        s1 *= recipNorm;
+        s2 *= recipNorm;
+        s3 *= recipNorm;
+
+        // Apply feedback step
+        qDot1 -= beta_ * s0;
+        qDot2 -= beta_ * s1;
+        qDot3 -= beta_ * s2;
+        qDot4 -= beta_ * s3;
+    }
+
+    // Integrate rate of change of quaternion to yield quaternion
+    q0_ += qDot1 * invSampleFreq_;
+    q1_ += qDot2 * invSampleFreq_;
+    q2_ += qDot3 * invSampleFreq_;
+    q3_ += qDot4 * invSampleFreq_;
+
+    // Normalise quaternion
+    recipNorm = invSqrt(q0_ * q0_ + q1_ * q1_ + q2_ * q2_ + q3_ * q3_);
+    q0_ *= recipNorm;
+    q1_ *= recipNorm;
+    q2_ *= recipNorm;
+    q3_ *= recipNorm;
+    anglesComputed_ = false;
+}
+
+// Angle getters (degrees)
+float MadgwickAHRS::getRoll() {
+    if (!anglesComputed_) computeAngles();
+    return roll_ * RAD_TO_DEG;
+}
+
+float MadgwickAHRS::getPitch() {
+    if (!anglesComputed_) computeAngles();
+    return pitch_ * RAD_TO_DEG;
+}
+
+float MadgwickAHRS::getYaw() {
+    if (!anglesComputed_) computeAngles();
+    return yaw_ * RAD_TO_DEG;
+}
+
+// Angle getters (radians)
+float MadgwickAHRS::getRollRadians() {
+    if (!anglesComputed_) computeAngles();
+    return roll_;
+}
+
+float MadgwickAHRS::getPitchRadians() {
+    if (!anglesComputed_) computeAngles();
+    return pitch_;
+}
+
+float MadgwickAHRS::getYawRadians() {
+    if (!anglesComputed_) computeAngles();
+    return yaw_;
+}
+
+// Quaternion getter
+void MadgwickAHRS::getQuaternion(float& q0, float& q1, float& q2, float& q3) const {
+    q0 = q0_;
+    q1 = q1_;
+    q2 = q2_;
+    q3 = q3_;
+}
+
+// Reset filter
+void MadgwickAHRS::reset() {
+    q0_ = 1.0f;
+    q1_ = 0.0f;
+    q2_ = 0.0f;
+    q3_ = 0.0f;
+    roll_ = 0.0f;
+    pitch_ = 0.0f;
+    yaw_ = 0.0f;
+    anglesComputed_ = false;
+}
+
+// Private methods
+void MadgwickAHRS::computeAngles() {
+    roll_ = std::atan2(q0_ * q1_ + q2_ * q3_, 0.5f - q1_ * q1_ - q2_ * q2_);
+    pitch_ = std::asin(-2.0f * (q1_ * q3_ - q0_ * q2_));
+    yaw_ = std::atan2(q1_ * q2_ + q0_ * q3_, 0.5f - q2_ * q2_ - q3_ * q3_);
+    anglesComputed_ = true;
+}
+
+// Fast inverse square-root
+// See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
+float MadgwickAHRS::invSqrt(float x) {
+    float xhalf = 0.5f * x;
+    float y = x;
+    std::uint32_t i;
+
+    // 使用 memcpy 替代指针强转，避开 strict-aliasing 规则
+    std::memcpy(&i, &y, sizeof(i));
+    i = 0x5f3759df - (i >> 1);
+    std::memcpy(&y, &i, sizeof(y));
+
+    y = y * (1.5f - (xhalf * y * y));
+    // y = y * (1.5f - (xhalf * y * y)); // 如需更高精度可保留第二次迭代
+    return y;
+}

@@ -515,6 +515,8 @@ CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_menu.cp
  /home/heavencornerstone/my_project/project/user/../../libraries/zf_components/seekfree_assistant_interface.hpp \
  /home/heavencornerstone/my_project/project/user/../code/my_image_transmitter.hpp \
  /home/heavencornerstone/my_project/project/user/../code/my_task_function.hpp \
+ /home/heavencornerstone/my_project/project/user/../code/IMU963R.hpp \
+ /home/heavencornerstone/my_project/project/user/../code/MadgwickAHRS.hpp \
  /home/heavencornerstone/my_project/project/user/../code/motor.hpp \
  /home/heavencornerstone/my_project/project/user/../code/my_timestamp.hpp \
  /home/heavencornerstone/my_project/project/user/../code/decision.hpp \
