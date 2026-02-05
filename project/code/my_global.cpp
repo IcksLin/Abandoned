@@ -83,9 +83,15 @@ void key_scan_handler()
     // my_timer.start();
     key_manager.scan_keys();  // 执行按键扫描（包含消抖和状态机处理）
     imu963r.update();         // 获取原始数据
-    ahrs.update(imu963r.gyro[0], imu963r.gyro[1], imu963r.gyro[2], 
-                imu963r.acc[0],  imu963r.acc[1],  imu963r.acc[2], 
-                imu963r.mag[0],  imu963r.mag[1],  imu963r.mag[2]);// 进行姿态解算
+    ahrs.update(
+        imu963r.gyro[2], imu963r.gyro[0], -imu963r.gyro[1], // gx, gy, gz
+        imu963r.acc[2],  imu963r.acc[0],  -imu963r.acc[1],  // ax, ay, az
+        imu963r.mag[2],  imu963r.mag[0],  -imu963r.mag[1]   // mx, my, mz
+    );
+    // ahrs.updateIMU(
+    //     imu963r.gyro[2],  imu963r.gyro[0], -imu963r.gyro[1], // 陀螺仪映射 (注意负号)
+    //     imu963r.acc[2],   imu963r.acc[0],  -imu963r.acc[1]   // 加速度计映射：-acc[1]变为+9.8指向天空
+    // );
 }
 
 //-------------------------------------------------------------------------------------------------------------------

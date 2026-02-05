@@ -51,7 +51,7 @@ private:
     float last_gyro[3];             // 滤波器状态：上一时刻角速度
 
     // 内部单位换算常量
-    const float ACC_SCALE = 16.0f * 9.8f / 32768.0f;
+    const float ACC_SCALE = 8.0f * 9.8f / 32768.0f;
     const float GYRO_SCALE = 2000.0f / 32768.0f;
 };
 

@@ -23,7 +23,7 @@
 #include <cstring>
 #include <opencv2/opencv.hpp>
 // TCP图像传输服务器配置
-#define SERVER_IP                "192.168.0.145"                 // 上位机IP地址
+#define SERVER_IP                "192.168.0.106"                 // 上位机IP地址
 #define SERVER_PORT              8086                           // 上位机端口号
 
 uint32 tcp_send_wrap(const uint8 *buf, uint32 len);
