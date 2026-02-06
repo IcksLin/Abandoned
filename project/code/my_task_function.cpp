@@ -58,8 +58,11 @@ void show_all_of_the_component_without_ips(){
     //编码器及电机速度测试
     // motor_set_speed(0,0);
     //PID控制器控速测试
-    target_speed_r = 0;
-    target_speed_l = 0;
+    // target_speed_r = 0;
+    // target_speed_l = 0;
+
+    onto_pd_control_enable = 1;
+
     printf("right_speed: %4.2f ,left_speed: %4.2f,pitch: %4.2f,roll: %4.2f,yall: %4.2f    \r",
          right_speed, left_speed,ahrs.getPitch(),ahrs.getRoll(),ahrs.getYaw());
 }

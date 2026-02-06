@@ -69,3 +69,36 @@ void IMUHandler::update(void) {
         mag[2] = (float)imu_dev.get_mag_z();
     }
 }
+
+/**
+ * @brief 航向角平滑控制器
+ * @param target_yaw 目标角度 (-180 到 180)
+ * @param current_yaw 当前解算出的角度 (-180 到 180)
+ * @param max_output 最大输出限制 (例如 25.0)
+ * @return float 映射到 [-max_output, max_output] 的电机控制增量
+ */
+float calculate_yaw_control(float target_yaw, float current_yaw, float max_output) {
+    // 1. 计算最短路径误差 (解决 -180/180 临界点问题)
+    // 这里的 error 范围会被锁定在 [-180, 180]
+    float error = target_yaw - current_yaw;
+    if (error > 180.0f) error -= 360.0f;
+    if (error < -180.0f) error += 360.0f;
+
+    // 2. 归一化误差到 [-1, 1] 范围，用于 Sigmoid 计算
+    // 我们设定一个“显著误差区间”，比如超过 45 度就认为是大误差
+    const float range = 45.0f; 
+    float normalized_error = error / range; 
+
+    // 3. 使用 Sigmoid 函数进行平滑映射
+    // k 控制响应灵敏度：k 越大，中位附近的修正越猛；k 越小，过渡越平缓
+    float k = 4.0f; 
+    float sigmoid = (2.0f / (1.0f + exp(-k * normalized_error))) - 1.0f;
+
+    // 4. 将映射结果 [ -1, 1 ] 放大到电机控制量 [ -25, 25 ]
+    float output = sigmoid * max_output;
+
+    // 5. 边界保护
+    output = std::max(-max_output, std::min(max_output, output));
+
+    return output;
+}

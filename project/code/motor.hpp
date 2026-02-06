@@ -20,7 +20,7 @@
 #include "zf_driver_pwm.hpp"
 #include "zf_driver_gpio.hpp"
 #include "zf_driver_encoder.hpp"
-
+#include <math.h>
 /* ================================================================================================================
  *                                           全局对象声明
  * ================================================================================================================ */
@@ -76,5 +76,8 @@ void motor_stop();
 //              速度值 = 编码器计数 × 权重系数
 //-------------------------------------------------------------------------------------------------------------------
 bool get_and_remap_speed(float* right_speed, float* left_speed, int16 sampling_period);
+
+//信号发生器，用于测试电机以及电机对磁力轴的影响
+float motor_test_signal_generator(int mode, float period_ms);
 
 #endif  // __MOTOR_H_HPP__

@@ -77,8 +77,8 @@ int main()
 
     // 5. 初始化PID控制器
     printf("6. 初始化PID控制器...\n");
-    pid_r.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
-    pid_l.init(3.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
+    pid_r.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
+    pid_l.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     pid_angle.setParameters(0.2f, 0.01f, 0.3f);
     pid_angle.setOutputLimit(25);
 
@@ -126,14 +126,12 @@ int main()
     }
 
 
-
-
+    // printf("right_speed: %4.2f ,left_speed: %4.2f,pitch: %4.2f,roll: %4.2f,yall: %4.2f    \r",
+    //     right_speed, left_speed,ahrs.getPitch(),ahrs.getRoll(),ahrs.getYaw());
+    system_delay_ms(1500);
     // 主循环，运行菜单系统
     while (true)
     {
-        // menu_system.menu_system();
-        // tracking();
-        // system_delay_ms(10);
         show_all_of_the_component_without_ips();
     }
     return 0;

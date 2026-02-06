@@ -83,15 +83,23 @@ void key_scan_handler()
     // my_timer.start();
     key_manager.scan_keys();  // 执行按键扫描（包含消抖和状态机处理）
     imu963r.update();         // 获取原始数据
-    ahrs.update(
-        imu963r.gyro[2], imu963r.gyro[0], -imu963r.gyro[1], // gx, gy, gz
-        imu963r.acc[2],  imu963r.acc[0],  -imu963r.acc[1],  // ax, ay, az
-        imu963r.mag[2],  imu963r.mag[0],  -imu963r.mag[1]   // mx, my, mz
-    );
-    // ahrs.updateIMU(
-    //     imu963r.gyro[2],  imu963r.gyro[0], -imu963r.gyro[1], // 陀螺仪映射 (注意负号)
-    //     imu963r.acc[2],   imu963r.acc[0],  -imu963r.acc[1]   // 加速度计映射：-acc[1]变为+9.8指向天空
+    // //需要进行对北操作
+    // ahrs.update(
+    //     imu963r.gyro[2], imu963r.gyro[0], -imu963r.gyro[1], // gx, gy, gz
+    //     imu963r.acc[2],  imu963r.acc[0],  -imu963r.acc[1],  // ax, ay, az
+    //     imu963r.mag[2],  imu963r.mag[0],  -imu963r.mag[1]   // mx, my, mz
     // );
+
+    // //磁力轴抗压测试
+    // float temp_sign = motor_test_signal_generator(1,1000);
+    // speed_to_pwm_l = temp_sign;
+    // speed_to_pwm_r = -temp_sign;
+    ahrs.updateIMU(
+        imu963r.gyro[0],  imu963r.gyro[2], -imu963r.gyro[1], // 陀螺仪映射 (注意负号)
+        imu963r.acc[0],   imu963r.acc[2],  -imu963r.acc[1]   // 加速度计映射：-acc[1]变为+9.8指向天空
+    );
+
+    //九轴陀螺仪综合测试，圆周运动
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -132,33 +140,22 @@ void encoder_get_count_handler()
 //-------------------------------------------------------------------------------------------------------------------
 void pid_contol_handle()
 {
-    // -------------------- 步骤1：PID计算 --------------------
-    // // 根据目标速度和当前速度，计算所需的PWM输出值
-    speed_to_pwm_r = (int16_t)pid_r.control(target_speed_r, right_speed);  // 右轮PID计算
-    speed_to_pwm_l = (int16_t)pid_l.control(target_speed_l, left_speed);   // 左轮PID计算
-
-    // // -------------------- 步骤2：PWM输出 --------------------
     // // 将PID计算结果发送到电机驱动模块
     motor_set_speed(speed_to_pwm_l, speed_to_pwm_r);
 
     // //测试代码
-    // if(onto_pd_control_enable==1){
-    //     target_speed_l = target_speed_r = 30;//添加基准速度
-    //     float onto_control = pid_angle.compute(0.0f, onto); // 计算角度修正值
+    if(onto_pd_control_enable==1){
+        target_speed_l = target_speed_r = 0;//添加基准速度
+        // float onto_control = pid_angle.compute(0.0f, onto); // 计算角度修正值
+        float onto_control = pid_angle.compute(0.0f, -calculate_yaw_control(0,ahrs.getYaw(),40.0f)); // 计算角度修正值
+        // float onto_control = calculate_yaw_control(0,ahrs.getYaw());
 
-    //     speed_to_pwm_r = (int16_t)pid_r.control(target_speed_r-onto_control, right_speed);  // 右轮PID计算
-    //     speed_to_pwm_l = (int16_t)pid_l.control(target_speed_l+onto_control, left_speed);   // 左轮PID计算
-    //     motor_set_speed(speed_to_pwm_l, speed_to_pwm_r);
-    // }
- 
-    // 说明：
-    // 1. PID控制器根据误差（target - current）计算输出
-    // 2. 输出值经过限幅、死区处理后转换为PWM
-    // 3. motor_set_speed() 内部会处理PWM映射和方向控制
-    
-    // 💡使用提示：
-    // - 想让车前进：target_speed_r = 50; target_speed_l = 50;
-    // - 想让车停止：target_speed_r = 0;  target_speed_l = 0;
-    // - 想让车后退：target_speed_r = -50; target_speed_l = -50;
-    // - 想让车转弯：设置左右轮不同速度
+        speed_to_pwm_r = (int16_t)pid_r.control(target_speed_r-onto_control, right_speed);  // 右轮PID计算
+        speed_to_pwm_l = (int16_t)pid_l.control(target_speed_l+onto_control, left_speed);   // 左轮PID计算
+    }
+    else{
+        speed_to_pwm_r = (int16_t)pid_r.control(0, right_speed);  // 右轮PID计算
+        speed_to_pwm_l = (int16_t)pid_l.control(0, left_speed);   // 左轮PID计算
+    }
 }
+

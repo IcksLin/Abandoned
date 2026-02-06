@@ -2,6 +2,7 @@
 #define __IMU_HANDLER_HPP__
 
 #include "zf_device_imu.hpp"
+#include "cmath"
 #include <vector>
 
 /**
@@ -54,5 +55,7 @@ private:
     const float ACC_SCALE = 8.0f * 9.8f / 32768.0f;
     const float GYRO_SCALE = 2000.0f / 32768.0f;
 };
+
+float calculate_yaw_control(float target_yaw, float current_yaw, float max_output = 25.0f);
 
 #endif

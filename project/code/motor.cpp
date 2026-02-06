@@ -193,3 +193,39 @@ bool get_and_remap_speed(float* right_speed, float* left_speed, int16 sampling_p
     
     return true;  // 采集成功
 }
+
+/**
+ * @brief 电机测试信号发生器
+ * @param mode 0: 正弦波 (平滑加减速), 1: 方波 (阶跃响应/冲击测试)
+ * @param period_ms 信号周期 (毫秒)，例如 2000 表示 2 秒一个循环
+ * @return float 输出 -50.0 到 50.0 之间的控制信号
+ */
+float motor_test_signal_generator(int mode, float period_ms = 2000.0f) {
+    static float elapsed_time = 0.0f;
+    const float amplitude = 50.0f; // 振幅
+    float output = 0.0f;
+
+    // 1. 更新相位 (假设该函数每 10ms 调用一次)
+    elapsed_time += 10.0f; 
+    if (elapsed_time >= period_ms) {
+        elapsed_time = 0.0f;
+    }
+
+    // 2. 根据模式生成波形
+    if (mode == 0) {
+        // 正弦波: sin(2 * PI * f * t)
+        // 角度 = (当前时间 / 总周期) * 2PI
+        float angle = (elapsed_time / period_ms) * 2.0f * 3.14159265f;
+        output = amplitude * std::sin(angle);
+    } 
+    else {
+        // 方波: 前半周期 50，后半周期 -50
+        if (elapsed_time < (period_ms / 2.0f)) {
+            output = amplitude;
+        } else {
+            output = -amplitude;
+        }
+    }
+
+    return output;
+}
