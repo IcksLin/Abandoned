@@ -82,6 +82,7 @@
 #include "my_key.hpp"
 #include "my_menu.hpp"
 #include "my_pid.hpp"
+#include "navigation.hpp"
 //===================================================用户自定义文件===================================================
 
 

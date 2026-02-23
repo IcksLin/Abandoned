@@ -56,6 +56,7 @@ private:
     const float GYRO_SCALE = 2000.0f / 32768.0f;
 };
 
+// 默认参数为输出范围参数，输出范围越大，对角度就越敏感
 float calculate_yaw_control(float target_yaw, float current_yaw, float max_output = 25.0f);
 
 #endif

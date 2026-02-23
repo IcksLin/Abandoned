@@ -526,4 +526,6 @@ CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_global.
  /home/heavencornerstone/my_project/project/user/../code/my_key.hpp \
  /home/heavencornerstone/my_project/project/user/../code/my_menu.hpp \
  /home/heavencornerstone/my_project/project/user/../code/my_key.hpp \
- /home/heavencornerstone/my_project/project/user/../code/my_pid.hpp
+ /home/heavencornerstone/my_project/project/user/../code/my_pid.hpp \
+ /home/heavencornerstone/my_project/project/user/../code/navigation.hpp \
+ /home/heavencornerstone/my_project/project/user/../code/akima.hpp

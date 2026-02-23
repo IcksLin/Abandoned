@@ -657,6 +657,30 @@ home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.s
 .PHONY : home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.s
 
+home/heavencornerstone/my_project/project/code/akima.o: home/heavencornerstone/my_project/project/code/akima.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/akima.o
+
+# target to build an object file
+home/heavencornerstone/my_project/project/code/akima.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/akima.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/akima.cpp.o
+
+home/heavencornerstone/my_project/project/code/akima.i: home/heavencornerstone/my_project/project/code/akima.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/akima.i
+
+# target to preprocess a source file
+home/heavencornerstone/my_project/project/code/akima.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/akima.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/akima.cpp.i
+
+home/heavencornerstone/my_project/project/code/akima.s: home/heavencornerstone/my_project/project/code/akima.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/akima.s
+
+# target to generate assembly for a file
+home/heavencornerstone/my_project/project/code/akima.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/akima.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/akima.cpp.s
+
 home/heavencornerstone/my_project/project/code/decision.o: home/heavencornerstone/my_project/project/code/decision.cpp.o
 .PHONY : home/heavencornerstone/my_project/project/code/decision.o
 
@@ -897,6 +921,30 @@ home/heavencornerstone/my_project/project/code/my_timestamp.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_timestamp.cpp.s
 .PHONY : home/heavencornerstone/my_project/project/code/my_timestamp.cpp.s
 
+home/heavencornerstone/my_project/project/code/navigation.o: home/heavencornerstone/my_project/project/code/navigation.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/navigation.o
+
+# target to build an object file
+home/heavencornerstone/my_project/project/code/navigation.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/navigation.cpp.o
+.PHONY : home/heavencornerstone/my_project/project/code/navigation.cpp.o
+
+home/heavencornerstone/my_project/project/code/navigation.i: home/heavencornerstone/my_project/project/code/navigation.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/navigation.i
+
+# target to preprocess a source file
+home/heavencornerstone/my_project/project/code/navigation.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/navigation.cpp.i
+.PHONY : home/heavencornerstone/my_project/project/code/navigation.cpp.i
+
+home/heavencornerstone/my_project/project/code/navigation.s: home/heavencornerstone/my_project/project/code/navigation.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/navigation.s
+
+# target to generate assembly for a file
+home/heavencornerstone/my_project/project/code/navigation.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/navigation.cpp.s
+.PHONY : home/heavencornerstone/my_project/project/code/navigation.cpp.s
+
 main.o: main.cpp.o
 .PHONY : main.o
 
@@ -996,6 +1044,9 @@ help:
 	@echo "... home/heavencornerstone/my_project/project/code/MadgwickAHRS.o"
 	@echo "... home/heavencornerstone/my_project/project/code/MadgwickAHRS.i"
 	@echo "... home/heavencornerstone/my_project/project/code/MadgwickAHRS.s"
+	@echo "... home/heavencornerstone/my_project/project/code/akima.o"
+	@echo "... home/heavencornerstone/my_project/project/code/akima.i"
+	@echo "... home/heavencornerstone/my_project/project/code/akima.s"
 	@echo "... home/heavencornerstone/my_project/project/code/decision.o"
 	@echo "... home/heavencornerstone/my_project/project/code/decision.i"
 	@echo "... home/heavencornerstone/my_project/project/code/decision.s"
@@ -1026,6 +1077,9 @@ help:
 	@echo "... home/heavencornerstone/my_project/project/code/my_timestamp.o"
 	@echo "... home/heavencornerstone/my_project/project/code/my_timestamp.i"
 	@echo "... home/heavencornerstone/my_project/project/code/my_timestamp.s"
+	@echo "... home/heavencornerstone/my_project/project/code/navigation.o"
+	@echo "... home/heavencornerstone/my_project/project/code/navigation.i"
+	@echo "... home/heavencornerstone/my_project/project/code/navigation.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

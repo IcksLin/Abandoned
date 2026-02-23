@@ -30,6 +30,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/libraries/zf_driver/zf_driver_udp.cpp.o.d"
   "/home/heavencornerstone/my_project/project/code/IMU963R.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/IMU963R.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/IMU963R.cpp.o.d"
   "/home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/MadgwickAHRS.cpp.o.d"
+  "/home/heavencornerstone/my_project/project/code/akima.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/akima.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/akima.cpp.o.d"
   "/home/heavencornerstone/my_project/project/code/decision.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/decision.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/decision.cpp.o.d"
   "/home/heavencornerstone/my_project/project/code/imgproc.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/imgproc.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/imgproc.cpp.o.d"
   "/home/heavencornerstone/my_project/project/code/motor.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/motor.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/motor.cpp.o.d"
@@ -40,6 +41,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/heavencornerstone/my_project/project/code/my_pid.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_pid.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_pid.cpp.o.d"
   "/home/heavencornerstone/my_project/project/code/my_task_function.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_task_function.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_task_function.cpp.o.d"
   "/home/heavencornerstone/my_project/project/code/my_timestamp.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_timestamp.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_timestamp.cpp.o.d"
+  "/home/heavencornerstone/my_project/project/code/navigation.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/navigation.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/navigation.cpp.o.d"
   "/home/heavencornerstone/my_project/project/user/main.cpp" "CMakeFiles/project.dir/main.cpp.o" "gcc" "CMakeFiles/project.dir/main.cpp.o.d"
   )
 

@@ -527,4 +527,6 @@ CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_menu.cp
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/bits/fstream.tcc \
  /home/heavencornerstone/my_project/project/user/../code/my_key.hpp \
  /home/heavencornerstone/my_project/project/user/../code/my_menu.hpp \
- /home/heavencornerstone/my_project/project/user/../code/my_pid.hpp
+ /home/heavencornerstone/my_project/project/user/../code/my_pid.hpp \
+ /home/heavencornerstone/my_project/project/user/../code/navigation.hpp \
+ /home/heavencornerstone/my_project/project/user/../code/akima.hpp

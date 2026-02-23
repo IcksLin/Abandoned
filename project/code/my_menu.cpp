@@ -29,8 +29,8 @@ MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) : key_manager(key_mgr
     // 初始化菜单项
     main_menu = {"Main Menu", -1, nullptr, nullptr, nullptr, nullptr};
     
-    mode1 = {"Mode1", 0, static_option_func, nullptr, nullptr, nullptr};
-    mode2 = {"Mode2", 1, static_option_func, nullptr, nullptr, nullptr};
+    mode1 = {"Run By Image", 0, static_option_func, nullptr, nullptr, nullptr};
+    mode2 = {"Inertial navigation", 1, static_option_func, nullptr, nullptr, nullptr};
     mode3 = {"Mode3", 2, static_option_func, nullptr, nullptr, nullptr};
     mode4 = {"Mode4", 3, static_option_func, nullptr, nullptr, nullptr};
     mode5 = {"Mode5", 4, static_option_func, nullptr, nullptr, nullptr};
@@ -40,7 +40,8 @@ MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) : key_manager(key_mgr
     tripod_pid = {"Tripod_PID", 7, static_option_func, nullptr, nullptr, nullptr};
     gray_calibration = {"Gray_Calibration", 8, static_option_func, nullptr, nullptr, nullptr};
     IMU_angle = {"IMU_Angle", 9, static_option_func, nullptr, nullptr, nullptr};
-    
+    map_record = {"Map record",10,static_option_func,nullptr,nullptr,nullptr};
+
     current_menu = &main_menu;
 }
 
@@ -105,6 +106,9 @@ void MyMenu::init_menu_parents(void)
     
     IMU_angle.parent = &mode5;
     IMU_angle.sibling = nullptr;
+
+    map_record.parent = &mode2;
+    map_record.sibling = nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -485,4 +489,33 @@ void MyMenu::menu_mode_9(uint8 cl_action)
     // ips_display->show_float(5 * 8, 2 * 16, Pitch_copy, 3, 2);
     ips_display->show_string(0, 3 * 16, "Yaw:");
     // ips_display->show_float(5 * 8, 3 * 16, Yaw_copy, 3, 2);
+}
+
+//惯性导航地图记录界面
+void MyMenu::menu_mode_10(uint8 cl_action){
+    //记录期间静默显示屏，全力确保编码器正常
+    if(!path_tracker_component.is_recording){}
+
+    // IMU角度显示模式
+    switch (cl_action)
+    {
+    case 0://记录开关
+
+        
+    break;
+
+    case 1://清空地图
+
+    break;
+
+    case 2://转换并保存地图
+
+    break;
+
+    case 3: // 返回键
+        mode_inter_flag = 0; // 返回菜单
+        break;
+    default:
+        break;
+    }
 }
