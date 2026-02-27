@@ -132,7 +132,11 @@ int main()
     // 主循环，运行菜单系统
     while (true)
     {
-        show_all_of_the_component_without_ips();
+        // show_all_of_the_component_without_ips();
+        // show_all_of_the_component();
+        // ips200.update();
+        get_image_datasets();
+        system_delay_ms(10);
     }
     return 0;
 }

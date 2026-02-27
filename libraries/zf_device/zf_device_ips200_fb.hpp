@@ -1,40 +1,9 @@
-/*********************************************************************************************************************
-* LS2K0300 Opensourec Library 即（LS2K0300 开源库）是一个基于官方 SDK 接口的第三方开源库
-* Copyright (c) 2022 SEEKFREE 逐飞科技
-*
-* 本文件是LS2K0300 开源库的一部分
-*
-* LS2K0300 开源库 是免费软件
-* 您可以根据自由软件基金会发布的 GPL（GNU General Public License，即 GNU通用公共许可证）的条款
-* 即 GPL 的第3版（即 GPL3.0）或（您选择的）任何后来的版本，重新发布和/或修改它
-*
-* 本开源库的发布是希望它能发挥作用，但并未对其作任何的保证
-* 甚至没有隐含的适销性或适合特定用途的保证
-* 更多细节请参见 GPL
-*
-* 您应该在收到本开源库的同时收到一份 GPL 的副本
-* 如果没有，请参阅<https://www.gnu.org/licenses/>
-*
-* 额外注明：
-* 本开源库使用 GPL3.0 开源许可证协议 以上许可申明为译文版本
-* 许可申明英文版在 libraries/doc 文件夹下的 GPL3_permission_statement.txt 文件中
-* 许可证副本在 libraries 文件夹下 即该文件夹下的 LICENSE 文件
-* 欢迎各位使用并传播本程序 但修改内容时必须保留逐飞科技的版权声明（即本声明）
-*
-* 文件名称          main
-* 公司名称          成都逐飞科技有限公司
-* 适用平台          LS2K0300
-* 店铺链接          https://seekfree.taobao.com/
-*
-* 修改记录
-* 日期              作者           备注
-* 2025-12-27        大W            first version
-********************************************************************************************************************/
-
 #ifndef __ZF_DEVICE_IPS200_FB_HPP__
 #define __ZF_DEVICE_IPS200_FB_HPP__
 
 #include "zf_common_typedef.hpp"
+#include <cstring>      // for memcpy
+#include <algorithm>    // for std::min/std::max (可选，也可自己实现)
 
 #define DEFAULT_PENCOLOR         (RGB565_RED)                          // 默认的画笔颜色
 #define DEFAULT_BGCOLOR          (RGB565_WHITE)                        // 默认的背景颜色
@@ -53,7 +22,26 @@ private:
     uint16 bg_color;                           // 背景颜色
     int width;                                 // 屏幕宽度
     int height;                                // 屏幕高度
-    unsigned short *screen_base;               // 映射后的显存基地址
+    unsigned short *screen_base;                // 映射后的显存基地址
+    unsigned short *buffer;                     // 后台缓冲区 (size = width * height * 2)
+    int dirty_min_x, dirty_min_y;               // 脏区域左上角
+    int dirty_max_x, dirty_max_y;               // 脏区域右下角
+
+    // 私有辅助函数：标记单个点为脏
+    inline void mark_dirty_point(int x, int y) {
+        if (x < dirty_min_x) dirty_min_x = x;
+        if (x > dirty_max_x) dirty_max_x = x;
+        if (y < dirty_min_y) dirty_min_y = y;
+        if (y > dirty_max_y) dirty_max_y = y;
+    }
+
+    // 私有辅助函数：标记矩形区域为脏
+    inline void mark_dirty_rect(int x1, int y1, int x2, int y2) {
+        if (x1 < dirty_min_x) dirty_min_x = x1;
+        if (x2 > dirty_max_x) dirty_max_x = x2;
+        if (y1 < dirty_min_y) dirty_min_y = y1;
+        if (y2 > dirty_max_y) dirty_max_y = y2;
+    }
 
 public:
     //-------------------------------------------------------------------------------------------------------------------
@@ -61,9 +49,12 @@ public:
     // 参数说明     void
     // 返回参数     void
     // 使用示例     zf_device_ips200 lcd;
-    // 备注信息     初始化默认画笔和背景颜色，显存地址置空
+    // 备注信息     初始化默认画笔和背景颜色，显存地址置空，缓冲区置空，脏区域无效
     //-------------------------------------------------------------------------------------------------------------------
     zf_device_ips200(void);
+
+    // 析构函数：释放缓冲区，解除显存映射
+    ~zf_device_ips200();
 
     //-------------------------------------------------------------------------------------------------------------------
     // 函数简介     清屏函数
@@ -90,7 +81,7 @@ public:
     // 参数说明     color           颜色格式 RGB565 或者可以使用 zf_common_font.h 内 rgb565_color_enum 枚举值或者自行写入
     // 返回参数     void
     // 使用示例     ips200.draw_point(10, 20, RGB565_BLUE);
-    // 备注信息     在指定坐标绘制一个像素点
+    // 备注信息     在指定坐标绘制一个像素点，写入缓冲区并标记脏区域
     //-------------------------------------------------------------------------------------------------------------------
     void draw_point(uint16 x, uint16 y, const uint16 color);
 
@@ -103,7 +94,7 @@ public:
     // 参数说明     color           颜色格式 RGB565 或者可以使用 zf_common_font.h 内 rgb565_color_enum 枚举值或者自行写入
     // 返回参数     void
     // 使用示例     ips200.draw_line(0, 0, 10, 10, RGB565_RED);
-    // 备注信息     在指定两点之间绘制一条直线
+    // 备注信息     在指定两点之间绘制一条直线，内部调用 draw_point 实现
     //-------------------------------------------------------------------------------------------------------------------
     void draw_line(uint16 x_start, uint16 y_start, uint16 x_end, uint16 y_end, const uint16 color);
 
@@ -175,7 +166,7 @@ public:
     // 参数说明     height          图像高度 像素
     // 返回参数     void
     // 使用示例     ips200.show_gray_image(0,0,gray_buf,100,80);
-    // 备注信息     灰度值自动转换为RGB565格式显示，灰度值范围0~255
+    // 备注信息     灰度值自动转换为RGB565格式显示，灰度值范围0~255；优化为批量转换和复制
     //-------------------------------------------------------------------------------------------------------------------
     void show_gray_image(uint16 x, uint16 y, const uint8 *image, uint16 width, uint16 height);
 
@@ -188,7 +179,7 @@ public:
     // 参数说明     height          图像高度 像素
     // 返回参数     void
     // 使用示例     ips200.show_rgb_image(0,0,rgb_buf,100,80);
-    // 备注信息     直接写入RGB565格式数据到显存，无格式转换，速度更快
+    // 备注信息     直接写入RGB565格式数据到缓冲区，无逐点转换，速度更快；优化为整行复制
     //-------------------------------------------------------------------------------------------------------------------
     void show_rgb_image(uint16 x, uint16 y, const uint16 *image, uint16 width, uint16 height);
 
@@ -197,9 +188,18 @@ public:
     // 参数说明     path            framebuffer设备节点路径 如 "/dev/fb0"
     // 返回参数     void
     // 使用示例     ips200.init("/dev/fb0");
-    // 备注信息     打开fb设备、获取屏幕参数、映射显存、初始化清屏，程序初始化阶段只调用一次
+    // 备注信息     打开fb设备、获取屏幕参数、映射显存、分配缓冲区、初始化清屏，程序初始化阶段只调用一次
     //-------------------------------------------------------------------------------------------------------------------
     void init(const char *path = FB_PATH, uint8 is_reload_driver = 1);
+
+    //-------------------------------------------------------------------------------------------------------------------
+    // 函数简介     更新屏幕显示
+    // 参数说明     void
+    // 返回参数     void
+    // 使用示例     ips200.update();
+    // 备注信息     将缓冲区中的脏区域数据批量复制到显存，并重置脏区域。应在绘制完成后调用。
+    //-------------------------------------------------------------------------------------------------------------------
+    void update(void);
 };
 
 #endif

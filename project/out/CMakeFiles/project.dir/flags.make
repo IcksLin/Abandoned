@@ -4,7 +4,7 @@
 # compile CXX with /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/heavencornerstone/my_project/project/user/../user -I/home/heavencornerstone/my_project/project/user/../code -I/home/heavencornerstone/my_project/project/user/../../libraries/zf_common -I/home/heavencornerstone/my_project/project/user/../../libraries/zf_device -I/home/heavencornerstone/my_project/project/user/../../libraries/zf_driver -I/home/heavencornerstone/my_project/project/user/../../libraries/zf_components -isystem /opt/ls_2k0300_env/opencv_4_10_build/include/opencv4
+CXX_INCLUDES = -I/home/heavencornerstone/my_car/project/user/../user -I/home/heavencornerstone/my_car/project/user/../code -I/home/heavencornerstone/my_car/project/user/../../libraries/zf_common -I/home/heavencornerstone/my_car/project/user/../../libraries/zf_device -I/home/heavencornerstone/my_car/project/user/../../libraries/zf_driver -I/home/heavencornerstone/my_car/project/user/../../libraries/zf_components -isystem /opt/ls_2k0300_env/opencv_4_10_build/include/opencv4
 
 CXX_FLAGS =  -O3 -pthread -Wall -std=gnu++17
 

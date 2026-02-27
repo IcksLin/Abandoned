@@ -36,10 +36,10 @@ void motor_speed_test(int16_t speed_left,int16_t speed_right){
 void show_all_of_the_component(){
     //图像测试
     gray_img_ptr = uvc.get_gray_image_ptr();
-    printf("whether get image:%d\n", uvc.wait_image_refresh());
+    // printf("whether get image:%d\n", uvc.wait_image_refresh());
     ips200.show_gray_image(10, 10, gray_img_ptr, UVC_WIDTH, UVC_HEIGHT);
     //编码器及电机速度测试
-    motor_set_speed(0,1200);
+    // motor_set_speed(0,1200);
     ips200.show_string(10,140,"right_speed:");
     ips200.show_string(10,156,"left_speed :");
     ips200.show_float(50,140,right_speed,4,2);
@@ -219,3 +219,10 @@ void tracking()
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
 }
 
+//采集数据集时使用
+void get_image_datasets(){
+    uvc.wait_image_refresh();
+    uvc.get_rgb_image_ptr();
+    //传输图像
+    rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
+}

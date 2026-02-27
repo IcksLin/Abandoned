@@ -86,9 +86,16 @@ void key_scan_handler() //10ms
     // my_timer.stop();
     // printf("%lld\n",my_timer.elapsed_us());
     // my_timer.start();
-    key_manager.scan_keys();  // 执行按键扫描（包含消抖和状态机处理）
+    key_manager.scan_keys();  // 执行按键扫描
     imu963r.update();         // 获取原始数据
-    // //需要进行对北操作
+   
+    ahrs.updateIMU(
+        imu963r.gyro[0],  imu963r.gyro[2], -imu963r.gyro[1], 
+        imu963r.acc[0],   imu963r.acc[2],  -imu963r.acc[1]   
+    );
+
+    //九轴陀螺仪综合测试，圆周运动
+     // //需要进行对北操作
     // ahrs.update(
     //     imu963r.gyro[2], imu963r.gyro[0], -imu963r.gyro[1], // gx, gy, gz
     //     imu963r.acc[2],  imu963r.acc[0],  -imu963r.acc[1],  // ax, ay, az
@@ -99,12 +106,6 @@ void key_scan_handler() //10ms
     // float temp_sign = motor_test_signal_generator(1,1000);
     // speed_to_pwm_l = temp_sign;
     // speed_to_pwm_r = -temp_sign;
-    ahrs.updateIMU(
-        imu963r.gyro[0],  imu963r.gyro[2], -imu963r.gyro[1], // 陀螺仪映射 (注意负号)
-        imu963r.acc[0],   imu963r.acc[2],  -imu963r.acc[1]   // 加速度计映射：-acc[1]变为+9.8指向天空
-    );
-
-    //九轴陀螺仪综合测试，圆周运动
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -154,8 +155,8 @@ void pid_contol_handle()
         speed_to_pwm_l = (int16_t)pid_l.control(target_speed_l+onto_control, left_speed);   // 左轮PID计算
     }
     else{
-        speed_to_pwm_r = (int16_t)pid_r.control(0, right_speed);  // 右轮PID计算
-        speed_to_pwm_l = (int16_t)pid_l.control(0, left_speed);   // 左轮PID计算
+        // speed_to_pwm_r = (int16_t)pid_r.control(0, right_speed);  // 右轮PID计算
+        // speed_to_pwm_l = (int16_t)pid_l.control(0, left_speed);   // 左轮PID计算
     }
 }
 
