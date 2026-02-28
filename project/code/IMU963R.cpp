@@ -14,7 +14,7 @@ imu_device_type_enum IMUHandler::init(void) {
     imu_device_type_enum type = imu_dev.init();
     if (type != DEV_NO_FIND) {
         // 初始化成功后自动校准
-        calibrate_offsets(500); 
+        calibrate_offsets(1000); 
     }
     return type;
 }

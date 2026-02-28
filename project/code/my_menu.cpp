@@ -78,6 +78,7 @@ void MyMenu::init_menu_parents(void)
     mode1.sibling = &mode2;
     
     mode2.parent = &main_menu;
+    mode2.child  = &map_record;
     mode2.sibling = &mode3;
     
     mode3.parent = &main_menu;
@@ -263,6 +264,7 @@ void MyMenu::draw_menu(Menu *selected_menu)
         
         iter = iter->sibling;
     }
+    ips_display->update();
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -281,6 +283,7 @@ void MyMenu::menu_system(void)
     {
         current_menu = menu_navigate(current_menu, (MenuAction)cl_action);
         draw_menu(current_menu);
+        
     }
     else
     {
@@ -290,12 +293,12 @@ void MyMenu::menu_system(void)
         case 0:
             menu_mode_0(cl_action);
             break;
-        case 1:
-            menu_mode_1(cl_action);
-            break;
-        case 2:
-            menu_mode_2(cl_action);
-            break;
+        // case 1:
+        //     menu_mode_1(cl_action);
+        //     break;
+        // case 2:
+        //     menu_mode_2(cl_action);
+            // break;
         case 3:
             menu_mode_3(cl_action);
             break;
@@ -304,6 +307,9 @@ void MyMenu::menu_system(void)
             break;
         case 9:
             menu_mode_9(cl_action);
+            break;
+        case 10:
+            menu_mode_10(cl_action);
             break;
         default:
             mode_inter_flag = 0; // 重置标志
@@ -386,7 +392,7 @@ void MyMenu::menu_mode_0(uint8 cl_action)
     
     // 显示模式0信息
     // show_all_of_the_component_without_ips();
-    tracking();
+    // tracking();
 }
 
 void MyMenu::menu_mode_1(uint8 cl_action)
@@ -406,7 +412,7 @@ void MyMenu::menu_mode_1(uint8 cl_action)
     
     // 显示模式1信息
     // send_picture_to_Serve();
-    tracking();
+    // tracking();
 }
 
 void MyMenu::menu_mode_2(uint8 cl_action)
@@ -425,7 +431,7 @@ void MyMenu::menu_mode_2(uint8 cl_action)
     }
     
     // 显示模式2信息
-    tracking();
+    // tracking();
 }
 
 void MyMenu::menu_mode_3(uint8 cl_action)
@@ -491,31 +497,83 @@ void MyMenu::menu_mode_9(uint8 cl_action)
     // ips_display->show_float(5 * 8, 3 * 16, Yaw_copy, 3, 2);
 }
 
-//惯性导航地图记录界面
-void MyMenu::menu_mode_10(uint8 cl_action){
-    //记录期间静默显示屏，全力确保编码器正常
-    if(!path_tracker_component.is_recording){}
+// 惯性导航地图记录界面
+void MyMenu::menu_mode_10(uint8 cl_action) {
+    if (!path_tracker_component.is_recording) {
+        ips200.show_string(1,1,"1, record");
+        ips200.show_string(1,1+1*16,"2, clear_map");
+        ips200.show_string(1,1+2*16,"3, insert_map");
+        ips200.show_string(1,1+4*16,"4, return");
+        ips200.update();
+    }
 
-    // IMU角度显示模式
-    switch (cl_action)
-    {
-    case 0://记录开关
+    switch (cl_action) {
+        case 0: // 记录开关
+            if (!path_tracker_component.is_recording) {
+                ahrs.reset(); // 重置姿态，确保航向角从0开始
+                system_delay_ms(500);
+                path_tracker_component.start_remember();
+            } else {
+                path_tracker_component.stop_remember(false);
+            }
+            break;
 
-        
-    break;
+        case 1: // 清空内存中的地图数据
+            path_tracker_component.stop_remember(true);
+            break;
 
-    case 1://清空地图
+        case 2: // 【核心配合点】转换、平滑并保存地图
+            if(!path_tracker_component.is_recording){
+                if (path_tracker_component.current_index > 5) {
+                    // 1. 先进行高斯滤波，消除编码器和传感器的原始噪点
+                    path_tracker_component.apply_gaussian_filter(1.2f, 5);
 
-    break;
+                    // 2. 将 PathTracker 中的原始点提取并转换为“里程-坐标”序列
+                    std::vector<double> s_list; // 累计里程（自变量）
+                    std::vector<double> x_list; // X 坐标
+                    std::vector<double> y_list; // Y 坐标
+                    double total_s = 0;
 
-    case 2://转换并保存地图
+                    // 插入起点
+                    s_list.push_back(0);
+                    x_list.push_back(path_tracker_component.path_array[0].x);
+                    y_list.push_back(path_tracker_component.path_array[0].y);
 
-    break;
+                    // 遍历记录的所有点，计算累计里程 s
+                    for (int i = 1; i < path_tracker_component.current_index; i++) {
+                        double dx = path_tracker_component.path_array[i].x - path_tracker_component.path_array[i-1].x;
+                        double dy = path_tracker_component.path_array[i].y - path_tracker_component.path_array[i-1].y;
+                        total_s += std::sqrt(dx * dx + dy * dy);
 
-    case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
-        break;
-    default:
-        break;
+                        s_list.push_back(total_s);
+                        x_list.push_back(path_tracker_component.path_array[i].x);
+                        y_list.push_back(path_tracker_component.path_array[i].y);
+                    }
+
+                    // 3. 使用 Akima 进行插值计算
+                    AkimaInterpolator x_engine, y_engine;
+                    if (x_engine.compute(s_list, x_list) && y_engine.compute(s_list, y_list)) {
+                        // 4. 等距采样并保存为文件
+                        AkimaInterpolator::save_as_tracking_map(
+                            x_engine, 
+                            y_engine, 
+                            total_s, 
+                            1, 
+                            "tracking_map.txt"
+                        );
+                        // 可以在屏幕上提示 "Save OK!"
+                    }
+                }
+                else
+                {
+                     ips200.show_string(1,1,"map too short");
+                }
+                
+            }
+            break;
+
+        case 3: // 返回键
+            mode_inter_flag = 0;
+            break;
     }
 }

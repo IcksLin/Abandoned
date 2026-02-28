@@ -135,7 +135,8 @@ int main()
         // show_all_of_the_component_without_ips();
         // show_all_of_the_component();
         // ips200.update();
-        get_image_datasets();
+        // get_image_datasets();
+        menu_system.menu_system();
         system_delay_ms(10);
     }
     return 0;

@@ -13,7 +13,7 @@
 #include <vector>
 #include "akima.hpp"
 
-#define ENCODER_PPU 100
+#define ENCODER_PPU 10
 
 class Odometer {
 private:
@@ -77,7 +77,7 @@ public:
     PathTracker();
 
     void reset();
-    void record_sample(int16_t left_pulses,int16_t right_pulses, float current_yaw);
+    void record_sample(float current_yaw);
 
     /**
      * 对当前已记录的 path_array 进行高斯平滑

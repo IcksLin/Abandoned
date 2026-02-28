@@ -64,6 +64,7 @@ uint8_t onto_pd_control_enable = 0;                          // 角度PD控制�
 //---------------------- IMU ---------------------------
 IMUHandler imu963r;                                             //陀螺仪与按键扫描在同一线程中执行，均为10ms
 MadgwickAHRS ahrs(100);                                         //解算器，同步获取同步处理，注意检查性能消耗
+float IMU_calibration = 180.0f/154.03f;                         //范围校准
 
 //--------------------惯性导航控制器-----------------------------------
 PathTracker path_tracker_component;                             //路径记录组件，内置里程计
@@ -83,17 +84,25 @@ AkimaInterpolator akima_component;                              //地图解算�
 //-------------------------------------------------------------------------------------------------------------------
 void key_scan_handler() //10ms
 {
-    // my_timer.stop();
-    // printf("%lld\n",my_timer.elapsed_us());
-    // my_timer.start();
+    my_timer.stop();
+    printf("%lld   ,whther cording:%d    yaw:%f   map index: %d    right length: %ld   ,left length: %ld\r",
+        my_timer.elapsed_us(),
+        (int)path_tracker_component.is_recording,
+        ahrs.getYaw(),
+        path_tracker_component.current_index,
+        path_tracker_component.right_tyre.get_distance(),
+        path_tracker_component.left_tyre.get_distance()
+    );
+    my_timer.start();
     key_manager.scan_keys();  // 执行按键扫描
     imu963r.update();         // 获取原始数据
    
     ahrs.updateIMU(
-        imu963r.gyro[0],  imu963r.gyro[2], -imu963r.gyro[1], 
+        imu963r.gyro[0]*IMU_calibration,  imu963r.gyro[2]*IMU_calibration, -imu963r.gyro[1]*IMU_calibration, 
         imu963r.acc[0],   imu963r.acc[2],  -imu963r.acc[1]   
     );
-
+    // 路径记录
+    path_tracker_component.record_sample(ahrs.getYaw());
     //九轴陀螺仪综合测试，圆周运动
      // //需要进行对北操作
     // ahrs.update(
@@ -119,7 +128,7 @@ void key_scan_handler() //10ms
 //-------------------------------------------------------------------------------------------------------------------
 void encoder_get_count_handler()
 {
-    // -------------------- 性能测试代码 --------------------
+    // -------------------- 周期测试 --------------------
     // my_timer.stop();                                         // 停止计时
     // printf("耗时: %lld us\n", my_timer.elapsed_us());        // 打印耗时
     // my_timer.start();                                        // 重新启动计时
@@ -127,6 +136,16 @@ void encoder_get_count_handler()
     // -------------------- 核心功能：获取编码器速度 --------------------
     // 读取编码器计数值并映射为速度，同时清零编码器计数器
     get_and_remap_speed(&right_speed, &left_speed, ENCODER_SAMPLING_PERIOD);
+    // 开启路径记录时进行里程计更新
+    if(path_tracker_component.is_recording){
+        path_tracker_component.right_tyre.update(((int16_t)right_speed));
+        path_tracker_component.left_tyre.update(((int16_t)left_speed));
+    }else{
+        path_tracker_component.right_tyre.reset();
+        path_tracker_component.left_tyre.reset();
+    }
+    
+    
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -145,18 +164,18 @@ void pid_contol_handle()
     motor_set_speed(speed_to_pwm_l, speed_to_pwm_r);
 
     // //测试代码
-    if(onto_pd_control_enable==1){
-        target_speed_l = target_speed_r = 0;//添加基准速度
-        // float onto_control = pid_angle.compute(0.0f, onto); // 计算角度修正值
-        float onto_control = pid_angle.compute(0.0f, -calculate_yaw_control(0,ahrs.getYaw(),40.0f)); // 计算角度修正值
-        // float onto_control = calculate_yaw_control(0,ahrs.getYaw());
+    // if(onto_pd_control_enable==1){
+    //     target_speed_l = target_speed_r = 0;//添加基准速度
+    //     // float onto_control = pid_angle.compute(0.0f, onto); // 计算角度修正值
+    //     float onto_control = pid_angle.compute(0.0f, -calculate_yaw_control(0,ahrs.getYaw(),40.0f)); // 计算角度修正值
+    //     // float onto_control = calculate_yaw_control(0,ahrs.getYaw());
 
-        speed_to_pwm_r = (int16_t)pid_r.control(target_speed_r-onto_control, right_speed);  // 右轮PID计算
-        speed_to_pwm_l = (int16_t)pid_l.control(target_speed_l+onto_control, left_speed);   // 左轮PID计算
-    }
-    else{
-        // speed_to_pwm_r = (int16_t)pid_r.control(0, right_speed);  // 右轮PID计算
-        // speed_to_pwm_l = (int16_t)pid_l.control(0, left_speed);   // 左轮PID计算
-    }
+    //     speed_to_pwm_r = (int16_t)pid_r.control(target_speed_r-onto_control, right_speed);  // 右轮PID计算
+    //     speed_to_pwm_l = (int16_t)pid_l.control(target_speed_l+onto_control, left_speed);   // 左轮PID计算
+    // }
+    // else{
+    //     // speed_to_pwm_r = (int16_t)pid_r.control(0, right_speed);  // 右轮PID计算
+    //     // speed_to_pwm_l = (int16_t)pid_l.control(0, left_speed);   // 左轮PID计算
+    // }
 }
 

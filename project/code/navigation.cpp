@@ -35,7 +35,7 @@ void Odometer::update(int16_t new_raw_pulses) {
 
 PathTracker::PathTracker()
     : left_tyre(ENCODER_PPU, false)    // 初始化左轮
-    , right_tyre(ENCODER_PPU, true)    // 初始化右轮（反向）
+    , right_tyre(ENCODER_PPU, false)    // 初始化右轮（反向）
     {
     
     reset();
@@ -49,10 +49,10 @@ void PathTracker::reset() {
     is_recording = false;
 }
 
-void PathTracker::record_sample(int16_t left_pulses,int16_t right_pulses, float current_yaw) {
+// 此函数与陀螺仪数据更新同步执行
+void PathTracker::record_sample( float current_yaw) {
     if (!is_recording || current_index >= MAX_POINTS) return;
-    left_tyre.update(left_pulses);
-    right_tyre.update(right_pulses);
+
     
     int64_t current_total_r =  left_tyre.get_distance(); 
     int64_t current_total_l = right_tyre.get_distance();
