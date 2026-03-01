@@ -3,6 +3,12 @@
 
 #include <vector>
 #include <string>
+
+struct MapPoint {
+    int32_t index;
+    float x;
+    float y;
+};
 /**
  * @brief Akima 分段立方多项式系数
  * 表达式形式: f(s) = a(s-s0)^3 + b(s-s0)^2 + c(s-s0) + d
@@ -52,6 +58,14 @@ public:
      * @brief 清除当前插值器数据
      */
     void clear();
+    
+    /**
+     * @brief 将txt文件转换为bin文件，便于直接读取到内存中
+     * @param txt_filename txt文件路径
+     * @param bin_filename 转化文件路径
+     */
+    bool convert_txt_to_bin(const std::string& txt_filename, 
+                                           const std::string& bin_filename);
 
 private:
     std::vector<double> s_knots;      // 存储原始自变量节点

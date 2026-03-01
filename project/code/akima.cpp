@@ -69,8 +69,6 @@ double AkimaInterpolator::evaluate(double target_s) const {
 
     double ds = target_s - coeffs[idx].s0;
     
-    // 使用秦九韶算法 (Horner's Method) 计算多项式值，减少乘法次数，提高嵌入式效率
-    // y = d + ds * (c + ds * (b + ds * a))
     return coeffs[idx].d + ds * (coeffs[idx].c + ds * (coeffs[idx].b + ds * coeffs[idx].a));
 }
 
@@ -88,11 +86,14 @@ void AkimaInterpolator::save_as_tracking_map(const AkimaInterpolator& x_interp,
     if (!outfile.is_open()) return;
 
     int index = 0;
-    // 智能采样循环
+    // 采样循环
     // 以 resolution 为步长从 0 走到 total_s
     for (double s = 0; s <= total_s; s += resolution) {
         double x = x_interp.evaluate(s);
         double y = y_interp.evaluate(s);
+
+        // 跳过插值异常导致的 nan 点
+        if (std::isnan(x) || std::isnan(y)) continue;
 
         // 写入格式：索引 x y
         outfile << index << " " 
@@ -103,12 +104,45 @@ void AkimaInterpolator::save_as_tracking_map(const AkimaInterpolator& x_interp,
     }
 
     // 强行补充终点，确保轨迹闭合且完整
-    // 如果最后一个采样点距离终点超过 0.1 个单位，则补上终点
     if (std::fmod(total_s, resolution) > 0.001) {
-        outfile << index << " " 
-                << std::fixed << std::setprecision(3) << x_interp.evaluate(total_s) << " " 
-                << std::fixed << std::setprecision(3) << y_interp.evaluate(total_s) << "\n";
+        double x = x_interp.evaluate(total_s);
+        double y = y_interp.evaluate(total_s);
+        
+        // 同样进行 nan 检查
+        if (!std::isnan(x) && !std::isnan(y)) {
+            outfile << index << " " 
+                    << std::fixed << std::setprecision(3) << x << " " 
+                    << std::fixed << std::setprecision(3) << y << "\n";
+        }
     }
 
     outfile.close();
+}
+
+bool AkimaInterpolator::convert_txt_to_bin(const std::string& txt_filename, 
+                                           const std::string& bin_filename) {
+    std::ifstream ifs(txt_filename);
+    std::ofstream ofs(bin_filename, std::ios::binary);
+
+    if (!ifs.is_open() || !ofs.is_open()) return false;
+
+    // 为了防止读取 nan 导致 ifstream 解析错误，使用字符串读取法更稳妥
+    std::string line;
+    int32_t valid_index = 0; // 重新梳理索引，防止因为跳过 nan 导致索引断层
+    
+    while (ifs >> line) {
+        float x, y;
+        // 如果第一列读出的不是数字（如结束符），则退出
+        if (!(ifs >> x >> y)) break; 
+        
+        // 过滤掉包含 nan 的无效行
+        if (std::isnan(x) || std::isnan(y)) continue;
+
+        MapPoint p{valid_index++, x, y};
+        ofs.write(reinterpret_cast<const char*>(&p), sizeof(MapPoint));
+    }
+
+    ifs.close();
+    ofs.close();
+    return true;
 }

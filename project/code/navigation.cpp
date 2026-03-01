@@ -71,6 +71,30 @@ void PathTracker::record_sample( float current_yaw) {
     current_index++;
 }
 
+void PathTracker::get_location(float current_yaw) {
+    if(is_recording) return;
+
+    int64_t current_total_r =  left_tyre.get_distance(); 
+    int64_t current_total_l = right_tyre.get_distance();
+    double current_total_s = (double)(current_total_r + current_total_l) / 2.0;
+    double delta_s = current_total_s - last_total_s;
+
+    if (!std::isfinite(current_yaw) || !std::isfinite(delta_s)) {
+        return;
+    }
+
+    double rad = (double)current_yaw * (M_PI / 180.0);
+    
+    double dx = delta_s * cos(rad);
+    double dy = delta_s * sin(rad);
+
+    precise_x += dx;
+    precise_y += dy;
+
+    current_location[0] = static_cast<float>(precise_x);
+    current_location[1] = static_cast<float>(precise_y);
+}
+
 // 生成高斯权重核
 void PathTracker::generate_gaussian_kernel(float sigma, int size) {
     gaussian_kernel.clear();
@@ -148,6 +172,87 @@ void PathTracker::start_remember(){
 }
 
 void PathTracker::stop_remember(bool key){
-    if(key) current_index = 0;
+    if(key) reset();
     is_recording = false;
+}
+
+/**
+ * @brief 从二进制文件一键载入内存
+ */
+bool PathTracker::load_binary_map(const std::string& bin_filename) {
+    std::ifstream ifs(bin_filename, std::ios::binary | std::ios::ate);
+    if (!ifs.is_open()) return false;
+
+    std::streamsize size = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+
+    int count = size / sizeof(MapPoint);
+    tracking_map.resize(count);
+
+    if (ifs.read(reinterpret_cast<char*>(tracking_map.data()), size)) {
+        last_closest_idx = 0; // 加载成功，重置索引起点
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @brief 单向增量搜索算法
+ * 满足：1. 不找已行驶过的点 2. 倒车时索引锁死在原地 3. 高效O(k)计算
+ */
+int PathTracker::find_closest_index(float cur_x, float cur_y) {
+    if (tracking_map.empty()) return 0;
+
+    int best_idx = last_closest_idx;
+    
+    // 计算当前记录的最近点的平方距离（避免开方，提升龙芯运算速度）
+    auto get_dist_sq = [&](const MapPoint& p) {
+        return (p.x - cur_x) * (p.x - cur_x) + (p.y - cur_y) * (p.y - cur_y);
+    };
+
+    float min_dist_sq = get_dist_sq(tracking_map[last_closest_idx]);
+
+    // 搜索窗口：从上一次的位置开始，向前搜索固定范围
+    int search_end = std::min((int)tracking_map.size() - 1, last_closest_idx + FORWARD_WINDOW);
+
+    // 【单向性实现】：i 从 last_closest_idx + 1 开始，不走回头路
+    for (int i = last_closest_idx + 1; i <= search_end; ++i) {
+        float d_sq = get_dist_sq(tracking_map[i]);
+        if (d_sq < min_dist_sq) {
+            min_dist_sq = d_sq;
+            best_idx = i;
+        }
+    }
+
+    // 更新全局最近索引。如果倒车，min_dist_sq 始终是 last_closest_idx 最近，
+    // 则 best_idx 不会更新，满足“拉回小车”的需求。
+    last_closest_idx = best_idx;
+    return last_closest_idx;
+}
+
+/**
+ * @brief 获取前方目标点
+ */
+MapPoint PathTracker::get_look_ahead_point(int look_ahead_dist_idx) {
+    int target = std::min((int)tracking_map.size() - 1, last_closest_idx + look_ahead_dist_idx);
+    return tracking_map[target];
+}
+
+float PathTracker::calculate_target_yaw(float cur_x, float cur_y, float target_x, float target_y) {
+    // 1. 计算坐标差值
+    float dx = target_x - cur_x;
+    float dy = target_y - cur_y;
+
+    // 2. 使用 atan2 获取弧度制方向角
+    // atan2 返回值范围是 (-pi, pi]
+    float angle_rad = std::atan2(dy, dx);
+
+    // 3. 弧度转角度
+    float angle_deg = angle_rad * (180.0f / (float)M_PI);
+
+    // 4. (可选) 如果你的陀螺仪坐标系 0 度指向北方且顺时针为正，
+    // 需要在这里进行坐标系转换。
+    // 如果是标准笛卡尔坐标系（0度指东，逆时针为正），则直接返回 angle_deg。
+    
+    return angle_deg; 
 }
