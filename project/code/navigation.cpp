@@ -47,6 +47,7 @@ void PathTracker::reset() {
     precise_y = 0;
     last_total_s = 0;
     is_recording = false;
+    is_reproduction = false;
 }
 
 // 此函数与陀螺仪数据更新同步执行

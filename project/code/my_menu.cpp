@@ -41,7 +41,8 @@ MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) : key_manager(key_mgr
     gray_calibration = {"Gray_Calibration", 8, static_option_func, nullptr, nullptr, nullptr};
     IMU_angle = {"IMU_Angle", 9, static_option_func, nullptr, nullptr, nullptr};
     map_record = {"Map record",10,static_option_func,nullptr,nullptr,nullptr};
-
+    path_reproduction = {"Path reproduction",11,static_option_func,nullptr,nullptr,nullptr};
+    
     current_menu = &main_menu;
 }
 
@@ -109,7 +110,10 @@ void MyMenu::init_menu_parents(void)
     IMU_angle.sibling = nullptr;
 
     map_record.parent = &mode2;
-    map_record.sibling = nullptr;
+    map_record.sibling = &path_reproduction;
+
+    path_reproduction.parent = &mode2;
+    path_reproduction.sibling = nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -522,7 +526,7 @@ void MyMenu::menu_mode_10(uint8 cl_action) {
             path_tracker_component.stop_remember(true);
             break;
 
-        case 2: // 【核心配合点】转换、平滑并保存地图
+        case 2: // 转换、平滑并保存地图
             if(!path_tracker_component.is_recording){
                 if (path_tracker_component.current_index > 5) {
                     // 1. 先进行高斯滤波，消除编码器和传感器的原始噪点
@@ -561,7 +565,9 @@ void MyMenu::menu_mode_10(uint8 cl_action) {
                             1, 
                             "tracking_map.txt"
                         );
+                        AkimaInterpolator::convert_txt_to_bin("tracking_map.txt","tracking_map.bin");
                         // 可以在屏幕上提示 "Save OK!"
+                        printf("------save successful------");
                     }
                 }
                 else
@@ -573,7 +579,67 @@ void MyMenu::menu_mode_10(uint8 cl_action) {
             break;
 
         case 3: // 返回键
+            // 重置所有状态
+            ahrs.reset();
+            path_tracker_component.reset();
+            
             mode_inter_flag = 0;
             break;
+    }
+}
+
+// 惯导路径复现
+void MyMenu::menu_mode_11(uint8 cl_action){
+    if (!path_tracker_component.is_reproduction) {
+        ips200.show_string(1,1,"1, reproduction");
+        ips200.show_string(1,1+1*16,"2, check_and_load_map");
+        ips200.show_string(1,1+2*16,"3, reset_status");
+        ips200.show_string(1,1+4*16,"4, return");
+        ips200.update();
+    }
+
+    switch (cl_action)
+    {
+    case 0: // 开始复现
+        // 开始前检查一下内存里的 map 是否为空
+        if (path_tracker_component.tracking_map.empty()) {
+            printf("Error: Map not loaded. Press 'Confirm' first.\n");
+        } else {
+            printf("Resuming path following...\n");
+            // 这里切换小车状态机到自动驾驶模式
+        }
+        break;
+
+    case 1: // 确认地图并加载地图
+        printf("Checking map file...\n");
+        
+        // 尝试从磁盘加载二进制地图到内存
+        if (path_tracker_component.load_binary_map("tracking_map.bin")) {
+            // 加载成功后，打印地图信息
+            printf("Map is available!\n");
+            printf("Points: %d\n", (int)path_tracker_component.tracking_map.size());
+            // 重置搜索起始点，确保从头开始
+            path_tracker_component.last_closest_idx = 0;
+             
+        } else {
+            // 加载失败，打印具体原因
+            printf("Can't loading map");
+        }
+        break;
+
+    case 2: // 重置位置，角度，路径点
+        path_tracker_component.reset(); // 清除坐标累积
+        path_tracker_component.last_closest_idx = 0; // 重置搜索索引
+        ahrs.reset(); //解算器重置
+
+        printf("Position and Index Reset Done.\n");
+        break;
+
+    case 3: // 返回键
+        mode_inter_flag = 0; // 返回菜单
+        break;
+
+    default:
+        break;
     }
 }

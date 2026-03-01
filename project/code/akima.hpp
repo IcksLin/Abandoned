@@ -64,7 +64,7 @@ public:
      * @param txt_filename txt文件路径
      * @param bin_filename 转化文件路径
      */
-    bool convert_txt_to_bin(const std::string& txt_filename, 
+    static bool convert_txt_to_bin(const std::string& txt_filename, 
                                            const std::string& bin_filename);
 
 private:

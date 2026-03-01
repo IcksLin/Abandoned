@@ -87,8 +87,8 @@ int main()
     menu_system.init_menu();
 
     //TCP图像传输组件初始化 --- IGNORE ---
-    printf("8. TCP图像传输组件初始化...\n");
-    img_transmitter_init();
+    // printf("8. TCP图像传输组件初始化...\n");
+    // img_transmitter_init();
 
     // 初始化线程，可开始参数获取任务调度
     zf_driver_pit_rt key_scan;
