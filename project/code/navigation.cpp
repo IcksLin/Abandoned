@@ -43,11 +43,19 @@ PathTracker::PathTracker()
 
 void PathTracker::reset() {
     current_index = 0;
+    //重置内部计算用累计变量
     precise_x = 0;
     precise_y = 0;
     last_total_s = 0;
+    //重置开关
     is_recording = false;
     is_reproduction = false;
+    //重置目标点与当前位置
+    current_location = {0, 0.0f, 0.0f};
+    target_point = {0, 0.0f, 0.0f};
+    //重置里程计
+    left_tyre.reset();
+    right_tyre.reset();
 }
 
 // 此函数与陀螺仪数据更新同步执行
@@ -92,8 +100,9 @@ void PathTracker::get_location(float current_yaw) {
     precise_x += dx;
     precise_y += dy;
 
-    current_location[0] = static_cast<float>(precise_x);
-    current_location[1] = static_cast<float>(precise_y);
+    current_location.x = static_cast<float>(precise_x);
+    current_location.y = static_cast<float>(precise_y);
+    last_total_s = current_total_s;
 }
 
 // 生成高斯权重核
@@ -201,14 +210,14 @@ bool PathTracker::load_binary_map(const std::string& bin_filename) {
  * @brief 单向增量搜索算法
  * 满足：1. 不找已行驶过的点 2. 倒车时索引锁死在原地 3. 高效O(k)计算
  */
-int PathTracker::find_closest_index(float cur_x, float cur_y) {
+int PathTracker::find_closest_index() {
     if (tracking_map.empty()) return 0;
 
     int best_idx = last_closest_idx;
     
     // 计算当前记录的最近点的平方距离（避免开方，提升龙芯运算速度）
     auto get_dist_sq = [&](const MapPoint& p) {
-        return (p.x - cur_x) * (p.x - cur_x) + (p.y - cur_y) * (p.y - cur_y);
+        return (p.x - current_location.x) * (p.x - current_location.x) + (p.y - current_location.y) * (p.y - current_location.y);
     };
 
     float min_dist_sq = get_dist_sq(tracking_map[last_closest_idx]);
@@ -234,15 +243,26 @@ int PathTracker::find_closest_index(float cur_x, float cur_y) {
 /**
  * @brief 获取前方目标点
  */
-MapPoint PathTracker::get_look_ahead_point(int look_ahead_dist_idx) {
-    int target = std::min((int)tracking_map.size() - 1, last_closest_idx + look_ahead_dist_idx);
-    return tracking_map[target];
+bool PathTracker::get_look_ahead_point(int look_ahead_dist_idx) {
+    // 1. 检查地图是否有效
+    if (tracking_map.empty()) return false;
+
+    // 2. 计算目标索引，确保不越界
+    int target_idx = last_closest_idx + look_ahead_dist_idx;
+    if (target_idx >= (int)tracking_map.size()) {
+        target_idx = (int)tracking_map.size() - 1;
+    }
+
+    // 3. 核心：将结果更新到类成员 target_point，打通数据流
+    target_point = tracking_map[target_idx];
+
+    return true;
 }
 
-float PathTracker::calculate_target_yaw(float cur_x, float cur_y, float target_x, float target_y) {
+float PathTracker::calculate_target_yaw() {
     // 1. 计算坐标差值
-    float dx = target_x - cur_x;
-    float dy = target_y - cur_y;
+    float dx = target_point.x - current_location.x;
+    float dy = target_point.y - current_location.y;
 
     // 2. 使用 atan2 获取弧度制方向角
     // atan2 返回值范围是 (-pi, pi]

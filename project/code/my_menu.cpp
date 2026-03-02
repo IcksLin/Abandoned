@@ -315,6 +315,9 @@ void MyMenu::menu_system(void)
         case 10:
             menu_mode_10(cl_action);
             break;
+        case 11:
+            menu_mode_11(cl_action);
+            break;
         default:
             mode_inter_flag = 0; // 重置标志
             break;
@@ -562,12 +565,12 @@ void MyMenu::menu_mode_10(uint8 cl_action) {
                             x_engine, 
                             y_engine, 
                             total_s, 
-                            1, 
+                            10, 
                             "tracking_map.txt"
                         );
                         AkimaInterpolator::convert_txt_to_bin("tracking_map.txt","tracking_map.bin");
                         // 可以在屏幕上提示 "Save OK!"
-                        printf("------save successful------");
+                        printf("------save successful------\n");
                     }
                 }
                 else
@@ -596,6 +599,10 @@ void MyMenu::menu_mode_11(uint8 cl_action){
         ips200.show_string(1,1+2*16,"3, reset_status");
         ips200.show_string(1,1+4*16,"4, return");
         ips200.update();
+    }else{
+        path_tracker_component.find_closest_index();
+        path_tracker_component.get_look_ahead_point(3);
+        // path_tracker_component.calculate_target_yaw();
     }
 
     switch (cl_action)
@@ -606,7 +613,12 @@ void MyMenu::menu_mode_11(uint8 cl_action){
             printf("Error: Map not loaded. Press 'Confirm' first.\n");
         } else {
             printf("Resuming path following...\n");
-            // 这里切换小车状态机到自动驾驶模式
+            ahrs.reset();
+            path_tracker_component.reset();
+            // 切换小车状态机到自动驾驶模式
+
+            path_tracker_component.is_reproduction = true;
+            
         }
         break;
 
@@ -636,6 +648,8 @@ void MyMenu::menu_mode_11(uint8 cl_action){
         break;
 
     case 3: // 返回键
+        //清除所有状态
+        path_tracker_component.reset();
         mode_inter_flag = 0; // 返回菜单
         break;
 

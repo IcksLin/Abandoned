@@ -72,7 +72,9 @@ public:
     std::vector<MapPoint> tracking_map; // 存放从 .bin 加载的平滑后地图
     int last_closest_idx = 0;           // 核心：上一帧匹配到的索引
     const int FORWARD_WINDOW = 200;     // 单向搜索窗口大小（可根据速度动态调整）
-    float current_location[2];          // 记录当前位置
+    MapPoint current_location;          // 记录当前位置
+    MapPoint target_point;              // 记录目标点
+
     bool is_reproduction = false;       
 
     // 坐标累积变量
@@ -89,7 +91,7 @@ public:
     /**
      * @brief 状态重置函数
      * 重置状态量包括：坐标累计量，当前索引值，x位置累计值，y位置累计值
-     *               路径记录开关，路径复现开关，未在该函数中处理的变量不会重置
+     *               路径记录开关，路径复现开关，当前位置，目标位置，未在该函数中处理的变量不会重置
      *               使用时需要注意
      */
     void reset();
@@ -137,14 +139,14 @@ public:
      * @param cur_y 当前小车惯导坐标Y
      * @return int 匹配到的地图索引
      */
-    int find_closest_index(float cur_x, float cur_y);
+    int find_closest_index();
 
     /**
      * @brief 获取预瞄点 (用于控制算法)
      * @param look_ahead_dist_idx 预瞄点相对于最近点的索引偏移
      * @return MapPoint 目标点坐标
      */
-    MapPoint get_look_ahead_point(int look_ahead_dist_idx);
+    bool get_look_ahead_point(int look_ahead_dist_idx);
 
     /**
      * @brief 计算从当前点指向目标点的期望航向角
@@ -154,7 +156,7 @@ public:
      * @param target_y 预瞄目标点 Y 坐标
      * @return float 期望角度 (-180 到 180)
      */
-    float calculate_target_yaw(float cur_x, float cur_y, float target_x, float target_y);
+    float calculate_target_yaw();
 
 private:
     std::vector<float> gaussian_kernel;
