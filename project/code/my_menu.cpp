@@ -399,7 +399,7 @@ void MyMenu::menu_mode_0(uint8 cl_action)
     
     // 显示模式0信息
     // show_all_of_the_component_without_ips();
-    // tracking();
+    tracking();
 }
 
 void MyMenu::menu_mode_1(uint8 cl_action)

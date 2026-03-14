@@ -125,24 +125,10 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.s: c
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/heavencornerstone/my_car/project/code/akima.cpp -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.s
 
-CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o: CMakeFiles/project.dir/flags.make
-CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o: /home/heavencornerstone/my_car/project/code/decision.cpp
-CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o"
-	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o -c /home/heavencornerstone/my_car/project/code/decision.cpp
-
-CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.i"
-	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/heavencornerstone/my_car/project/code/decision.cpp > CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.i
-
-CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.s"
-	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/heavencornerstone/my_car/project/code/decision.cpp -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.s
-
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o: /home/heavencornerstone/my_car/project/code/imgproc.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o -c /home/heavencornerstone/my_car/project/code/imgproc.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.i: cmake_force
@@ -156,7 +142,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.s:
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o: /home/heavencornerstone/my_car/project/code/motor.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o -c /home/heavencornerstone/my_car/project/code/motor.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.i: cmake_force
@@ -170,7 +156,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.s: c
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o: /home/heavencornerstone/my_car/project/code/my_global.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o -c /home/heavencornerstone/my_car/project/code/my_global.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.i: cmake_force
@@ -184,7 +170,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o: /home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.o -c /home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_transmitter.cpp.i: cmake_force
@@ -198,7 +184,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_image_trans
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o: /home/heavencornerstone/my_car/project/code/my_key.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.o -c /home/heavencornerstone/my_car/project/code/my_key.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.i: cmake_force
@@ -212,7 +198,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_key.cpp.s: 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o: /home/heavencornerstone/my_car/project/code/my_menu.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.o -c /home/heavencornerstone/my_car/project/code/my_menu.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.i: cmake_force
@@ -226,7 +212,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_menu.cpp.s:
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o: /home/heavencornerstone/my_car/project/code/my_pid.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.o -c /home/heavencornerstone/my_car/project/code/my_pid.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.i: cmake_force
@@ -240,7 +226,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pid.cpp.s: 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o: /home/heavencornerstone/my_car/project/code/my_task_function.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o -c /home/heavencornerstone/my_car/project/code/my_task_function.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.i: cmake_force
@@ -254,7 +240,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_functi
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o: /home/heavencornerstone/my_car/project/code/my_timestamp.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o -c /home/heavencornerstone/my_car/project/code/my_timestamp.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.i: cmake_force
@@ -268,7 +254,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.c
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o: /home/heavencornerstone/my_car/project/code/navigation.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o -c /home/heavencornerstone/my_car/project/code/navigation.cpp
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.i: cmake_force
@@ -278,6 +264,20 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp
 CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.s"
 	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/heavencornerstone/my_car/project/code/navigation.cpp -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.s
+
+CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o: CMakeFiles/project.dir/flags.make
+CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o: /home/heavencornerstone/my_car/project/code/tflm_model_process.cpp
+CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o: CMakeFiles/project.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/heavencornerstone/my_car/project/out/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o -MF CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o.d -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o -c /home/heavencornerstone/my_car/project/code/tflm_model_process.cpp
+
+CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.i"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/heavencornerstone/my_car/project/code/tflm_model_process.cpp > CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.i
+
+CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.s"
+	/opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/bin/loongarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/heavencornerstone/my_car/project/code/tflm_model_process.cpp -o CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.s
 
 CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_fifo.cpp.o: CMakeFiles/project.dir/flags.make
 CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_fifo.cpp.o: /home/heavencornerstone/my_car/libraries/zf_common/zf_common_fifo.cpp
@@ -565,7 +565,6 @@ project_OBJECTS = \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/IMU963R.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/MadgwickAHRS.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.o" \
-"CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o" \
@@ -576,6 +575,7 @@ project_OBJECTS = \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o" \
+"CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_fifo.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_font.cpp.o" \
 "CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_function.cpp.o" \
@@ -604,7 +604,6 @@ project: CMakeFiles/project.dir/main.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/IMU963R.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/MadgwickAHRS.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.o
-project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o
@@ -615,6 +614,7 @@ project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_pi
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o
+project: CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_fifo.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_font.cpp.o
 project: CMakeFiles/project.dir/home/heavencornerstone/my_car/libraries/zf_common/zf_common_function.cpp.o

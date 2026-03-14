@@ -14,7 +14,7 @@ imu_device_type_enum IMUHandler::init(void) {
     imu_device_type_enum type = imu_dev.init();
     if (type != DEV_NO_FIND) {
         // 初始化成功后自动校准
-        calibrate_offsets(2000); 
+        calibrate_offsets(500); 
     }
     return type;
 }
@@ -85,7 +85,6 @@ float calculate_yaw_control(float target_yaw, float current_yaw, float max_outpu
     if (error < -180.0f) error += 360.0f;
 
     // 2. 归一化误差到 [-1, 1] 范围，用于 Sigmoid 计算
-    // 我们设定一个“显著误差区间”，比如超过 45 度就认为是大误差
     const float range = 45.0f; 
     float normalized_error = error / range; 
 

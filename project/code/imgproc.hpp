@@ -8,6 +8,7 @@
 #include <string>       
 #include <opencv2/opencv.hpp>
 #include <cmath>
+#include "my_timestamp.hpp"
 
 extern zf_device_uvc uvc;
 //图像处理变量
@@ -48,14 +49,20 @@ typedef struct{
     uint8_t right_length;         //右边线长度
 
     uint8_t target_boundary;     //最终巡线 0-左边线 1-右边线
+
+    // --- 冷却时间相关 ---
+    TimerClockGetTime cooldown_timer; // 用于记录冷却时间的计时器
+    bool is_cooling;                  // 冷却状态标志
+    float cooldown_threshold_sec;    // 冷却时间阈值（默认5.0s）
 } Tracking_Decision_Machine_TypeDef;
 //圆环状态机
 typedef struct {
     uint8_t state;              //0初始状态，1进圆环路口，2圆环路口未进环岛，3环岛中无岔路部分，4出环岛路口
     uint8_t state_locking;      //状态锁定，防止重判乱飞,0未上锁，1上锁
     uint8_t side;               //圆环边，2左边，3右边，0初始
+    float start_angle;          //入环时角度
+    float current_angle; 
 } Circle_Tracking_Machine_TypeDef;
-
 
 
 #define PI 3.14159265358979323846f
@@ -79,9 +86,10 @@ typedef struct {
 #define approx_idx          15              //平移采样索引距离
 
 /*-------------------------角点识别参数-------------------------*/
-#define CORNER_ANGLE_THRE      85.0f           //角点角度阈值
-#define CORNER_THRE_MAX        101.0f          //十字角点最大阈值
-#define CIRCLE_ANGLE_THRE      115.0f          //圆环角度阈值
+#define CORNER_ANGLE_THRE      80.0f           //角点角度阈值
+#define CORNER_THRE_MAX        96.0f          //十字角点最大阈值
+#define CIRCLE_ANGLE_THRE      106.0f          //圆环角度阈值
+#define STRAIGHT_ROAD_THRE     50               
 #define LOST_LINE              10
 /*------------------------正常巡线状态参数------------------------*/
 #define __N_DFT_LEN_THRE        30          /* 切换巡线长度差阈值 sample_line*/
@@ -152,6 +160,9 @@ void no_element_process();
 void crossing_process();
 void circle_process();
 void auto_tracking();
+
+void left_path_adjust(void);
+void right_path_adjust(void);
 
 
 void supplement_line(float pts_in[][2],int* num,int corner_index,float dist);   //补线

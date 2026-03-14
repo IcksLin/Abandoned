@@ -31,7 +31,6 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/heavencornerstone/my_car/project/code/IMU963R.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/IMU963R.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/IMU963R.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/MadgwickAHRS.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/MadgwickAHRS.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/MadgwickAHRS.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/akima.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.o.d"
-  "/home/heavencornerstone/my_car/project/code/decision.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/decision.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/imgproc.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/motor.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/motor.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/my_global.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_global.cpp.o.d"
@@ -42,6 +41,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/heavencornerstone/my_car/project/code/my_task_function.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/my_timestamp.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_timestamp.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/navigation.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o.d"
+  "/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process.cpp.o.d"
   "/home/heavencornerstone/my_car/project/user/main.cpp" "CMakeFiles/project.dir/main.cpp.o" "gcc" "CMakeFiles/project.dir/main.cpp.o.d"
   )
 

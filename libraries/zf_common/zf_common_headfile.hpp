@@ -35,7 +35,6 @@
 #define _zf_common_headfile_h_
 
 
-
 //====================================================开源库公共层====================================================
 #include "zf_common_font.hpp"
 #include "zf_common_function.hpp"
@@ -62,7 +61,6 @@
 #include "zf_device_uvc.hpp"
 #include "zf_device_dl1x.hpp"
 
-
 //===================================================外接设备驱动层===================================================
 
 
@@ -71,6 +69,34 @@
 #include "seekfree_assistant_interface.hpp"
 //===================================================应用组件层===================================================
 
+
+//===================================================外部组件库===================================================
+#include "net.h" // for ncnn
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>  // for cv::cvtColor
+#include <opencv2/highgui/highgui.hpp> // for cv::VideoCapture
+#include <iostream> // for std::cerr
+#include <fstream>  // for std::ofstream
+#include <thread>
+#include <chrono>
+#include <atomic>
+//===================================================外部组件库===================================================
+
+
+//===================================================TFLITE组件库===================================================
+#include "tensorflow/lite/core/c/common.h"
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/micro/micro_profiler.h"
+#include "tensorflow/lite/micro/recording_micro_interpreter.h"
+#include "tensorflow/lite/micro/system_setup.h"
+#include "tensorflow/lite/micro/cortex_m_generic/debug_log_callback.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+
+//===================================================TFLITE组件库===================================================
+
+
 //===================================================用户自定义文件===================================================
 #include "my_image_transmitter.hpp"
 #include "my_task_function.hpp"
@@ -78,11 +104,12 @@
 #include "MadgwickAHRS.hpp"
 #include "motor.hpp"
 #include "my_timestamp.hpp"
-#include "decision.hpp"
+#include "imgproc.hpp"
 #include "my_key.hpp"
 #include "my_menu.hpp"
 #include "my_pid.hpp"
 #include "navigation.hpp"
+#include "tflm_model_process.hpp"
 //===================================================用户自定义文件===================================================
 
 

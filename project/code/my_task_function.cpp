@@ -56,12 +56,12 @@ void show_all_of_the_component_without_ips(){
     // camera_timer.stop();
     // printf("camera speed timer: %d\n",camera_timer.elapsed_ms());
     //编码器及电机速度测试
-    // motor_set_speed(0,0);
+    motor_set_speed(40,40);
     //PID控制器控速测试
     // target_speed_r = 0;
     // target_speed_l = 0;
 
-    onto_pd_control_enable = 1;
+    onto_pd_control_enable = 0;
 
     printf("right_speed: %4.2f ,left_speed: %4.2f,pitch: %4.2f,roll: %4.2f,yall: %4.2f    \r",
          right_speed, left_speed,ahrs.getPitch(),ahrs.getRoll(),ahrs.getYaw());
@@ -157,8 +157,8 @@ void tracking()
     //      nms_Rline_idx, onto
     //      , my_timer.elapsed_ms(), max_angle);
     my_timer.stop();
+    // printf("time: %lld  ms",my_timer.elapsed_ms());
     image_proc();
-    // uvc.wait_image_refresh();
     
     // 传输灰度图像 + 三条边线（左边线、右边线、中线）
     // 参数说明：
@@ -170,51 +170,46 @@ void tracking()
     // static uint8_t L_buf[IMG_H][2];
     // static uint8_t R_buf[IMG_H][2];
     // static uint8_t M_buf[IMG_H][2];
-    // std::cout << "DEBUG: L_num=" << Lline_num << " R_num=" << Rline_num << std::endl;
+    // // std::cout << "DEBUG: L_num=" << Lline_num << " R_num=" << Rline_num << std::endl;
 
     // for (int i = 0; i < IMG_H; ++i) {
     //     // 只有在 i 小于有效点数时才进行转换和打印
     //     if (i < sampled_Lline_num) {
-    //         L_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][0], 255));
-    //         L_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][1], 255));
+    //         L_buf[i][0] = (uint8_t)std::max(0, std::min((int)L2Mline[i][0], 255));
+    //         L_buf[i][1] = (uint8_t)std::max(0, std::min((int)L2Mline[i][1], 255));
             
     //         // 只打印有效点
     //         // std::cout << "Lline[" << i << "]: (" << (int)L_buf[i][0] << ", " << (int)L_buf[i][1] << ")" << std::endl;
     //     }
 
     //     if (i < sampled_Rline_num) {
-    //         R_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][0], 255));
-    //         R_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][1], 255));
+    //         R_buf[i][0] = (uint8_t)std::max(0, std::min((int)R2Mline[i][0], 255));
+    //         R_buf[i][1] = (uint8_t)std::max(0, std::min((int)R2Mline[i][1], 255));
     //         // std::cout << "Rline[" << i << "]: (" << (int)R_buf[i][0] << ", " << (int)R_buf[i][1] << ")" << std::endl;
+    //     }
+
+    //    if (i < middle_line_length) {
+    //         M_buf[i][0] = (uint8_t)std::clamp((int)Mline[i][0], 0, 255);
+    //         M_buf[i][1] = (uint8_t)std::clamp((int)Mline[i][1], 0, 255);
     //     }
     // }
 
-    // // 调用修正后的函数
     // gray_img_with_centerline_transmitter(
     //     img_gray, UVC_WIDTH, IMG_H, 
-    //     L_buf, Lline_num, 
-    //     R_buf, Rline_num, 
-    //     M_buf, Mline_num, 
-    //     false, false // 根据需要设置翻转
+    //     L_buf, (uint16_t)sampled_Lline_num, 
+    //     R_buf, (uint16_t)sampled_Rline_num, 
+    //     M_buf, (uint16_t)middle_line_length, 
+    //     false, false 
     // );
-    // gray_img_with_centerline_transmitter(
-    //     img_gray, UVC_WIDTH, IMG_H, 
-    //     nullptr, Lline_num, 
-    //     nullptr, Rline_num, 
-    //     nullptr, Mline_num, 
-    //     false, false // 根据需要设置翻转
-    // );
-    // gray_img_with_centerline_transmitter(
-        // img_gray, UVC_WIDTH, IMG_H, 
-        // L_buf, Lline_num, 
-        // R_buf, Rline_num, 
-        // M_buf, Mline_num, 
-        // false, false // 根据需要设置翻转
-    // );
+   
     
     //方向控制器启动（PD运算在线程中执行）
     onto_pd_control_enable = 1;
     my_timer.start();
+
+    // 调试信息===========================================
+    // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);
+
 
     // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,true);
 }

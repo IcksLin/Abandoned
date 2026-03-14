@@ -79,18 +79,18 @@ int main()
     printf("6. 初始化PID控制器...\n");
     // pid_r.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     // pid_l.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
-    pid_r.init(1.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
-    pid_l.init(1.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
-    pid_angle.setParameters(0.2f, 0.01f, 0.3f);
-    pid_angle.setOutputLimit(25);
+    pid_r.init(1.5, 0.015, 2.50f, 0.1, 1, 120, -120, 60, -60);
+    pid_l.init(1.5, 0.015, 2.50f, 0.1, 1, 120, -120, 60, -60);
+    pid_angle.setParameters(0.2f, 0.025f, 0.0f);
+    pid_angle.setOutputLimit(cruising_speed*0.45);
 
     // 6. 初始化菜单系统
     printf("7. 初始化菜单系统...\n");
     menu_system.init_menu();
 
     //TCP图像传输组件初始化 --- IGNORE ---
-    // printf("8. TCP图像传输组件初始化...\n");
-    // img_transmitter_init();
+    printf("8. TCP图像传输组件初始化...\n");
+    img_transmitter_init();
 
     // 初始化线程，可开始参数获取任务调度
     zf_driver_pit_rt key_scan;
@@ -138,8 +138,9 @@ int main()
         // show_all_of_the_component();
         // ips200.update();
         // get_image_datasets();
-        menu_system.menu_system();
-        system_delay_ms(10);
+        tracking();
+        // menu_system.menu_system();
+        // system_delay_ms(10);
     }
     return 0;
 }
