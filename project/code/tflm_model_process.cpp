@@ -1,6 +1,5 @@
 #include "tflm_model_process.hpp"
 #include <chrono>
-
 TFLMModelProcessor::TFLMModelProcessor() : tensor_arena(nullptr), interpreter(nullptr), model(nullptr) {
     tensor_arena = new uint8_t[TENSOR_ARENA_SIZE];
 }

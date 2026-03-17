@@ -493,15 +493,16 @@ void MyMenu::menu_mode_9(uint8 cl_action)
         break;
     }
     
-    // 显示IMU角度信息（需要用户提供实际的IMU数据变量）
-    ips_display->clear();
-    ips_display->show_string(0, 0, "IMU Angle");
-    ips_display->show_string(0, 1 * 16, "Roll:");
-    // ips_display->show_float(5 * 8, 1 * 16, Roll_copy, 3, 2);
-    ips_display->show_string(0, 2 * 16, "Pitch:");
-    // ips_display->show_float(5 * 8, 2 * 16, Pitch_copy, 3, 2);
-    ips_display->show_string(0, 3 * 16, "Yaw:");
-    // ips_display->show_float(5 * 8, 3 * 16, Yaw_copy, 3, 2);
+    // // 显示IMU角度信息（需要用户提供实际的IMU数据变量）
+    // ips_display->clear();
+    // ips_display->show_string(0, 0, "IMU Angle");
+    // ips_display->show_string(0, 1 * 16, "Roll:");
+    // // ips_display->show_float(5 * 8, 1 * 16, Roll_copy, 3, 2);
+    // ips_display->show_string(0, 2 * 16, "Pitch:");
+    // // ips_display->show_float(5 * 8, 2 * 16, Pitch_copy, 3, 2);
+    // ips_display->show_string(0, 3 * 16, "Yaw:");
+    // // ips_display->show_float(5 * 8, 3 * 16, Yaw_copy, 3, 2);
+    printf("yaw: %f\r", ahrs.getYaw());
 }
 
 // 惯性导航地图记录界面

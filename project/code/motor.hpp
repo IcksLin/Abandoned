@@ -79,5 +79,8 @@ bool get_and_remap_speed(float* right_speed, float* left_speed, int16 sampling_p
 
 //信号发生器，用于测试电机以及电机对磁力轴的影响
 float motor_test_signal_generator(int mode, float period_ms);
+float speed_decision(int num, float max_speed, float min_speed);
+void brushless_init();
+void esc_set_power(float power);
 
 #endif  // __MOTOR_H_HPP__

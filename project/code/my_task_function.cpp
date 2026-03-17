@@ -159,6 +159,9 @@ void tracking()
     my_timer.stop();
     // printf("time: %lld  ms",my_timer.elapsed_ms());
     image_proc();
+    cruising_speed = speed_decision(middle_line_length,CRUISING_SPEED*0.6,CRUISING_SPEED*1.2);
+    printf("midle_line_length: %d   ,speed:%f  \r   ",middle_line_length,cruising_speed);
+
     
     // 传输灰度图像 + 三条边线（左边线、右边线、中线）
     // 参数说明：
@@ -175,16 +178,16 @@ void tracking()
     // for (int i = 0; i < IMG_H; ++i) {
     //     // 只有在 i 小于有效点数时才进行转换和打印
     //     if (i < sampled_Lline_num) {
-    //         L_buf[i][0] = (uint8_t)std::max(0, std::min((int)L2Mline[i][0], 255));
-    //         L_buf[i][1] = (uint8_t)std::max(0, std::min((int)L2Mline[i][1], 255));
+    //         L_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][0], 255));
+    //         L_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][1], 255));
             
     //         // 只打印有效点
     //         // std::cout << "Lline[" << i << "]: (" << (int)L_buf[i][0] << ", " << (int)L_buf[i][1] << ")" << std::endl;
     //     }
 
     //     if (i < sampled_Rline_num) {
-    //         R_buf[i][0] = (uint8_t)std::max(0, std::min((int)R2Mline[i][0], 255));
-    //         R_buf[i][1] = (uint8_t)std::max(0, std::min((int)R2Mline[i][1], 255));
+    //         R_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][0], 255));
+    //         R_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][1], 255));
     //         // std::cout << "Rline[" << i << "]: (" << (int)R_buf[i][0] << ", " << (int)R_buf[i][1] << ")" << std::endl;
     //     }
 
@@ -201,6 +204,9 @@ void tracking()
     //     M_buf, (uint16_t)middle_line_length, 
     //     false, false 
     // );
+
+    // uvc.get_rgb_image_ptr();
+    // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,false);
    
     
     //方向控制器启动（PD运算在线程中执行）

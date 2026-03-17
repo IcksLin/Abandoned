@@ -4,7 +4,7 @@ using namespace cv;
 
 /*决策变量******************/
 float onto = 0.0f;          // 最终处理方向，已限制幅度在-30~30.0f之间
-float angle_compensation = 6.7f; // 方向补偿量(静态最中间偏差)
+float angle_compensation = 0; // 方向补偿量(静态最中间偏差)
 int middle_line_length = 0; // 中线长度
 float max_angle = 0.0f;        // 最大角点值,用于调试
 /******************图像变量*/
@@ -858,63 +858,57 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
  * @return float 最终的加权偏移角度（度）
  */
 float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
+    const int target_samples = 15;
+    const int start_idx = 3;
+    static float last_angle = 0.0f; // 静态变量保持记忆
+    
+    // 情况 A: 点数不足，直接返回上一帧
+    if (num <= start_idx) return last_angle;
+
     float total_weighted_angle = 0.0f;
     float total_weight = 0.0f;
-    
-    // 图像中心参考点（假设你的 origin_x 和 origin_y 依然是图像底部中心）
     const int origin_x = IMG_W / 2;
-    const int origin_y = IMG_H - 1; 
+    const int origin_y = IMG_H - 1;
 
-    // 确定计算范围：跳过靠近车头的 3 个点
-    // 扫描区间：从 i=3 开始到 i=num-1 (i 越大前瞻越远)
-    int start_idx = 3;
-    
-    if (num <= start_idx) return 0.0f; 
+    int available_points = num - start_idx;
+    float step = (available_points > target_samples) ? 
+                 (float)available_points / (float)target_samples : 1.0f;
 
-    for (int i = start_idx; i < num; i++) {
-        // 1. 获取当前点的坐标
-        float cur_x = Mline[i][0];
-        float cur_y = Mline[i][1];
+    for (int k = 0; k < target_samples; k++) {
+        int i = start_idx + (int)(k * step);
+        if (i >= num) break;
 
-        // 2. 计算相对于底部中心的坐标差
-        float dx = cur_x - (float)origin_x;
-        float dy = (float)origin_y - cur_y; // 向上为正
+        float dx = Mline[i][0] - (float)origin_x;
+        float dy = (float)origin_y - Mline[i][1];
 
-        // 保护：防止除零或反向计算
         if (dy <= 0) continue;
 
-        // 3. 计算当前点的偏角 (弧度值)
         float current_angle = atan2f(dx, dy);
-
-        // 4. 计算权重：越近（i 越小）权重越大
-        // 权重设计：(总点数 - 当前索引)，使得 start_idx 处的权重最大
-        float weight = (float)(num - i);
+        float weight = (float)(target_samples - k); 
         
-        // 如果想增加近处权重敏感度，可使用平方：
-        // float weight = (float)((num - i) * (num - i));
-
-        // 5. 累加
         total_weighted_angle += current_angle * weight;
         total_weight += weight;
+
+        if (step == 1.0f && i == num - 1) break;
     }
 
-    // 6. 输出加权平均值
-    if (total_weight < 1e-5f) return 0.0f;
+    // 情况 B: 循环完发现没有有效权重（计算失败），也要返回上一帧
+    // 而不是返回 0.0f
+    if (total_weight < 1e-5f) return last_angle; 
 
-    float final_angle = total_weighted_angle / total_weight;
+    // 计算平均弧度并转换
+    float final_angle = (total_weighted_angle / total_weight) * 180.0f / 3.14159265f;
+    final_angle += angle_compensation;
 
-    // 转化为角度制并补偿偏差
-    // 使用宏或常数保证精度
-    final_angle = final_angle * 180.0f / 3.14159265f + angle_compensation;
-
-    // 7. 限制输出范围控制舵机打角范围
+    // 限幅
     if (final_angle > 30.0f)  final_angle = 30.0f;
     if (final_angle < -30.0f) final_angle = -30.0f;
 
+    // 更新记忆
+    last_angle = final_angle;
+
     return final_angle;
 }
-
-
 
 //去畸变后Mat
 cv::Mat De_distortion_image;
@@ -948,8 +942,8 @@ void image_proc(){
 
     //计算偏转角度
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
-    
-    printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
+    // printf("onto: %f  \r",onto);
+    // printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
 }
 
 //状态机初始化
@@ -990,13 +984,13 @@ void element_status() {
     if (!tracking_decision_machine.element_processing_flage) 
     {
         // --- 2. 十字检测 (不受冷却限制) ---
-        if(sampled_Lline_num > LOST_LINE && sampled_Rline_num > LOST_LINE) {
-            if(nms_Lline > CORNER_ANGLE_THRE && nms_Rline > CORNER_ANGLE_THRE) {
-                tracking_decision_machine.state = 1; // 十字路口状态
-                tracking_decision_machine.element_processing_flage = 1; 
-                return;
-            }
-        }
+        // if(sampled_Lline_num > LOST_LINE && sampled_Rline_num > LOST_LINE) {
+            // if(nms_Lline > CORNER_ANGLE_THRE && nms_Rline > CORNER_ANGLE_THRE) {
+            //     tracking_decision_machine.state = 1; // 十字路口状态
+            //     tracking_decision_machine.element_processing_flage = 1; 
+            //     return;
+            // }
+        // }
 
         // --- 3. 圆环检测 (受冷却限制) ---
         if (!tracking_decision_machine.is_cooling) // 仅在非冷却状态下检测圆环
@@ -1023,6 +1017,12 @@ void element_status() {
                     }
                 }
             }
+        }
+        
+        if(nms_Lline > CORNER_ANGLE_THRE || nms_Rline > CORNER_ANGLE_THRE) {
+            tracking_decision_machine.state = 1; // 十字路口状态
+            tracking_decision_machine.element_processing_flage = 1; 
+            return;
         }
 
         //无元素检测到，状态机回到无元素状态
@@ -1062,11 +1062,13 @@ void crossing_process(){
             tracking_decision_machine.target_boundary = 1; //右边线最长
         }
         //若相等，保持原有状态
-        if(nms_Lline<CORNER_ANGLE_THRE&&nms_Rline<CORNER_ANGLE_THRE&&sampled_Rline_num>=LOST_LINE&&sampled_Lline_num>=LOST_LINE){
-        //两边均小于直角阈值且未丢线，失活元素处理状态
+        if((nms_Lline<CORNER_ANGLE_THRE&&nms_Rline<CORNER_ANGLE_THRE)&&sampled_Rline_num>=LOST_LINE&&sampled_Lline_num>=LOST_LINE){
+        //有一边小于直线阈值且两边均未丢线，失活元素处理状态
         tracking_decision_machine.element_processing_flage = 0; 
-        }   
+        }
+        return ;  
     }
+    
  
     
 }

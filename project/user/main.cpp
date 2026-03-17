@@ -79,17 +79,23 @@ int main()
     printf("6. 初始化PID控制器...\n");
     // pid_r.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     // pid_l.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
-    pid_r.init(1.5, 0.015, 2.50f, 0.1, 1, 120, -120, 60, -60);
-    pid_l.init(1.5, 0.015, 2.50f, 0.1, 1, 120, -120, 60, -60);
-    pid_angle.setParameters(0.2f, 0.025f, 0.0f);
-    pid_angle.setOutputLimit(cruising_speed*0.45);
+    pid_r.init(2.0, 0.015, 3.30f, 0.1, 1, 120, -120, 60, -60);
+    pid_l.init(2.0, 0.015, 3.30f, 0.1, 1, 120, -120, 60, -60);
+    pid_angle.setParameters(0.2f, 0.018f, 0.0f);
+    pid_angle.setOutputLimit(cruising_speed*0.50);
 
     // 6. 初始化菜单系统
     printf("7. 初始化菜单系统...\n");
     menu_system.init_menu();
 
+    printf("8. 初始化图像分类组件...\n");
+    TFLMModelProcessor detector;
+    if(!detector.init(my_model_tflite)) {
+        return -1;
+    }
+
     //TCP图像传输组件初始化 --- IGNORE ---
-    printf("8. TCP图像传输组件初始化...\n");
+    printf("9. TCP图像传输组件初始化...\n");
     img_transmitter_init();
 
     // 初始化线程，可开始参数获取任务调度
@@ -128,6 +134,7 @@ int main()
     }
 
 
+
     // printf("right_speed: %4.2f ,left_speed: %4.2f,pitch: %4.2f,roll: %4.2f,yall: %4.2f    \r",
     //     right_speed, left_speed,ahrs.getPitch(),ahrs.getRoll(),ahrs.getYaw());
     system_delay_ms(1500);
@@ -140,6 +147,18 @@ int main()
         // get_image_datasets();
         tracking();
         // menu_system.menu_system();
+
+        // //图像分类测试------------------
+        // uvc.wait_image_refresh();
+        // cv::Mat frame = uvc.frame_rgb;
+        // InferenceResult res = detector.process(frame);
+
+        // // 3. 使用结果
+        // if(res.class_index != -1) {
+        //     printf("识别到: %s (置信度: %.2f) 耗时: %ld us\n", 
+        //            res.label, res.confidence, res.inference_time);
+        // }
+        
         // system_delay_ms(10);
     }
     return 0;

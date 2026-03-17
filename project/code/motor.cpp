@@ -229,3 +229,74 @@ float motor_test_signal_generator(int mode, float period_ms = 2000.0f) {
 
     return output;
 }
+
+/**
+ * @brief 速度决策函数，根据巡线得到的赛道长度决策速度
+ * @param num 当前识别到的有效赛道点数 (反映赛道长度)
+ * @param max_speed 最大速度上限 (如直道最高速)
+ * @param min_speed 最小速度下限 (如弯道保底速)
+ * @return 决策后的速度
+ */
+float speed_decision(int num, float max_speed, float min_speed) {
+    // 静态变量用于速度平滑滤波
+    static float last_speed = 0.0f;
+    
+    // 1. 定义赛道长度的有效区间（根据你的摄像头实际视野调整）
+    const float L_MIN = 60.0f;  // 认为赛道极短的阈值
+    const float L_MAX = 80.0f;  // 认为赛道极长的阈值
+    
+    // 2. 归一化长度：将 num 映射到 [0, 1]
+    float x = ((float)num - L_MIN) / (L_MAX - L_MIN);
+    if (x < 0.0f) x = 0.0f;
+    if (x > 1.0f) x = 1.0f;
+
+    // 3. S型映射策略 (使用三次幂函数变形：f(x) = 4(x-0.5)^3 + 0.5)
+    // 这种映射在 x=0.5 附近导数小（平滑），在 0 和 1 附近变化快
+    float x_offset = x - 0.5f;
+    float target_ratio = 4.0f * x_offset * x_offset * x_offset + 0.5f;
+    
+    // 再次限幅确保比例在 [0, 1]
+    if (target_ratio < 0.0f) target_ratio = 0.0f;
+    if (target_ratio > 1.0f) target_ratio = 1.0f;
+
+    // 4. 计算目标速度
+    float target_speed = min_speed + target_ratio * (max_speed - min_speed);
+
+    // 5. 一阶低通滤波 (平滑机制)
+    // alpha 越小越平滑，响应越慢；建议取值 0.1 ~ 0.3
+    const float alpha = 0.2f; 
+    float output_speed = alpha * target_speed + (1.0f - alpha) * last_speed;
+
+    // 更新记忆
+    last_speed = output_speed;
+
+    return output_speed;
+}
+
+//-----------------无刷电机---------------------------------------------------------
+struct pwm_info esc_info;
+zf_driver_pwm   esc_pwm(ZF_PWM_ESC_1);
+uint16 esc_duty = 0;
+
+/**
+ *  @brief 无刷电机初始化函数
+ */
+void brushless_init(){
+    esc_pwm.get_dev_info(&esc_info);
+    printf("esc pwm freq = %d Hz\r\n", esc_info.freq);
+    printf("esc pwm duty_max = %d\r\n", esc_info.duty_max);
+}
+
+/**
+ * @brief 无刷电机控速函数
+ * @param power 功率百分比，输入范围 0.0 到 100.0
+ */
+void esc_set_power(float power) {
+    // 限幅
+    if (power < 0.0f)   power = 0.0f;
+    if (power > 100.0f) power = 100.0f;
+
+    // 简化为：duty = 500 + power * 5
+    esc_duty = (uint16)(500.0f + power * 5.0f);
+    esc_pwm.set_duty(esc_duty);
+}

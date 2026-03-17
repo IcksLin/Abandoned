@@ -235,6 +235,12 @@ bool rgb_img_transmitter(const uint16_t* rgb_image_ptr, uint32_t width, uint32_t
                   << " pixels). Operation aborted.\n";
         return false;
     }
+    seekfree_assistant_camera_information_config(
+    SEEKFREE_ASSISTANT_RGB565, 
+    (uint16_t*)image_copy, 
+    UVC_WIDTH, 
+    UVC_HEIGHT
+    );
     
     // 发送处理后的图像数据到上位机
     seekfree_assistant_camera_send();

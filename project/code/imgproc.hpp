@@ -86,9 +86,9 @@ typedef struct {
 #define approx_idx          15              //平移采样索引距离
 
 /*-------------------------角点识别参数-------------------------*/
-#define CORNER_ANGLE_THRE      80.0f           //角点角度阈值
+#define CORNER_ANGLE_THRE      75.0f           //角点角度阈值
 #define CORNER_THRE_MAX        96.0f          //十字角点最大阈值
-#define CIRCLE_ANGLE_THRE      106.0f          //圆环角度阈值
+#define CIRCLE_ANGLE_THRE      100.0f          //圆环角度阈值
 #define STRAIGHT_ROAD_THRE     50               
 #define LOST_LINE              10
 /*------------------------正常巡线状态参数------------------------*/

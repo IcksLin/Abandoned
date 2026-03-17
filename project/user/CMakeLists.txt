@@ -89,7 +89,7 @@ include_directories(
     # 业务代码头文件
     ../user 
     ../code 
-    ../model
+    # ../model
     ../../libraries/zf_common 
     ../../libraries/zf_device 
     ../../libraries/zf_driver
@@ -110,6 +110,9 @@ include_directories(
     ../../libraries/zf_components/tflm/tensorflow/lite/schema
     ../../libraries/zf_components/ncnn/include/ncnn
 )
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/../../model)
+aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/../../model DIR_SRCS)
 
 # 静态库路径
 link_directories(

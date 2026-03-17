@@ -110,6 +110,8 @@
 #include "my_pid.hpp"
 #include "navigation.hpp"
 #include "tflm_model_process.hpp"
+#include "my_model.hpp"
+
 //===================================================用户自定义文件===================================================
 
 
