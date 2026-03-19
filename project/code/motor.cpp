@@ -285,6 +285,7 @@ void brushless_init(){
     esc_pwm.get_dev_info(&esc_info);
     printf("esc pwm freq = %d Hz\r\n", esc_info.freq);
     printf("esc pwm duty_max = %d\r\n", esc_info.duty_max);
+
 }
 
 /**

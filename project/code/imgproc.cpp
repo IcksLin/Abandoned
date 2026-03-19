@@ -915,7 +915,6 @@ cv::Mat De_distortion_image;
 
 // 一次图像处理
 void image_proc(){   
-    uvc.wait_image_refresh();
     cv::cvtColor(uvc.frame_mjpg, frame_gray, cv::COLOR_BGR2GRAY);
     img_gray = reinterpret_cast<uint8_t*>(frame_gray.ptr(0));
     start_thre = get_otsu_thres(img_gray, 0, IMG_W, TRACK_HEIGHT_MAX, IMG_H);

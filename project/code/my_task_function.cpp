@@ -156,11 +156,61 @@ void tracking()
     //     nms_Lline, nms_Lline_idx, nms_Rline,
     //      nms_Rline_idx, onto
     //      , my_timer.elapsed_ms(), max_angle);
-    my_timer.stop();
+    // my_timer.stop();
     // printf("time: %lld  ms",my_timer.elapsed_ms());
+
+    //图像采样
+    uvc.wait_image_refresh();
+    uvc.frame_rgb = uvc.frame_mjpg.clone();
+
     image_proc();
+    // 逐飞----------------------------------------------------------------------------------------------------------------------
+    if(red_detector.model_roi_cut(uvc.frame_rgb, red_detector.target_roi, true)) {    
+        // 推理
+        my_timer.start();
+        InferenceResult result = detector.process(red_detector.target_roi);
+        my_timer.stop();
+        printf("识别结果: %s (置信度: %.2f%%)  ,time: %lld  \r", result.label, result.confidence * 100,my_timer.elapsed_ms());
+    } else {
+        printf("未发现红框\r");
+    }
+
+    // // 龙邱----------------------------------------------------------------------------------------------------------------------
+    // if (red_detector.model_roi_cut(uvc.frame_rgb, red_detector.target_roi, true)) {
+    
+    //     // 1. 获取红框位置
+    //     cv::Rect pos = red_detector.get_target_location();
+        
+    //     // 2. 稳定性判定 (ROI 过滤)
+    //     int center_y = pos.y + pos.height / 2;
+    //     bool is_stable_area = (center_y > UVC_HEIGHT * 0.3) && (center_y < UVC_HEIGHT * 0.85);
+    //     bool is_size_valid = (pos.width > 15);
+
+    //     if (is_stable_area && is_size_valid) {
+    //         try {
+    //             // 3. 开始 NCNN 推理计时
+    //             my_timer.start();
+                
+    //             std::string result_label = ncnn_classifier.infer(red_detector.target_roi);
+                
+    //             my_timer.stop();
+
+    //             // 4. 打印结果
+    //             printf("NCNN识别: [%s] | 位置Y: %d | 耗时: %lld ms    \r", 
+    //                     result_label.c_str(), center_y, my_timer.elapsed_ms());
+    //         } catch (const std::exception& e) {
+    //             // 捕获 NCNN 内部抛出的图像空、未初始化等异常，防止程序崩溃s
+    //             printf("推理异常: %s    \r", e.what());
+    //         }
+    //     } else {
+    //         printf("红框未进入稳定区 (Y:%d, W:%d)    \r", center_y, pos.width);
+    //     }
+    // } else {
+    //     printf("未发现红框                \r");
+    // }
+        
     cruising_speed = speed_decision(middle_line_length,CRUISING_SPEED*0.6,CRUISING_SPEED*1.2);
-    printf("midle_line_length: %d   ,speed:%f  \r   ",middle_line_length,cruising_speed);
+    // printf("midle_line_length: %d   ,speed:%f  \r   ",middle_line_length,cruising_speed);
 
     
     // 传输灰度图像 + 三条边线（左边线、右边线、中线）
@@ -206,12 +256,13 @@ void tracking()
     // );
 
     // uvc.get_rgb_image_ptr();
-    // rgb_img_transmitter(reinterpret_cast<const uint16_t*>(uvc.frame_rgb.ptr()), UVC_WIDTH, UVC_HEIGHT,false);
-   
+    cv::Mat display_frame;
+    cv::cvtColor(uvc.frame_rgb, display_frame, cv::COLOR_BGR2BGR565);
+    rgb_img_transmitter(reinterpret_cast<uint16_t*>(display_frame.ptr(0)), UVC_WIDTH, UVC_HEIGHT, false);
     
     //方向控制器启动（PD运算在线程中执行）
-    onto_pd_control_enable = 1;
-    my_timer.start();
+    onto_pd_control_enable = 0;
+    // my_timer.start();
 
     // 调试信息===========================================
     // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);

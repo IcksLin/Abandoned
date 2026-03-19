@@ -54,6 +54,7 @@ private:
     Menu Pid_Set, car_pid, tripod_pid;
     Menu gray_calibration, IMU_angle;
     Menu map_record,path_reproduction;
+    Menu brushless_motor_set;
     
     // 禁用拷贝构造和赋值
     MyMenu(const MyMenu&) = delete;
@@ -170,6 +171,7 @@ public:
     void menu_mode_9(uint8 cl_action);
     void menu_mode_10(uint8 cl_action);
     void menu_mode_11(uint8 cl_action);
+    void menu_mode_12(uint8 cl_action);
     void option_func(void);
     
     // 静态包装函数，用于菜单回调

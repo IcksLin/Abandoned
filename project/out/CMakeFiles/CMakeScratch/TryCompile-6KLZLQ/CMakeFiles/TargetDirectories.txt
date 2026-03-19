@@ -1,3 +1,0 @@
-/home/heavencornerstone/my_car/project/out/CMakeFiles/CMakeScratch/TryCompile-6KLZLQ/CMakeFiles/cmTC_c4c3e.dir
-/home/heavencornerstone/my_car/project/out/CMakeFiles/CMakeScratch/TryCompile-6KLZLQ/CMakeFiles/edit_cache.dir
-/home/heavencornerstone/my_car/project/out/CMakeFiles/CMakeScratch/TryCompile-6KLZLQ/CMakeFiles/rebuild_cache.dir

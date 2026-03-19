@@ -4,13 +4,12 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <cmath>
-#include "imgproc.hpp"
+#include "tflm_model_process.hpp"
 
 using namespace cv;
 using namespace std;
 
 // --- 基础参数定义 ---
-#define MODEL_INPUT_WIDTH 48 // 模型要求的输入尺寸
 #define MAZE_MAX_LEN 1000     // 迷宫追踪最大步数
 
 class RedRectDetector {
@@ -18,13 +17,23 @@ public:
     RedRectDetector(float r_threshold = 0.45f);
     ~RedRectDetector();
 
+    Mat target_roi;         // 存储裁剪后的图像
+    Rect target_rect;       // 存储裁剪方框在原图中的位置(x, y, width, height)
+    
+    /**
+     * @brief 获取当前识别到的目标方框位置
+     * @return Rect 返回矩形区域，若未识别到，则各字段为 0
+     */
+    Rect get_target_location() { return target_rect; }
+
     /**
      * @brief 提取红色方框区域内的ROI
      * @param img 输入原始图像
      * @param roi 输出裁剪后的图像
      * @param is_draw 是否在原图上绘制绿色识别框
+     * @return bool: true 表示成功识别并裁剪，false 表示未找到或裁剪失败
      */
-    void model_roi_cut(Mat& img, Mat& roi, bool is_draw = false);
+    bool model_roi_cut(Mat& img, Mat& roi, bool is_draw = false);
 
 private:
     float r_thres;

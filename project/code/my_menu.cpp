@@ -31,7 +31,7 @@ MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) : key_manager(key_mgr
     
     mode1 = {"Run By Image", 0, static_option_func, nullptr, nullptr, nullptr};
     mode2 = {"Inertial navigation", 1, static_option_func, nullptr, nullptr, nullptr};
-    mode3 = {"Mode3", 2, static_option_func, nullptr, nullptr, nullptr};
+    mode3 = {"Config_calibration", 2, static_option_func, nullptr, nullptr, nullptr};
     mode4 = {"Mode4", 3, static_option_func, nullptr, nullptr, nullptr};
     mode5 = {"Mode5", 4, static_option_func, nullptr, nullptr, nullptr};
     
@@ -42,6 +42,7 @@ MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) : key_manager(key_mgr
     IMU_angle = {"IMU_Angle", 9, static_option_func, nullptr, nullptr, nullptr};
     map_record = {"Map record",10,static_option_func,nullptr,nullptr,nullptr};
     path_reproduction = {"Path reproduction",11,static_option_func,nullptr,nullptr,nullptr};
+    brushless_motor_set = {"Brushless_motor_set",12,static_option_func,nullptr,nullptr,nullptr};
     
     current_menu = &main_menu;
 }
@@ -84,6 +85,7 @@ void MyMenu::init_menu_parents(void)
     
     mode3.parent = &main_menu;
     mode3.sibling = &mode4;
+    mode3.child = &brushless_motor_set;
     
     mode4.parent = &main_menu;
     mode4.sibling = &mode5;
@@ -106,14 +108,21 @@ void MyMenu::init_menu_parents(void)
     gray_calibration.parent = &mode5;
     gray_calibration.sibling = &IMU_angle;
     
+    // 陀螺仪演示
     IMU_angle.parent = &mode5;
     IMU_angle.sibling = nullptr;
 
+    // 路径录制器
     map_record.parent = &mode2;
     map_record.sibling = &path_reproduction;
 
+    // 路径复现器
     path_reproduction.parent = &mode2;
     path_reproduction.sibling = nullptr;
+
+    //无刷电机校准
+    brushless_motor_set.parent = &mode3;
+    brushless_motor_set.sibling = nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -277,6 +286,8 @@ void MyMenu::draw_menu(Menu *selected_menu)
 // 返回参数 无
 // 使用示例 menu_system.menu_system();
 // 备注信息 处理按键输入和菜单显示，需要在主循环中调用
+//         当一个菜单下有挂载子菜单后，该菜单对应id的任务函数需要沉默
+//         否则无法进入子菜单
 //-------------------------------------------------------------------------------------------------------------------
 void MyMenu::menu_system(void)
 {
@@ -302,10 +313,10 @@ void MyMenu::menu_system(void)
         //     break;
         // case 2:
         //     menu_mode_2(cl_action);
-            // break;
-        case 3:
-            menu_mode_3(cl_action);
-            break;
+        //     break;
+        // case 3:
+        //     menu_mode_3(cl_action);
+        //     break;
         case 4:
             menu_mode_4(cl_action);
             break;
@@ -317,6 +328,9 @@ void MyMenu::menu_system(void)
             break;
         case 11:
             menu_mode_11(cl_action);
+            break;
+        case 12:
+            menu_mode_12(cl_action);
             break;
         default:
             mode_inter_flag = 0; // 重置标志
@@ -657,4 +671,25 @@ void MyMenu::menu_mode_11(uint8 cl_action){
     default:
         break;
     }
+}
+
+// 无刷电调校准菜单
+void MyMenu::menu_mode_12(uint8 cl_action)
+{
+    switch (cl_action)
+    {
+    case 0: 
+        esc_set_power(100);
+        break;
+    case 1:
+        esc_set_power(0);
+    case 3: // 返回键
+        mode_inter_flag = 0; // 返回菜单
+        esc_set_power(0);    // 安全处理，关闭无刷电机
+        break;
+    default:
+        break;
+    }
+    ips200.show_string(1,1,"1.full power");
+    ips200.show_string(1,1+16*1,"2.min power");
 }

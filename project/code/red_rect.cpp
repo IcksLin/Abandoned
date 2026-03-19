@@ -89,35 +89,56 @@ void RedRectDetector::maze_walk(int x, int y, Mat& frame, int* x_avg, int* y_avg
     *y_avg = (min_y + max_y) / 2;
 }
 
-void RedRectDetector::model_roi_cut(Mat& img, Mat& roi, bool is_draw) {
+/**
+ * @brief 提取红色方框区域内的ROI
+ * @return bool: true 表示成功识别并裁剪，false 表示未找到或裁剪失败
+ */
+bool RedRectDetector::model_roi_cut(Mat& img, Mat& roi, bool is_draw) {
     int seed_x = 0, seed_y = 0, x_avg = 0, y_avg = 0;
 
+    // 1. 寻找种子点
     find_seed_point(&seed_x, &seed_y, img);
-    if (seed_x == 0 && seed_y == 0) return;
+    if (seed_x == 0 && seed_y == 0) {
+        target_rect = Rect(0, 0, 0, 0); // 未找到时清空位置信息
+        return false;
+    }
 
+    // 2. 迷宫寻路计算中心
     maze_walk(seed_x, seed_y, img, &x_avg, &y_avg);
-    if (x_avg == 0 && y_avg == 0) return;
-
+    if (x_avg == 0 && y_avg == 0) {
+        target_rect = Rect(0, 0, 0, 0);
+        return false;
+    }
+    
     int roi_w = MODEL_INPUT_WIDTH;
     int roi_h = MODEL_INPUT_WIDTH;
 
-    // 计算裁剪区域，注意这里 y 的偏移处理（通常方框在物体上方或中心偏下）
+    // 3. 计算裁剪区域
     int x1 = x_avg - roi_w / 2;
     int x2 = x_avg + roi_w / 2;
     int y1 = y_avg - roi_h * 3 / 4; 
     int y2 = y_avg + roi_h / 4;
 
-    // 边界检查
+    // 4. 边界检查
     x1 = max(0, x1);
     x2 = min(img.cols - 1, x2);
     y1 = max(0, y1);
     y2 = min(img.rows - 1, y2);
 
-    if (x2 <= x1 || y2 <= y1) return;
+    if (x2 <= x1 || y2 <= y1) {
+        target_rect = Rect(0, 0, 0, 0);
+        return false;
+    }
 
-    // 绘制结果（如果需要）
-    if (is_draw) rectangle(img, Point(x1, y1), Point(x2, y2), Scalar(0, 255, 0), 2);
+    // 更新 target_rect 接口数据
+    target_rect = Rect(x1, y1, x2 - x1, y2 - y1);
 
-    // 提取 ROI
-    roi = img(Rect(x1, y1, x2 - x1, y2 - y1)).clone();
+    // 5. 绘制结果
+    if (is_draw) {
+        rectangle(img, target_rect, Scalar(0, 255, 0), 2);
+    }
+
+    // 6. 提取 ROI
+    roi = img(target_rect).clone();
+    return true; 
 }
