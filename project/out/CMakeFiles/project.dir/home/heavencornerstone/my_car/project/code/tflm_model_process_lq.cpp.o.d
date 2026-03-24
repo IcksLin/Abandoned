@@ -315,4 +315,5 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_pro
  /home/heavencornerstone/my_car/project/user/../../libraries/zf_components/ncnn/include/ncnn/modelbin.h \
  /home/heavencornerstone/my_car/project/user/../../libraries/zf_components/ncnn/include/ncnn/paramdict.h \
  /opt/ls_2k0300_env/opencv_4_10_build/include/opencv4/opencv2/imgproc.hpp \
- /opt/ls_2k0300_env/opencv_4_10_build/include/opencv4/opencv2/imgproc/segmentation.hpp
+ /opt/ls_2k0300_env/opencv_4_10_build/include/opencv4/opencv2/imgproc/segmentation.hpp \
+ /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/iostream

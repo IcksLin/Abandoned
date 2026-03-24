@@ -165,49 +165,187 @@ void tracking()
 
     image_proc();
     // 逐飞----------------------------------------------------------------------------------------------------------------------
-    if(red_detector.model_roi_cut(uvc.frame_rgb, red_detector.target_roi, true)) {    
-        // 推理
-        my_timer.start();
-        InferenceResult result = detector.process(red_detector.target_roi);
-        my_timer.stop();
-        printf("识别结果: %s (置信度: %.2f%%)  ,time: %lld  \r", result.label, result.confidence * 100,my_timer.elapsed_ms());
-    } else {
-        printf("未发现红框\r");
-    }
+    // if(red_detector.model_roi_cut(uvc.frame_rgb, red_detector.target_roi, false)) { 
+    //     // 1. 计算红框中心点
+    //     int cx = red_detector.target_rect.x + red_detector.target_rect.width / 2;
+    //     int cy = red_detector.target_rect.y + red_detector.target_rect.height / 2;
 
-    // // 龙邱----------------------------------------------------------------------------------------------------------------------
-    // if (red_detector.model_roi_cut(uvc.frame_rgb, red_detector.target_roi, true)) {
-    
-    //     // 1. 获取红框位置
-    //     cv::Rect pos = red_detector.get_target_location();
-        
-    //     // 2. 稳定性判定 (ROI 过滤)
-    //     int center_y = pos.y + pos.height / 2;
-    //     bool is_stable_area = (center_y > UVC_HEIGHT * 0.3) && (center_y < UVC_HEIGHT * 0.85);
-    //     bool is_size_valid = (pos.width > 15);
+    //     // 2. 计算允许通行的像素边界
+    //     int x_min = UVC_WIDTH * limit_left;
+    //     int x_max = UVC_WIDTH * (1.0f - limit_right);
+    //     int y_min = UVC_HEIGHT * limit_up;
+    //     int y_max = UVC_HEIGHT * (1.0f - limit_down);
 
-    //     if (is_stable_area && is_size_valid) {
-    //         try {
-    //             // 3. 开始 NCNN 推理计时
-    //             my_timer.start();
-                
-    //             std::string result_label = ncnn_classifier.infer(red_detector.target_roi);
-                
-    //             my_timer.stop();
+    //     // 位置限制
+    //     if (cx >= x_min && cx <= x_max && cy >= y_min && cy <= y_max) {
+    //         // 执行推理
+    //         my_timer.start();
+    //         InferenceResult result = detector.process(red_detector.target_roi);
+    //         my_timer.stop();
+            
+    //         // 2. 置信度过滤与类别计入
+    //         std::string final_label = "None";
+    //         float final_conf = result.confidence;
+    //         if (result.confidence >= CONFIDENCE_THRESHOLD) {
+    //             final_label = result.label;
+    //         } else {
+    //             final_conf = 0.0f; // 低置信度计为 None，其贡献值为 0
+    //             final_label = "None";
+    //         }
+            
+    //         // 3. 累计数据
+    //         confidence_accumulator[final_label] += final_conf;
+    //         frame_count++;
+            
+    //         // 4. 达到 30 次后计算结果
+    //         if (frame_count >= MAX_ACCUMULATE_FRAMES) {
+    //             std::string best_class = "None";
+    //             float max_avg_conf = -1.0f;
 
-    //             // 4. 打印结果
-    //             printf("NCNN识别: [%s] | 位置Y: %d | 耗时: %lld ms    \r", 
-    //                     result_label.c_str(), center_y, my_timer.elapsed_ms());
-    //         } catch (const std::exception& e) {
-    //             // 捕获 NCNN 内部抛出的图像空、未初始化等异常，防止程序崩溃s
-    //             printf("推理异常: %s    \r", e.what());
+    //             for (auto const& [label, total_conf] : confidence_accumulator) {
+    //                 float avg = total_conf / MAX_ACCUMULATE_FRAMES;
+    //                 if (avg > max_avg_conf) {
+    //                     max_avg_conf = avg;
+    //                     best_class = label;
+    //                 }
+    //             }
+
+    //             // 静态显示最终结果（带换行）
+    //             printf("\n========================================\n");
+    //             printf(">>> [30帧统计结果]\n");
+    //             printf("    类别: %s\n", best_class.c_str());
+    //             printf("    平均置信度: %.2f%%\n", max_avg_conf * 100);
+    //             printf("    耗时: %lldms\n", my_timer.elapsed_ms());
+    //             printf("========================================\n");
+
+    //             // 清空累计器，开始下一轮
+    //             confidence_accumulator.clear();
+    //             frame_count = 0;
+    //         } else {
+    //             // 静态显示累计进度（单行更新）
+    //             printf("\r[累计 %d/%d] 当前帧: %s (%.2f%%) | 位置: (%3d,%3d)     ", 
+    //                 frame_count, MAX_ACCUMULATE_FRAMES, 
+    //                 result.label, result.confidence * 100,
+    //                 cx, cy);
+    //             fflush(stdout); // 确保立即输出
     //         }
     //     } else {
-    //         printf("红框未进入稳定区 (Y:%d, W:%d)    \r", center_y, pos.width);
-    //     }
+    //         // --- [位置不在范围内] ---
+    //         if (frame_count > 0) {
+    //             confidence_accumulator.clear();
+    //             frame_count = 0;
+    //             printf("\n[WARN] 目标超出限制范围，累计已重置\n");
+    //         }
+    //         // 静态显示位置警告
+    //         printf("\r[位置超限] 中心点: (%3d,%3d) | 允许范围: X[%3d-%3d] Y[%3d-%3d]     ", 
+    //             cx, cy, x_min, x_max, y_min, y_max);
+    //         fflush(stdout);
+    //     }    
     // } else {
-    //     printf("未发现红框                \r");
+    //     if (frame_count > 0) {
+    //         confidence_accumulator.clear();
+    //         frame_count = 0;
+    //         printf("\n[WARN] 红框消失，统计数据已重置\n");
+    //     }
+    //     // 静态显示未检测到红框
+    //     printf("\r[等待] 未检测到红框                         ");
+    //     fflush(stdout);
     // }
+
+    // 龙邱----------------------------------------------------------------------------------------------------------------------
+    if(red_detector.model_roi_cut(uvc.frame_rgb, red_detector.target_roi, true)) { 
+        // 1. 计算红框中心点
+        int cx = red_detector.target_rect.x + red_detector.target_rect.width / 2;
+        int cy = red_detector.target_rect.y + red_detector.target_rect.height / 2;
+
+        // 2. 计算允许通行的像素边界 (基于 160x120)
+        int x_min = UVC_WIDTH * limit_left;
+        int x_max = UVC_WIDTH * (1.0f - limit_right);
+        int y_min = UVC_HEIGHT * limit_up;
+        int y_max = UVC_HEIGHT * (1.0f - limit_down);
+
+        // 3. 位置限制判定
+        if (cx >= x_min && cx <= x_max && cy >= y_min && cy <= y_max) {
+            
+            // --- [NCNN 执行推理] ---
+            my_timer.start();
+            // 注意：此处调用的是你新移植的 ncnn_classifier
+            LQ_InferenceResult result = ncnn_classifier.infer(red_detector.target_roi);
+            my_timer.stop();
+
+            // 4. 置信度过滤与类别计入
+            std::string final_label = "None";
+            float final_conf = 0.0f;
+
+            // 只有高于阈值的才被计入有效票数
+            if (result.confidence >= CONFIDENCE_THRESHOLD) {
+                final_label = result.label;
+                final_conf = result.confidence;
+            } else {
+                final_label = "None";
+                final_conf = 0.0f; // 低置信度帧权重为 0
+            }
+
+            // 5. 累计数据
+            confidence_accumulator[final_label] += final_conf;
+            frame_count++;
+
+            // 6. 达到 MAX_ACCUMULATE_FRAMES (25次) 后计算结果
+            if (frame_count >= MAX_ACCUMULATE_FRAMES) {
+                std::string best_class = "None";
+                float max_avg_conf = -1.0f;
+
+                for (auto const& [label, total_conf] : confidence_accumulator) {
+                    float avg = total_conf / MAX_ACCUMULATE_FRAMES;
+                    if (avg > max_avg_conf) {
+                        max_avg_conf = avg;
+                        best_class = label;
+                    }
+                }
+
+                // 静态显示最终统计结果
+                printf("\n========================================\n");
+                printf(">>> [NCNN 25帧统计结果]\n");
+                printf("    最终类别: %s\n", best_class.c_str());
+                printf("    平均置信度: %.2f%%\n", max_avg_conf * 100);
+                printf("    平均单帧耗时: %lldms\n", my_timer.elapsed_ms());
+                printf("========================================\n");
+
+                // 清空累计器，准备下一轮统计
+                confidence_accumulator.clear();
+                frame_count = 0;
+            } else {
+                // 显示累计进度
+                printf("\r[NCNN 累计 %d/%d] 实时: %s (%.2f%%) | 中心: (%d,%d)    ", 
+                    frame_count, MAX_ACCUMULATE_FRAMES, 
+                    result.label.c_str(), result.confidence * 100,
+                    cx, cy);
+                fflush(stdout);
+            }
+
+        } else {
+            // --- [位置超出限制范围] ---
+            if (frame_count > 0) {
+                confidence_accumulator.clear();
+                frame_count = 0;
+                printf("\n[WARN] 目标漂出中心区，累计已重置\n");
+            }
+            printf("\r[区域外] 中心点: (%3d,%3d) | 限制: X[%d-%d] Y[%d-%d]    ", 
+                cx, cy, x_min, x_max, y_min, y_max);
+            fflush(stdout);
+        }
+
+    } else {
+        // --- [未检测到目标红框] ---
+        if (frame_count > 0) {
+            confidence_accumulator.clear();
+            frame_count = 0;
+            printf("\n[WARN] 目标丢失，累计已重置\n");
+        }
+        printf("\r[等待] 画面中未发现红色目标...                        ");
+        fflush(stdout);
+    }
+    //end------------------------------------------------------------------------------------------------------------
         
     cruising_speed = speed_decision(middle_line_length,CRUISING_SPEED*0.6,CRUISING_SPEED*1.2);
     // printf("midle_line_length: %d   ,speed:%f  \r   ",middle_line_length,cruising_speed);
@@ -256,9 +394,9 @@ void tracking()
     // );
 
     // uvc.get_rgb_image_ptr();
-    cv::Mat display_frame;
-    cv::cvtColor(uvc.frame_rgb, display_frame, cv::COLOR_BGR2BGR565);
-    rgb_img_transmitter(reinterpret_cast<uint16_t*>(display_frame.ptr(0)), UVC_WIDTH, UVC_HEIGHT, false);
+    // cv::Mat display_frame;
+    // cv::cvtColor(uvc.frame_rgb, display_frame, cv::COLOR_BGR2BGR565);
+    // rgb_img_transmitter(reinterpret_cast<uint16_t*>(display_frame.ptr(0)), UVC_WIDTH, UVC_HEIGHT, false);
     
     //方向控制器启动（PD运算在线程中执行）
     onto_pd_control_enable = 0;

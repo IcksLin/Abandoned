@@ -133,12 +133,12 @@ bool RedRectDetector::model_roi_cut(Mat& img, Mat& roi, bool is_draw) {
     // 更新 target_rect 接口数据
     target_rect = Rect(x1, y1, x2 - x1, y2 - y1);
 
-    // 5. 绘制结果
+    // 5. 提取 ROI
+    roi = img(target_rect).clone();
+    // 6. 绘制结果
     if (is_draw) {
-        rectangle(img, target_rect, Scalar(0, 255, 0), 2);
+        rectangle(img, target_rect, Scalar(0, 255, 0), 1);
     }
 
-    // 6. 提取 ROI
-    roi = img(target_rect).clone();
     return true; 
 }

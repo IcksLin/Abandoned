@@ -70,8 +70,10 @@ typedef struct {
     ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
 
 /*---------------------图像参数宏定义---------------------*/
-#define IMG_W               160             //图像宽
-#define IMG_H               120             //图像高
+// #define IMG_W               160             //图像宽
+// #define IMG_H               120             //图像高
+#define IMG_W               320             //图像宽
+#define IMG_H               240             //图像高
 
 /*---------------------边线参数宏定义---------------------*/
 #define POINTS_MAX_LEN      100             //巡线最大长度

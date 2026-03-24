@@ -14,7 +14,7 @@ using namespace std;
 
 class RedRectDetector {
 public:
-    RedRectDetector(float r_threshold = 0.45f);
+    RedRectDetector(float r_threshold = 0.48f);
     ~RedRectDetector();
 
     Mat target_roi;         // 存储裁剪后的图像

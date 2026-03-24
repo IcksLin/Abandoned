@@ -10,12 +10,12 @@
 
 
 // --- 模型相关硬参数 ---
-#define MODEL_INPUT_WIDTH          40
-#define MODEL_INPUT_HEIGHT         40
+#define MODEL_INPUT_WIDTH          80
+#define MODEL_INPUT_HEIGHT         80
 #define MODEL_INPUT_CHANNEL        3
 #define MODEL_OUTPUT_CLASS_NUM     3
 #define TFLITE_OP_RESOLVER_MAX_NUM 20
-#define TENSOR_ARENA_SIZE          (128 * 1024)
+#define TENSOR_ARENA_SIZE          (1024 * 1024)
 
 // 推理结果结构体
 struct InferenceResult {
@@ -25,25 +25,25 @@ struct InferenceResult {
     long inference_time;   // 推理耗时(us)
 };
 
+// --- 修改后的类定义片段 ---
 class TFLMModelProcessor {
 public:
     TFLMModelProcessor();
     ~TFLMModelProcessor();
 
-    // 初始化：传入模型数据指针
     bool init(const unsigned char* model_data);
-
-    // 推理接口：传入OpenCV矩阵，返回结构体
     InferenceResult process(const cv::Mat& src_img);
 
 private:
     const char* class_labels[MODEL_OUTPUT_CLASS_NUM] = {"materials", "traffic", "weapon"};
     
-    // TFLM 核心组件
-    uint8_t* tensor_arena;
+    // 【修改点 1】: 使用 alignas(16) 确保 16 字节对齐
+    // 将它声明为静态或直接放在类中（如果类对象也是全局单例的话）
+    // 为了保险，我们在这里定义，并在 cpp 中实现
+    static uint8_t tensor_arena[TENSOR_ARENA_SIZE] alignas(16); 
+    
     tflite::MicroInterpreter* interpreter;
     const tflite::Model* model;
-    
     bool is_initialized = false;
 };
 

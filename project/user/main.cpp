@@ -90,14 +90,14 @@ int main()
 
     printf("8. 初始化图像分类组件...\n");
     //逐飞模型推理方案
-    if(!detector.init(my_model_tflite)) {
+    // if(!detector.init(loong_cnn_model_simple_ep395_tflite)) {
+    //     return -1;
+    // }
+    // 龙邱模型推理方案
+    if (!ncnn_classifier.init("/home/root/models/model_1/tiny_classifier_fp32.ncnn.param", "/home/root/models/model_1/tiny_classifier_fp32.ncnn.bin")) {
+        printf("NCNN模型初始化失败！\n");
         return -1;
     }
-    // 龙邱模型推理方案
-    // printf("current plan: lq\n");
-    // if (!ncnn_classifier.init()) {
-    //     printf("NCNN 模型加载失败！检查路径或模型文件。\n");
-    // }
 
     //TCP图像传输组件初始化 --- IGNORE ---
     printf("9. TCP图像传输组件初始化...\n");

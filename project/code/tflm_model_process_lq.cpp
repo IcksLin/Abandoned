@@ -1,103 +1,94 @@
 #include "tflm_model_process_lq.hpp"
-
-#include <limits>
-#include <stdexcept>
-
+#include <algorithm>
+#include <cmath>
 #include <opencv2/imgproc.hpp>
+#include <iostream>
 
-namespace {
-// ===================== 可修改配置 =====================
-const std::string kModelParamPath = "/home/root/tiny_classifier_fp32.ncnn.param";
-const std::string kModelBinPath = "/home/root/tiny_classifier_fp32.ncnn.bin";
-
-// 类别名，顺序必须与训练时类别索引顺序一致
-const std::vector<std::string> kUserLabels = {
-    "supplies",
-    "vehicle",
-    "weapon"
-};
-
-const int kInputWidth = 40;
-const int kInputHeight = 40;
-
-// 训练时使用的是 ImageNet 标准归一化
-const float kMeanVals[3] = {123.675f, 116.28f, 103.53f};
-const float kNormVals[3] = {0.01712475f, 0.017507f, 0.01742919f};
-
-// 按当前导出网络默认输入/输出名
-const char* kInputBlobName = "in0";
-const char* kOutputBlobName = "out0";
-// ======================================================================
+LQ_NCNN::LQ_NCNN() : initialized_(false) {
+    labels_ = {"supplies", "vehicle", "weapon"};
 }
 
-LQ_NCNN::LQ_NCNN() = default;
+LQ_NCNN::~LQ_NCNN() {
+    net_.clear();
+}
 
-bool LQ_NCNN::init() {
+bool LQ_NCNN::init(const std::string& param_path, const std::string& bin_path) {
+    // 针对龙芯等嵌入式优化配置
     net_.opt.use_vulkan_compute = false;
-    net_.opt.num_threads = 1;
+    net_.opt.num_threads = 1; // 2K0300 建议单线程或根据核心数调整
+    net_.opt.use_fp16_packed = true;
+    net_.opt.use_fp16_storage = true;
+    net_.opt.use_fp16_arithmetic = true;
 
-    if (net_.load_param(kModelParamPath.c_str()) != 0) {
+    if (net_.load_param(param_path.c_str()) != 0) {
         return false;
     }
-    if (net_.load_model(kModelBinPath.c_str()) != 0) {
+    if (net_.load_model(bin_path.c_str()) != 0) {
         return false;
     }
 
-    labels_ = kUserLabels;
     initialized_ = true;
     return true;
 }
 
-std::string LQ_NCNN::infer(const cv::Mat& bgr_image) const {
-    if (!initialized_) {
-        throw std::runtime_error("LQ_NCNN not initialized. Call init() first.");
-    }
-    if (bgr_image.empty()) {
-        throw std::invalid_argument("Input image is empty.");
-    }
+LQ_InferenceResult LQ_NCNN::infer(const cv::Mat& bgr_image) const {
+    LQ_InferenceResult res = {-1, "None", 0.0f};
 
+    if (!initialized_ || bgr_image.empty()) return res;
+
+    // 1. 预处理：Resize
     cv::Mat resized;
     cv::resize(bgr_image, resized, cv::Size(kInputWidth, kInputHeight));
 
-    ncnn::Mat input = ncnn::Mat::from_pixels(
-        resized.data,
-        ncnn::Mat::PIXEL_BGR,
-        kInputWidth,
-        kInputHeight
-    );
+    // 2. 转换为 ncnn::Mat 并进行色彩空间转换 (BGR -> RGB) 与归一化
+    // 静态链接 libncnn.a 时，此函数会自动包含必要的转换算子
+    ncnn::Mat input = ncnn::Mat::from_pixels(resized.data, 
+                                            ncnn::Mat::PIXEL_BGR2RGB, 
+                                            kInputWidth, kInputHeight);
+    
     input.substract_mean_normalize(kMeanVals, kNormVals);
 
+    // 3. 执行推理
     ncnn::Extractor ex = net_.create_extractor();
-    ex.input(kInputBlobName, input);
+    ex.input("in0", input); // 确保与你模型中的输入节点名一致
 
-    ncnn::Mat logits;
-    ex.extract(kOutputBlobName, logits);
+    ncnn::Mat out;
+    ex.extract("out0", out); // 确保与你模型中的输出节点名一致
 
-    const int class_id = argmax(logits);
-    if (class_id < 0) {
-        throw std::runtime_error("Failed to get class id from output logits.");
+    // 4. 后处理：Softmax 归一化（使输出在 0~1 之间，方便置信度过滤）
+    // 如果你的模型最后自带了 Softmax 层，可以跳过这一步
+    ncnn::Layer* softmax = ncnn::create_layer("Softmax");
+    ncnn::ParamDict pd;
+    softmax->load_param(pd);
+    softmax->forward_inplace(out, net_.opt);
+    delete softmax;
+
+    // 5. 获取结果
+    float prob = 0.0f;
+    int class_id = argmax(out, prob);
+
+    if (class_id >= 0 && class_id < (int)labels_.size()) {
+        res.class_index = class_id;
+        res.label = labels_[class_id];
+        res.confidence = prob;
     }
 
-    if (class_id >= 0 && class_id < static_cast<int>(labels_.size())) {
-        return labels_[class_id];
-    }
-    return std::to_string(class_id);
+    return res;
 }
 
-int LQ_NCNN::argmax(const ncnn::Mat& logits) {
-    if (logits.w <= 0) {
-        return -1;
-    }
+int LQ_NCNN::argmax(const ncnn::Mat& logits, float& prob) {
+    if (logits.empty()) return -1;
 
     int best_index = 0;
-    float best_value = -std::numeric_limits<float>::infinity();
+    float max_prob = -1.0f;
 
-    for (int i = 0; i < logits.w; ++i) {
-        const float value = logits[i];
-        if (value > best_value) {
-            best_value = value;
+    const float* ptr = logits;
+    for (int i = 0; i < logits.w; i++) {
+        if (ptr[i] > max_prob) {
+            max_prob = ptr[i];
             best_index = i;
         }
     }
+    prob = max_prob;
     return best_index;
 }

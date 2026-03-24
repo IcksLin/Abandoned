@@ -41,10 +41,10 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
-// #define UVC_WIDTH     320
-// #define UVC_HEIGHT    240
-#define UVC_WIDTH     160
-#define UVC_HEIGHT    120
+#define UVC_WIDTH     320
+#define UVC_HEIGHT    240
+// #define UVC_WIDTH     160
+// #define UVC_HEIGHT    120
 #define UVC_FPS       60
 #define UVC_PATH     "/dev/video0"
 
