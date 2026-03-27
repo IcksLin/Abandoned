@@ -5,7 +5,8 @@
 #include <iostream>
 
 LQ_NCNN::LQ_NCNN() : initialized_(false) {
-    labels_ = {"supplies", "vehicle", "weapon"};
+    labels_ = {"material", "traffic", "weapon"};
+
 }
 
 LQ_NCNN::~LQ_NCNN() {

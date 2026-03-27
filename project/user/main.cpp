@@ -39,8 +39,6 @@
 int main()
 {
     save_per_map();
-    //去畸变矩阵加载
-    load_undistort_map();
 
     // 1. 初始化显示屏
     printf("1. 初始化显示屏...\n");
@@ -66,7 +64,6 @@ int main()
 
     // 4. 初始化摄像头
     printf("4. 初始化摄像头...\n");
-    // zf_device_uvc uvc;
     uvc.init("/dev/video0");
 
     // 5.初始化陀螺仪
@@ -79,21 +76,16 @@ int main()
     printf("6. 初始化PID控制器...\n");
     // pid_r.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
     // pid_l.init(2.5, 0.03, 1.10f, 0.1, 1, 120, -120, 60, -60);
-    pid_r.init(2.0, 0.015, 3.30f, 0.1, 1, 120, -120, 60, -60);
-    pid_l.init(2.0, 0.015, 3.30f, 0.1, 1, 120, -120, 60, -60);
-    pid_angle.setParameters(0.2f, 0.018f, 0.0f);
-    pid_angle.setOutputLimit(cruising_speed*0.50);
+    pid_r.init(2.0, 0.015, 3.0f, 0.1, 1, 120, -120, 60, -60);
+    pid_l.init(2.0, 0.015, 3.0f, 0.1, 1, 120, -120, 60, -60);
+    pid_angle.setParameters(0.00f, 0.046f, 0.0f);
+    pid_angle.setOutputLimit(cruising_speed*0.45);
 
     // 6. 初始化菜单系统
     printf("7. 初始化菜单系统...\n");
     menu_system.init_menu();
 
     printf("8. 初始化图像分类组件...\n");
-    //逐飞模型推理方案
-    // if(!detector.init(loong_cnn_model_simple_ep395_tflite)) {
-    //     return -1;
-    // }
-    // 龙邱模型推理方案
     if (!ncnn_classifier.init("/home/root/models/model_1/tiny_classifier_fp32.ncnn.param", "/home/root/models/model_1/tiny_classifier_fp32.ncnn.bin")) {
         printf("NCNN模型初始化失败！\n");
         return -1;
@@ -101,7 +93,10 @@ int main()
 
     //TCP图像传输组件初始化 --- IGNORE ---
     printf("9. TCP图像传输组件初始化...\n");
-    img_transmitter_init();
+    if (udp.init("192.168.43.9",8086)) {
+        printf("NCNN模型初始化失败！\n");
+        return -1;
+    }
 
     // 初始化线程，可开始参数获取任务调度
     zf_driver_pit_rt key_scan;

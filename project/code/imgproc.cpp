@@ -3,10 +3,10 @@
 using namespace cv;
 
 /*决策变量******************/
-float onto = 0.0f;          // 最终处理方向，已限制幅度在-30~30.0f之间
+float onto = 0.0f;            // 最终处理方向，已限制幅度在-30~30.0f之间
 float angle_compensation = 0; // 方向补偿量(静态最中间偏差)
-int middle_line_length = 0; // 中线长度
-float max_angle = 0.0f;        // 最大角点值,用于调试
+int middle_line_length = 0;   // 中线长度
+float max_angle = 0.0f;       // 最大角点值,用于调试
 /******************图像变量*/
 //图像
 Mat frame_color;                // 用于处理的图像帧
@@ -16,8 +16,10 @@ Mat frame_bin;                  // 二值图像帧
 uint8_t* img_gray = nullptr;              // 灰度图像指针
 AimPoint_TypeDef aim_point; 
 
+udp_sender udp;
+
 /*--图片去畸--*/
-cv::Mat ud_map_cv;
+Mat ud_map_cv;
 /*去畸变矩阵*/
 float undistort_map_x[IMG_H][IMG_W];
 float undistort_map_y[IMG_H][IMG_W];
@@ -54,16 +56,15 @@ float dangle_Lline[POINTS_MAX_LEN], dangle_Rline[POINTS_MAX_LEN];            // 
 float nms_Lline,nms_Rline;          // 角点值
 int nms_Lline_idx,nms_Rline_idx;    // 索引
 
-/*透视矩阵*/
 cv::Mat M = (cv::Mat_<float>(3, 3) <<
--1.6808030777273513,-4.783295688366666,214.25729385191676,
-0.031216278711260776,-8.994963170488063,292.74279327886387,
-0.0004624633883150349,-0.06071675122820848,1.0);
+-1.7987879419009005,-4.6836929815029515,224.950105042017,
+-0.02597752463054235,-8.582940180382508,304.59513546798064,
+-0.0003848522167487723,-0.05828171785955768,1.0);
 
 cv::Mat M_Reverse = (cv::Mat_<float>(3, 3) <<
--0.594426966747062,0.5569365577465418,-35.67885030600908,
--0.0070527832010221425,0.12051059991312683,-33.767499395505105,
--0.0001533213739352745,0.007059449347715509,-1.0337526983918621);
+-0.5567704942449283,0.5116792735001106,-30.609436463231717,
+0.005540545406144685,0.10396670497412587,-32.91409885685576,
+0.00010863814521852267,0.006256279068760795,-0.9300703326531625);
 /*边线处理变量**************/
 
 //巡线决策机
@@ -822,12 +823,14 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
     float abs_angle = fabs(avg_angle);
 
     // 3. 补线逻辑
-    // 垂直趋势判定：45° ~ 135°
+    // 垂直趋势判定：45° ~ 135° (PI/4 ~ 3PI/4)
     if (abs_angle > PI / 4 && abs_angle < 3 * PI / 4) {
         int current_idx = corner_index;
 
-        // 只要没到数组上限 (*num)，且没出图像顶部，就继续补
-        while (start_y >= 0 && current_idx < (*num - 1)) {
+        // --- 修改部分开始 ---
+        // 取消了 start_y >= 0 的限制，使其能够补出图像之外的“虚拟点”
+        // 循环直到 current_idx 达到数组的最大索引 (POINTS_MAX_LEN - 1)
+        while (current_idx < (POINTS_MAX_LEN - 1)) {
             start_x += dist * (float)cos(avg_angle);
             start_y -= dist * (float)sin(avg_angle);
 
@@ -835,7 +838,9 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
             pts_in[current_idx][0] = start_x;
             pts_in[current_idx][1] = start_y;
         }
-        *num = current_idx + 1;
+        // 更新有效点数为填满后的总长度
+        *num = POINTS_MAX_LEN;
+        // --- 修改部分结束 ---
     } 
     else {
         // 水平趋势：从拐点坐标向下拉线，覆盖水平边线信息
@@ -844,15 +849,73 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
             pts_in[i][0] = pts_in[corner_index][0];
             pts_in[i][1] = pts_in[corner_index][1] + dist * (corner_index - i);
         }
-        
     }
 }
 
 /*---------------------------角度计算-----------------------------*/
 #include <math.h>
 
+// /**
+//  * @brief 计算加权前瞻偏移角度 (适配 Mline[i][2] 数据结构)
+//  * @param Mline 中线点集指针，Mline[i][0]为x, Mline[i][1]为y
+//  * @param num 中线数组的有效点数
+//  * @return float 最终的加权偏移角度（度）
+//  */
+// float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
+//     const int target_samples = 15;
+//     const int start_idx = 3;
+//     static float last_angle = 0.0f; // 静态变量保持记忆
+    
+//     // 情况 A: 点数不足，直接返回上一帧
+//     if (num <= start_idx) return last_angle;
+
+//     float total_weighted_angle = 0.0f;
+//     float total_weight = 0.0f;
+//     const int origin_x = IMG_W / 2;
+//     const int origin_y = IMG_H - 1;
+
+//     int available_points = num - start_idx;
+//     float step = (available_points > target_samples) ? 
+//                  (float)available_points / (float)target_samples : 1.0f;
+
+//     for (int k = 0; k < target_samples; k++) {
+//         int i = start_idx + (int)(k * step);
+//         if (i >= num) break;
+
+//         float dx = Mline[i][0] - (float)origin_x;
+//         float dy = (float)origin_y - Mline[i][1];
+
+//         if (dy <= 0) continue;
+
+//         float current_angle = atan2f(dx, dy);
+//         float weight = (float)(target_samples - k); 
+        
+//         total_weighted_angle += current_angle * weight;
+//         total_weight += weight;
+
+//         if (step == 1.0f && i == num - 1) break;
+//     }
+
+//     // 情况 B: 循环完发现没有有效权重（计算失败），也要返回上一帧
+//     // 而不是返回 0.0f
+//     if (total_weight < 1e-5f) return last_angle; 
+
+//     // 计算平均弧度并转换
+//     float final_angle = (total_weighted_angle / total_weight) * 180.0f / 3.14159265f;
+//     final_angle += angle_compensation;
+
+//     // 限幅
+//     if (final_angle > 30.0f)  final_angle = 30.0f;
+//     if (final_angle < -30.0f) final_angle = -30.0f;
+
+//     // 更新记忆
+//     last_angle = final_angle;
+
+//     return final_angle;
+// }
+
 /**
- * @brief 计算加权前瞻偏移角度 (适配 Mline[i][2] 数据结构)
+ * @brief 计算加权前瞻偏移角度 (适配数组权重分配，压制近端震荡)
  * @param Mline 中线点集指针，Mline[i][0]为x, Mline[i][1]为y
  * @param num 中线数组的有效点数
  * @return float 最终的加权偏移角度（度）
@@ -862,6 +925,15 @@ float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
     const int start_idx = 3;
     static float last_angle = 0.0f; // 静态变量保持记忆
     
+    // --- 权重分配数组 (由近及远) ---
+    // 索引 0-4 为近处，5-9 为中处，10-14 为远处
+    // 你可以根据实测调整这些数值：数值越大，该点对转向的影响越大
+    const float weights[15] = {
+        0.20f,  0.32f,  0.7f,  1.00f,  1.1f,  // 近处：低权重，减少抖动
+        1.20f,  1.20f,  1.3f,  1.30f,  1.3f,  // 中间：过渡区
+        1.2f,   1.2f,   1.0f,  1.0f,   1.0f   // 远处：高权重，提供前瞻预判
+    };
+
     // 情况 A: 点数不足，直接返回上一帧
     if (num <= start_idx) return last_angle;
 
@@ -870,6 +942,7 @@ float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
     const int origin_x = IMG_W / 2;
     const int origin_y = IMG_H - 1;
 
+    // 计算采样步长
     int available_points = num - start_idx;
     float step = (available_points > target_samples) ? 
                  (float)available_points / (float)target_samples : 1.0f;
@@ -881,70 +954,128 @@ float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
         float dx = Mline[i][0] - (float)origin_x;
         float dy = (float)origin_y - Mline[i][1];
 
+        // --- 已根据要求删除 dy_safe 阻尼补偿逻辑，直接判断 dy ---
         if (dy <= 0) continue;
 
+        // 直接使用原始 dy 计算当前点连线角度（弧度）
         float current_angle = atan2f(dx, dy);
-        float weight = (float)(target_samples - k); 
+        
+        // 从权重数组中直接取值
+        float weight = weights[k]; 
         
         total_weighted_angle += current_angle * weight;
         total_weight += weight;
 
+        // 步长为1且点数较少时的退出保护
         if (step == 1.0f && i == num - 1) break;
     }
 
-    // 情况 B: 循环完发现没有有效权重（计算失败），也要返回上一帧
-    // 而不是返回 0.0f
+    // 情况 B: 循环完发现没有有效权重（计算失败），返回上一帧
     if (total_weight < 1e-5f) return last_angle; 
 
-    // 计算平均弧度并转换
+    // 计算加权平均角度并从弧度转为角度
     float final_angle = (total_weighted_angle / total_weight) * 180.0f / 3.14159265f;
+    
+    // 加上外部偏置补偿（如零位校准）
     final_angle += angle_compensation;
 
-    // 限幅
+    // 限幅控制
     if (final_angle > 30.0f)  final_angle = 30.0f;
     if (final_angle < -30.0f) final_angle = -30.0f;
 
-    // 更新记忆
+    // 更新记忆，用于下一帧丢线或点数不足时使用
     last_angle = final_angle;
 
     return final_angle;
 }
 
+
 //去畸变后Mat
 cv::Mat De_distortion_image;
 
 // 一次图像处理
-void image_proc(){   
-    cv::cvtColor(uvc.frame_mjpg, frame_gray, cv::COLOR_BGR2GRAY);
-    img_gray = reinterpret_cast<uint8_t*>(frame_gray.ptr(0));
-    start_thre = get_otsu_thres(img_gray, 0, IMG_W, TRACK_HEIGHT_MAX, IMG_H);
+void image_proc() {   
+    // ---------------------------------------------------------
+    // 1. 尺度转换：准备 160x120 的循迹图
+    // ---------------------------------------------------------
+    cv::Mat frame_resized;
+    cv::resize(uvc.frame_mjpg, frame_resized, cv::Size(160, 120), 0, 0, cv::INTER_NEAREST);
 
-    //获取边线信息
-    line_process(IMG_H,IMG_H/2);
+    static cv::Mat frame_gray_small;
+    cv::cvtColor(frame_resized, frame_gray_small, cv::COLOR_BGR2GRAY);
+    img_gray = reinterpret_cast<uint8_t*>(frame_gray_small.ptr(0));
 
-    // //====================================================================================
-    // if(nms_Lline>CORNER_ANGLE_THRE&&nms_Rline>CORNER_ANGLE_THRE){
-    //     //十字路口，补线
-    //     supplement_line(sampled_Lline,&sampled_Lline_num,nms_Lline_idx,sampled_dist*M2PIX);
-    //     supplement_line(sampled_Rline,&sampled_Rline_num,nms_Rline_idx,sampled_dist*M2PIX);   
-    // }
-    // //====================================================================================
-    
+    // ---------------------------------------------------------
+    // 2. 核心算法逻辑 (循迹 + 元素识别)
+    // ---------------------------------------------------------
+    start_thre = get_otsu_thres(img_gray, 0, 160, TRACK_HEIGHT_MAX, 120);
+    line_process(120, 120 / 2);
+
     element_status();
     no_element_process();
     crossing_process();
     circle_process();
     auto_tracking();
 
-    //获取最大角度
     max_angle = std::max(nms_Lline, nms_Rline);
-
-    //计算偏转角度
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
-    // printf("onto: %f  \r",onto);
-    // printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
-}
 
+    // ---------------------------------------------------------
+    // 3. 图传集成：彩色图 + 轨迹点同步
+    // ---------------------------------------------------------
+    // if (udp.is_enable()) {
+    //     // A. 发送原始 320x160 彩色图像 (用于确认识别结果)
+    //     udp.send_image(uvc.frame_mjpg); 
+
+    //     // B. 准备并打包轨迹点 (适配 160x120 尺度)
+    //     // 定义符合上位机格式的缓冲区
+    //     static uint8_t L_buf[120][2];
+    //     static uint8_t R_buf[120][2];
+    //     static uint8_t M_buf[120][2];
+
+    //     // 清零缓冲区防止旧数据干扰
+    //     memset(L_buf, 0, sizeof(L_buf));
+    //     memset(R_buf, 0, sizeof(R_buf));
+    //     memset(M_buf, 0, sizeof(M_buf));
+
+    //     // 转换边线坐标到传输格式 (uint8_t[y][x])
+    //     for (int i = 0; i < 120; ++i) {
+    //         // 左边线
+    //         if (i < sampled_Lline_num) {
+    //             L_buf[i][0] = (uint8_t)std::clamp((int)sampled_Lline[i][0], 0, 159);
+    //             L_buf[i][1] = (uint8_t)std::clamp((int)sampled_Lline[i][1], 0, 119);
+    //         }
+    //         // 右边线
+    //         if (i < sampled_Rline_num) {
+    //             R_buf[i][0] = (uint8_t)std::clamp((int)sampled_Rline[i][0], 0, 159);
+    //             R_buf[i][1] = (uint8_t)std::clamp((int)sampled_Rline[i][1], 0, 119);
+    //         }
+    //         // 中线
+    //         if (i < middle_line_length) {
+    //             M_buf[i][0] = (uint8_t)std::clamp((int)Mline[i][0], 0, 159);
+    //             M_buf[i][1] = (uint8_t)std::clamp((int)Mline[i][1], 0, 119);
+    //         }
+    //     }
+
+    //     // C. 发送轨迹点数据包 (根据你 udp_sender 的实现调用)
+    //     // 如果你的上位机支持单独发送数组，则按顺序发送。
+    //     // 下面是示例：将三条线作为一个整体 Data 包发送
+    //     struct {
+    //         uint8_t L[120][2];
+    //         uint8_t R[120][2];
+    //         uint8_t M[120][2];
+    //     } track_packet;
+        
+    //     memcpy(track_packet.L, L_buf, sizeof(L_buf));
+    //     memcpy(track_packet.R, R_buf, sizeof(R_buf));
+    //     memcpy(track_packet.M, M_buf, sizeof(M_buf));
+
+    //     udp.send_data(&track_packet, sizeof(track_packet));
+    // }
+    // printf("onto:   %f     ,middle_line_length: %d    \r",onto,middle_line_length);
+    printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
+
+}
 //状态机初始化
 void tracking_decision_machine_init(){
     tracking_decision_machine.max_angle = 0;

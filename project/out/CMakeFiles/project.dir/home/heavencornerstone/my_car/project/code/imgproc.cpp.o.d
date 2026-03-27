@@ -493,4 +493,5 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/imgproc.cpp.o:
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/bits/basic_file.h \
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/bits/c++io.h \
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/bits/fstream.tcc \
- /home/heavencornerstone/my_car/project/code/my_timestamp.hpp
+ /home/heavencornerstone/my_car/project/code/my_timestamp.hpp \
+ /home/heavencornerstone/my_car/project/code/udp_sender.hpp

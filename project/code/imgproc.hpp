@@ -9,6 +9,8 @@
 #include <opencv2/opencv.hpp>
 #include <cmath>
 #include "my_timestamp.hpp"
+#include "udp_sender.hpp"
+#include "zf_device_uvc.hpp"
 
 extern zf_device_uvc uvc;
 //图像处理变量
@@ -16,21 +18,8 @@ extern float onto;                  // 最终处理方向，已限制幅度在-3
 extern float angle_compensation;    // 方向补偿量(静态最中间
 extern int middle_line_length; // 中线长度
 extern float max_angle;        // 最大角点值,用于调试
-//角点识别
-typedef enum {
-    LOST_PT = 0x01,    //丢线     000001
-    S_PT    = 0x02,    //直道     000010
-    T_PT    = 0x04,    //弯道     000100
-    L_PT    = 0x08,    //L角点    001000
-    Y_PT    = 0x10,    //Y角点    010000
-    INVAL_PT= 0x20,    //无效角点 100000
 
-    //角点组掩码
-    SUPPABLE_PT = L_PT | Y_PT,                  //可补线的边线--L角点 Y角点
-    NORMAL_PT   = S_PT | T_PT,                  //无元素的普通边线--直道 弯道
-    TRABLE_PT   = S_PT | T_PT | L_PT | Y_PT,    //可巡线的边线--直到 弯道 L角点 Y角点
-    INTRABLE_PT = LOST_PT | INVAL_PT            //不可巡线的边线--丢失 无效
-} PT_Judge_TypeDef;
+extern udp_sender udp;
 
 #define STATE_TIME_LOCKING     500              //状态时间锁定，防止抖动,循环周期改动之后记得调整
 //巡线决策机
@@ -70,15 +59,16 @@ typedef struct {
     ((value) < (low) ? (low) : ((value) > (high) ? (high) : (value)))
 
 /*---------------------图像参数宏定义---------------------*/
-// #define IMG_W               160             //图像宽
-// #define IMG_H               120             //图像高
-#define IMG_W               320             //图像宽
-#define IMG_H               240             //图像高
+// #define IMG_W               UVC_WIDTH            //图像宽
+// #define IMG_H               UVC_HEIGHT           //图像高
+
+#define IMG_W               160            //图像宽
+#define IMG_H               120           //图像高
 
 /*---------------------边线参数宏定义---------------------*/
 #define POINTS_MAX_LEN      100             //巡线最大长度
-#define TRACK_HEIGHT_MAX    40              //迷宫巡线最大高度
-#define CAR_IMGAGE_W        40                        
+#define TRACK_HEIGHT_MAX    IMG_H/3              //迷宫巡线最大高度
+#define CAR_IMGAGE_W        IMG_W*4/8                        
 #define CHECK_DIS           6               //检测是否为噪音的距离
 
 #define M2PIX               100             //米转像素  

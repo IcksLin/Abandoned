@@ -12,7 +12,7 @@
 #define __MY_TASK_FUNCTION_HPP__
 
 #include "my_global.hpp"
-
+#include <algorithm>
 
 
 void thread_callback_test();
