@@ -9,7 +9,6 @@
 #include <opencv2/opencv.hpp>
 #include <cmath>
 #include "my_timestamp.hpp"
-#include "udp_sender.hpp"
 #include "zf_device_uvc.hpp"
 
 extern zf_device_uvc uvc;
@@ -19,7 +18,6 @@ extern float angle_compensation;    // 方向补偿量(静态最中间
 extern int middle_line_length; // 中线长度
 extern float max_angle;        // 最大角点值,用于调试
 
-extern udp_sender udp;
 
 #define STATE_TIME_LOCKING     500              //状态时间锁定，防止抖动,循环周期改动之后记得调整
 //巡线决策机

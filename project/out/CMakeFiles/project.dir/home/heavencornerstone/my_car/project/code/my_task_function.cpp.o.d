@@ -539,7 +539,6 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_functi
  /home/heavencornerstone/my_car/project/user/../code/my_timestamp.hpp \
  /home/heavencornerstone/my_car/project/user/../code/imgproc.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_timestamp.hpp \
- /home/heavencornerstone/my_car/project/user/../code/udp_sender.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_key.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_menu.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_key.hpp \
@@ -547,8 +546,5 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_functi
  /home/heavencornerstone/my_car/project/user/../code/LADRC.hpp \
  /home/heavencornerstone/my_car/project/user/../code/navigation.hpp \
  /home/heavencornerstone/my_car/project/user/../code/akima.hpp \
- /home/heavencornerstone/my_car/project/user/../code/udp_sender.hpp \
  /home/heavencornerstone/my_car/project/user/../code/config_seting.hpp \
- /home/heavencornerstone/my_car/project/user/../code/my_global.hpp \
- /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/termios.h \
- /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/bits/termios.h
+ /home/heavencornerstone/my_car/project/user/../code/my_global.hpp

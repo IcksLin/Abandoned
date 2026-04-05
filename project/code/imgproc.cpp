@@ -15,7 +15,6 @@ Mat frame_bin;                  // 二值图像帧
 uint8_t* img_gray = nullptr;              // 灰度图像指针
 AimPoint_TypeDef aim_point; 
 
-udp_sender udp;
 
 /*--图片去畸--*/
 Mat ud_map_cv;

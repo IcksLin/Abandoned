@@ -539,7 +539,6 @@ CMakeFiles/project.dir/main.cpp.o: \
  /home/heavencornerstone/my_car/project/user/../code/my_timestamp.hpp \
  /home/heavencornerstone/my_car/project/user/../code/imgproc.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_timestamp.hpp \
- /home/heavencornerstone/my_car/project/user/../code/udp_sender.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_key.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_menu.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_key.hpp \
@@ -547,5 +546,4 @@ CMakeFiles/project.dir/main.cpp.o: \
  /home/heavencornerstone/my_car/project/user/../code/LADRC.hpp \
  /home/heavencornerstone/my_car/project/user/../code/navigation.hpp \
  /home/heavencornerstone/my_car/project/user/../code/akima.hpp \
- /home/heavencornerstone/my_car/project/user/../code/udp_sender.hpp \
  /home/heavencornerstone/my_car/project/user/../code/config_seting.hpp

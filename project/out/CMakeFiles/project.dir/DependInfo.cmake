@@ -45,7 +45,6 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/heavencornerstone/my_car/project/code/navigation.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/navigation.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/red_rect.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/red_rect.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/red_rect.cpp.o.d"
   "/home/heavencornerstone/my_car/project/code/tflm_model_process_lq.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process_lq.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process_lq.cpp.o.d"
-  "/home/heavencornerstone/my_car/project/code/udp_sender.cpp" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/udp_sender.cpp.o" "gcc" "CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/udp_sender.cpp.o.d"
   "/home/heavencornerstone/my_car/project/user/main.cpp" "CMakeFiles/project.dir/main.cpp.o" "gcc" "CMakeFiles/project.dir/main.cpp.o.d"
   )
 

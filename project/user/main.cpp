@@ -2,14 +2,11 @@
 
 int main()
 {
-    
     car_init();
     TCPClient client;
     if (!client.connect("192.168.43.94", 8086)) {
         return -1;
     }
-
-    // client.echoTestLoop();
     onto_pd_control_enable = 1;
     while (true) {
         if (client.receiveLine(received, 100)) {
@@ -30,22 +27,11 @@ int main()
             }
         }
 
-
-        // 发送数据
-        // client.sendFormattedData("Speed:%f,%f\r\n",left_speed,right_speed);
-        client.sendFormattedData("L_v1_td,L_v1_td,target_speed_l,actual_speed,speed_to_pwm_l:%f,%f,%f,%f,%d\r\n",ladrc_left.v1_td,ladrc_left.v2_td,target_speed_l,left_speed,speed_to_pwm_l);
-        static float Ti_tick = 0;
-        Ti_tick ++;
-        target_speed_l = 2.0*sin(Ti_tick/6.0f);
-        // tracking();
+        client.sendFormattedData("Onto_control,yaw,speed_l,speed_r,l_pwm,r_pwm:%f,%f,%f,%f,%d,%d\r\n",onto_control,ahrs.getYaw(),left_speed,right_speed,speed_to_pwm_l,speed_to_pwm_r);
         // menu_system.menu_system();
         system_delay_ms(10);
     }
 
-    while (true)
-    {
-        
-    }
     return 0;
 }
 

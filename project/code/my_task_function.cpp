@@ -74,81 +74,6 @@ void send_picture_to_Serve()
     rgb_img_transmitter(rgb_img_ptr, UVC_WIDTH, UVC_HEIGHT,true);
 }
 
-/**
- * 集成控制函数
- * 逻辑：检测按键则加速，无按键则自动减速至0
- * @param dt 两次调用之间的时间间隔（秒），用于保证物理曲线平滑
- */
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <algorithm>
-void updateDriveControl() {
-    static bool initialized = false;
-    if (!initialized) {
-        struct termios newt;
-        tcgetattr(STDIN_FILENO, &newt);
-        newt.c_lflag &= ~(ICANON | ECHO);
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-        int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-        initialized = true;
-    }
-
-    // --- 动力参数配置 ---
-    const float MAX_SPEED   = 30.0f;
-    const float RESPONSIVENESS = 29.9f; // 加速灵敏度
-    const float STOP_SHARPNESS = 29.9f; // 减速灵敏度（刹车更快）
-    const float DEADZONE       = 0.1f;
-
-    // 状态位
-    bool up_pressed    = false;
-    bool left_pressed  = false;
-    bool right_pressed = false;
-
-    // --- 1. 读取并清空缓冲区 (获取最新按键) ---
-    unsigned char buf[3];
-    while (read(STDIN_FILENO, buf, 3) > 0) {
-        if (buf[0] == 0x1B && buf[1] == 0x5B) {
-            switch(buf[2]) {
-                case 'A': up_pressed = true;    break; // Up Arrow
-                case 'D': left_pressed = true;  break; // Left Arrow
-                case 'C': right_pressed = true; break; // Right Arrow
-            }
-        }
-    }
-
-    // --- 2. 目标速度逻辑分配 ---
-    float goal_l = 0.0f;
-    float goal_r = 0.0f;
-
-    if (up_pressed) {
-        goal_l = MAX_SPEED;
-        goal_r = MAX_SPEED;
-    } else if (left_pressed) {
-        goal_l = 0.0f;
-        goal_r = MAX_SPEED; 
-    } else if (right_pressed) {
-        goal_l = MAX_SPEED;
-        goal_r = 0.0f; 
-    }
-
-    auto apply_curve = [&](float& current, float goal) {
-        float factor = (goal > std::abs(current) + 0.1f) ? RESPONSIVENESS : STOP_SHARPNESS;
-        current += (goal - current) * factor;
-        
-        // 死区处理
-        if (std::abs(current) < DEADZONE) current = 0.0f;
-        
-        // 在函数内部进行物理限幅
-        current = std::clamp(current, 0.0f, MAX_SPEED);
-    };
-
-    apply_curve(target_speed_l, goal_l);
-    apply_curve(target_speed_r, goal_r);
-
-}
-
 void tracking()
 {
     my_timer.stop();
@@ -176,9 +101,6 @@ void tracking()
 void get_image_datasets(){
     uvc.wait_image_refresh();
     uvc.get_rgb_image_ptr();
-    
-    udp.set_send_mode(MODE_COLOR);
-    udp.process_frame(uvc.frame_rgb);
 }
 
 void send_img_infor(){

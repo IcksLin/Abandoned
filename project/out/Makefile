@@ -1017,30 +1017,6 @@ home/heavencornerstone/my_car/project/code/tflm_model_process_lq.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/tflm_model_process_lq.cpp.s
 .PHONY : home/heavencornerstone/my_car/project/code/tflm_model_process_lq.cpp.s
 
-home/heavencornerstone/my_car/project/code/udp_sender.o: home/heavencornerstone/my_car/project/code/udp_sender.cpp.o
-.PHONY : home/heavencornerstone/my_car/project/code/udp_sender.o
-
-# target to build an object file
-home/heavencornerstone/my_car/project/code/udp_sender.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/udp_sender.cpp.o
-.PHONY : home/heavencornerstone/my_car/project/code/udp_sender.cpp.o
-
-home/heavencornerstone/my_car/project/code/udp_sender.i: home/heavencornerstone/my_car/project/code/udp_sender.cpp.i
-.PHONY : home/heavencornerstone/my_car/project/code/udp_sender.i
-
-# target to preprocess a source file
-home/heavencornerstone/my_car/project/code/udp_sender.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/udp_sender.cpp.i
-.PHONY : home/heavencornerstone/my_car/project/code/udp_sender.cpp.i
-
-home/heavencornerstone/my_car/project/code/udp_sender.s: home/heavencornerstone/my_car/project/code/udp_sender.cpp.s
-.PHONY : home/heavencornerstone/my_car/project/code/udp_sender.s
-
-# target to generate assembly for a file
-home/heavencornerstone/my_car/project/code/udp_sender.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/udp_sender.cpp.s
-.PHONY : home/heavencornerstone/my_car/project/code/udp_sender.cpp.s
-
 main.o: main.cpp.o
 .PHONY : main.o
 
@@ -1185,9 +1161,6 @@ help:
 	@echo "... home/heavencornerstone/my_car/project/code/tflm_model_process_lq.o"
 	@echo "... home/heavencornerstone/my_car/project/code/tflm_model_process_lq.i"
 	@echo "... home/heavencornerstone/my_car/project/code/tflm_model_process_lq.s"
-	@echo "... home/heavencornerstone/my_car/project/code/udp_sender.o"
-	@echo "... home/heavencornerstone/my_car/project/code/udp_sender.i"
-	@echo "... home/heavencornerstone/my_car/project/code/udp_sender.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
