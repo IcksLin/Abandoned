@@ -44,4 +44,8 @@ bool is_transmitter_ready();
 void img_transmitter_deinit();
 
 
+
+
+
+
 #endif // _ZF_DRIVER_IMAGE_CLIENT_HPP_

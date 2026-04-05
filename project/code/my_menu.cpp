@@ -96,13 +96,13 @@ void MyMenu::init_menu_parents(void)
     
     // 设置PID设置菜单
     Pid_Set.parent = &mode5;
-    Pid_Set.child = &car_pid;
+    Pid_Set.child = &tripod_pid;
     Pid_Set.sibling = &gray_calibration;
     
-    car_pid.parent = &Pid_Set;
-    car_pid.sibling = &tripod_pid;
+    car_pid.parent = &mode3;
+    car_pid.sibling = nullptr;
     
-    tripod_pid.parent = &Pid_Set;
+    tripod_pid.parent = &mode5;
     tripod_pid.sibling = nullptr;
     
     gray_calibration.parent = &mode5;
@@ -122,7 +122,7 @@ void MyMenu::init_menu_parents(void)
 
     //无刷电机校准
     brushless_motor_set.parent = &mode3;
-    brushless_motor_set.sibling = nullptr;
+    brushless_motor_set.sibling = &car_pid;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -495,6 +495,38 @@ void MyMenu::menu_mode_4(uint8 cl_action)
     ips_display->show_string(0, 0, "Mode 4 Active");
 }
 
+void MyMenu::menu_mode_6(uint8 cl_action)
+{
+    static uint8_t run_test_flag = 0;
+    static uint8_t chose_index = 0;
+    static float change_step_index = 0;
+
+    // 模式4的具体实现
+    switch (cl_action)
+    {
+    case 0: // 切换键
+        break;
+    case 1: // +
+        break;
+    case 3: // 返回键
+        mode_inter_flag = 0; // 返回菜单
+        break;
+    default:
+        break;
+    }
+
+    if(!run_test_flag){
+        // 显示模式4信息
+        // ips_display->clear();
+        // ips_display->show_string(0, 0, "Mode 4 Active");
+        // ips_display->show_int(x,y,date,length);
+        // ips_display->show_float(x,y,date,length,pointlength);
+        // ips_display->update();
+    }
+    
+}
+
+
 void MyMenu::menu_mode_9(uint8 cl_action)
 {
     // IMU角度显示模式
@@ -692,4 +724,6 @@ void MyMenu::menu_mode_12(uint8 cl_action)
     }
     ips200.show_string(1,1,"1.full power");
     ips200.show_string(1,1+16*1,"2.min power");
+    ips200.update();
+
 }

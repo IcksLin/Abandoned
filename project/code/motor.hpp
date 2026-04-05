@@ -83,4 +83,7 @@ float speed_decision(int num, float max_speed, float min_speed);
 void brushless_init();
 void esc_set_power(float power);
 
+void lardc_get_speed(uint8_t T, float encoder_cpr, float wheel_radius, 
+                     float ts, float *left_speed, float *right_speed);
+void motor_set_speed_ladrc(float left_pwm, float right_pwm);
 #endif  // __MOTOR_H_HPP__

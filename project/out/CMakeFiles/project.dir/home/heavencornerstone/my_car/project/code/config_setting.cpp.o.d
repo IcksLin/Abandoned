@@ -1,7 +1,7 @@
-CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_function.cpp.o: \
- /home/heavencornerstone/my_car/project/code/my_task_function.cpp \
+CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/config_setting.cpp.o: \
+ /home/heavencornerstone/my_car/project/code/config_setting.cpp \
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/stdc-predef.h \
- /home/heavencornerstone/my_car/project/code/my_task_function.hpp \
+ /home/heavencornerstone/my_car/project/code/config_seting.hpp \
  /home/heavencornerstone/my_car/project/code/my_global.hpp \
  /home/heavencornerstone/my_car/project/user/../../libraries/zf_common/zf_common_headfile.hpp \
  /home/heavencornerstone/my_car/project/user/../../libraries/zf_common/zf_common_font.hpp \
@@ -533,6 +533,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_functi
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/bits/fstream.tcc \
  /home/heavencornerstone/my_car/project/user/../code/my_image_transmitter.hpp \
  /home/heavencornerstone/my_car/project/user/../code/my_task_function.hpp \
+ /home/heavencornerstone/my_car/project/user/../code/my_global.hpp \
  /home/heavencornerstone/my_car/project/user/../code/IMU963R.hpp \
  /home/heavencornerstone/my_car/project/user/../code/MadgwickAHRS.hpp \
  /home/heavencornerstone/my_car/project/user/../code/motor.hpp \
@@ -548,7 +549,4 @@ CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/my_task_functi
  /home/heavencornerstone/my_car/project/user/../code/navigation.hpp \
  /home/heavencornerstone/my_car/project/user/../code/akima.hpp \
  /home/heavencornerstone/my_car/project/user/../code/udp_sender.hpp \
- /home/heavencornerstone/my_car/project/user/../code/config_seting.hpp \
- /home/heavencornerstone/my_car/project/user/../code/my_global.hpp \
- /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/termios.h \
- /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/bits/termios.h
+ /home/heavencornerstone/my_car/project/user/../code/config_seting.hpp

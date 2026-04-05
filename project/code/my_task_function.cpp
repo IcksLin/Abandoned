@@ -151,120 +151,37 @@ void updateDriveControl() {
 
 void tracking()
 {
-    //图像获取与处理
-    // printf("max_angle L: %.2f at idx %d, R: %.2f at idx %d, onto: %.2f,time: %lld ms,max_corner: %.2f       \n", 
-    //     nms_Lline, nms_Lline_idx, nms_Rline,
-    //      nms_Rline_idx, onto
-    //      , my_timer.elapsed_ms(), max_angle);
-    // my_timer.stop();
+    my_timer.stop();
     // printf("time: %lld  ms",my_timer.elapsed_ms());
 
     //图像采样
     uvc.wait_image_refresh();
     uvc.frame_rgb = uvc.frame_mjpg.clone();
 
-    image_proc();
-    // 龙邱----------------------------------------------------------------------------------------------------------------------
-    // if(red_detector.model_roi_cut(uvc.frame_rgb, red_detector.target_roi, true)) { 
-    //     // 1. 计算红框中心点
-    //     int cx = red_detector.target_rect.x + red_detector.target_rect.width / 2;
-    //     int cy = red_detector.target_rect.y + red_detector.target_rect.height / 2;
+    // image_proc();
+    send_img_infor();
 
-    //     // 2. 计算允许通行的像素边界 (基于 160x120)
-    //     int x_min = UVC_WIDTH * limit_left;
-    //     int x_max = UVC_WIDTH * (1.0f - limit_right);
-    //     int y_min = UVC_HEIGHT * limit_up;
-    //     int y_max = UVC_HEIGHT * (1.0f - limit_down);
-
-    //     // 3. 位置限制判定
-    //     if (cx >= x_min && cx <= x_max && cy >= y_min && cy <= y_max) {
-            
-    //         // --- [NCNN 执行推理] ---
-    //         my_timer.start();
-    //         LQ_InferenceResult result = ncnn_classifier.infer(red_detector.target_roi);
-    //         my_timer.stop();
-
-    //         // 4. 置信度过滤与类别计入
-    //         std::string final_label = "None";
-    //         float final_conf = 0.0f;
-
-    //         // 只有高于阈值的才被计入有效票数
-    //         if (result.confidence >= CONFIDENCE_THRESHOLD) {
-    //             final_label = result.label;
-    //             final_conf = result.confidence;
-    //         } else {
-    //             final_label = "None";
-    //             final_conf = 0.0f; // 低置信度帧权重为 0
-    //         }
-
-    //         // 5. 累计数据
-    //         confidence_accumulator[final_label] += final_conf;
-    //         frame_count++;
-
-    //         // 6. 达到 MAX_ACCUMULATE_FRAMES (25次) 后计算结果
-    //         if (frame_count >= MAX_ACCUMULATE_FRAMES) {
-    //             std::string best_class = "None";
-    //             float max_avg_conf = -1.0f;
-
-    //             for (auto const& [label, total_conf] : confidence_accumulator) {
-    //                 float avg = total_conf / MAX_ACCUMULATE_FRAMES;
-    //                 if (avg > max_avg_conf) {
-    //                     max_avg_conf = avg;
-    //                     best_class = label;
-    //                 }
-    //             }
-
-    //             // 静态显示最终统计结果
-    //             printf("\n========================================\n");
-    //             printf(">>> [NCNN 25帧统计结果]\n");
-    //             printf("    最终类别: %s\n", best_class.c_str());
-    //             printf("    平均置信度: %.2f%%\n", max_avg_conf * 100);
-    //             printf("    平均单帧耗时: %lldms\n", my_timer.elapsed_ms());
-    //             printf("========================================\n");
-
-    //             // 清空累计器，准备下一轮统计
-    //             confidence_accumulator.clear();
-    //             frame_count = 0;
-    //         } else {
-    //             // 显示累计进度
-    //             printf("\r[NCNN 累计 %d/%d] 实时: %s (%.2f%%) | 中心: (%d,%d)    ", 
-    //                 frame_count, MAX_ACCUMULATE_FRAMES, 
-    //                 result.label.c_str(), result.confidence * 100,
-    //                 cx, cy);
-    //             fflush(stdout);
-    //         }
-
-    //     } else {
-    //         // --- [位置超出限制范围] ---
-    //         if (frame_count > 0) {
-    //             confidence_accumulator.clear();
-    //             frame_count = 0;
-    //             printf("\n[WARN] 目标漂出中心区，累计已重置\n");
-    //         }
-    //         printf("\r[区域外] 中心点: (%3d,%3d) | 限制: X[%d-%d] Y[%d-%d]    ", 
-    //             cx, cy, x_min, x_max, y_min, y_max);
-    //         fflush(stdout);
-    //     }
-
-    // } else {
-    //     // --- [未检测到目标红框] ---
-    //     if (frame_count > 0) {
-    //         confidence_accumulator.clear();
-    //         frame_count = 0;
-    //         printf("\n[WARN] 目标丢失，累计已重置\n");
-    //     }
-    //     printf("\r[等待] 画面中未发现红色目标...                        ");
-    //     fflush(stdout);
-    // }
-    //end------------------------------------------------------------------------------------------------------------
-
-    cruising_speed = std::max<float>(40.0f, (float)CRUISING_SPEED - (std::abs(onto) / 30.0f) * ((float)CRUISING_SPEED * 0.2f) - (1.0f - std::clamp((float)(middle_line_length - 45) / 45.0f, 0.0f, 1.0f)) * ((float)CRUISING_SPEED * 0.25f));
-    pid_angle.setOutputLimit(cruising_speed*0.40);
-
-    // cruising_speed = speed_decision(middle_line_length,CRUISING_SPEED*0.6,CRUISING_SPEED*1.2);
-    // printf("midle_line_length: %d   ,speed:%f  \r   ",middle_line_length,cruising_speed);
-
+    cruising_speed = CRUISING_SPEED;
+    // udp.process_frame(uvc.frame_rgb);
     
+    // 开关，1使能循迹
+    onto_pd_control_enable = 0;
+    my_timer.start();
+
+    // 调试信息===========================================
+    // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);
+}
+
+//采集数据集时使用
+void get_image_datasets(){
+    uvc.wait_image_refresh();
+    uvc.get_rgb_image_ptr();
+    
+    udp.set_send_mode(MODE_COLOR);
+    udp.process_frame(uvc.frame_rgb);
+}
+
+void send_img_infor(){
     // 传输灰度图像 + 三条边线（左边线、右边线、中线）
     // 参数说明：
     //   - Lline, Lline_num: 原始左边线坐标和点数（蓝色）
@@ -299,21 +216,11 @@ void tracking()
     //     }
     // }
 
-    // udp.process_frame(uvc.frame_rgb);
-    
-    //方向控制器启动（PD运算在线程中执行）
-    onto_pd_control_enable = 1;
-    // my_timer.start();
-
-    // 调试信息===========================================
-    // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);
-}
-
-//采集数据集时使用
-void get_image_datasets(){
-    uvc.wait_image_refresh();
-    uvc.get_rgb_image_ptr();
-    
-    udp.set_send_mode(MODE_COLOR);
-    udp.process_frame(uvc.frame_rgb);
+    // gray_img_with_centerline_transmitter(
+    //     img_gray, UVC_WIDTH, IMG_H, 
+    //     L_buf, (uint16_t)sampled_Lline_num, 
+    //     R_buf, (uint16_t)sampled_Rline_num, 
+    //     M_buf, (uint16_t)middle_line_length, 
+    //     false, false 
+    // );
 }

@@ -1,5 +1,4 @@
 #include "imgproc.hpp"
-// #include "my_global.hpp"
 using namespace cv;
 
 /*决策变量******************/

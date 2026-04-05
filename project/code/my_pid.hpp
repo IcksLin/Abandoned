@@ -254,6 +254,97 @@ public:
     float compute(float actual, float target);
 };
 
+// lardc控制方案---------------------------------------------
+#include "LADRC.hpp"
+class SimpleMotorLADRC {
+public:
+    LADRC ladrc;
 
+    // 调参用内部接受参数
+    float v1_td, v2_td;
+    float z1_eso, z2_eso, z3_eso;
+
+    SimpleMotorLADRC();
+
+    void init(unsigned int preset_idx = 1);
+    void init(float h, float r, float wc, float w0, float b0,float pwm_min, float pwm_max);
+
+    void reset();
+
+    /**
+     * @brief 计算PWM输出
+     * @param target_speed 目标速度 (m/s)
+     * @param actual_speed 实际速度 (m/s)
+     * @return PWM输出值 [0-1000]
+     * 
+     * @details 这个函数纯粹计算，不进行任何硬件操作
+     */
+    float calculatePWM(float target_speed, float actual_speed);
+
+    /**
+     * @brief 调整控制器带宽
+     * @param wc 控制器带宽
+     * @param w0 观测器带宽
+     */
+    void setBandwidth(float wc, float w0);
+    
+    /**
+     * @brief 调整跟踪速度
+     * @param r 跟踪因子
+     */
+    void setTrackingSpeed(float r);
+    
+    /**
+     * @brief 设置PWM限制范围
+     * @param pwm_min 最小PWM (通常 0)
+     * @param pwm_max 最大PWM (通常 1000)
+     */
+    void setPWMLimits(float pwm_min, float pwm_max);
+    
+    /**
+     * @brief 设置速度限制范围
+     * @param speed_min 最小速度 (m/s)
+     * @param speed_max 最大速度 (m/s)
+     */
+    void setSpeedLimits(float speed_min, float speed_max);
+    
+    /**
+     * @brief 获取最近的PWM输出值
+     */
+    float getLastPWM() const { return last_pwm; }
+    
+    /**
+     * @brief 获取最近的速度误差
+     */
+    float getLastSpeedError() const { return last_speed_error; }
+    
+    /**
+     * @brief 获取LADRC输出（未转换为PWM）
+     */
+    float getLADRCOutput() const { return ladrc_output; }
+    
+    /**
+     * @brief 获取控制器内部参数
+     */
+    LADRCParameters getParameters() const;
+
+private:
+    
+    // 输出值
+    float last_pwm;
+    float last_speed_error;
+    float ladrc_output;
+    
+    // PWM范围
+    float pwm_min, pwm_max;
+    
+    // 速度范围限制
+    float speed_min, speed_max;
+
+    /**
+     * @brief 限制速度范围
+     */
+    float limitSpeed(float speed);
+};
 
 #endif

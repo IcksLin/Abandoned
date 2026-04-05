@@ -633,6 +633,30 @@ home/heavencornerstone/my_car/project/code/IMU963R.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/IMU963R.cpp.s
 .PHONY : home/heavencornerstone/my_car/project/code/IMU963R.cpp.s
 
+home/heavencornerstone/my_car/project/code/LADRC.o: home/heavencornerstone/my_car/project/code/LADRC.cpp.o
+.PHONY : home/heavencornerstone/my_car/project/code/LADRC.o
+
+# target to build an object file
+home/heavencornerstone/my_car/project/code/LADRC.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/LADRC.cpp.o
+.PHONY : home/heavencornerstone/my_car/project/code/LADRC.cpp.o
+
+home/heavencornerstone/my_car/project/code/LADRC.i: home/heavencornerstone/my_car/project/code/LADRC.cpp.i
+.PHONY : home/heavencornerstone/my_car/project/code/LADRC.i
+
+# target to preprocess a source file
+home/heavencornerstone/my_car/project/code/LADRC.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/LADRC.cpp.i
+.PHONY : home/heavencornerstone/my_car/project/code/LADRC.cpp.i
+
+home/heavencornerstone/my_car/project/code/LADRC.s: home/heavencornerstone/my_car/project/code/LADRC.cpp.s
+.PHONY : home/heavencornerstone/my_car/project/code/LADRC.s
+
+# target to generate assembly for a file
+home/heavencornerstone/my_car/project/code/LADRC.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/LADRC.cpp.s
+.PHONY : home/heavencornerstone/my_car/project/code/LADRC.cpp.s
+
 home/heavencornerstone/my_car/project/code/MadgwickAHRS.o: home/heavencornerstone/my_car/project/code/MadgwickAHRS.cpp.o
 .PHONY : home/heavencornerstone/my_car/project/code/MadgwickAHRS.o
 
@@ -680,6 +704,30 @@ home/heavencornerstone/my_car/project/code/akima.s: home/heavencornerstone/my_ca
 home/heavencornerstone/my_car/project/code/akima.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/akima.cpp.s
 .PHONY : home/heavencornerstone/my_car/project/code/akima.cpp.s
+
+home/heavencornerstone/my_car/project/code/config_setting.o: home/heavencornerstone/my_car/project/code/config_setting.cpp.o
+.PHONY : home/heavencornerstone/my_car/project/code/config_setting.o
+
+# target to build an object file
+home/heavencornerstone/my_car/project/code/config_setting.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/config_setting.cpp.o
+.PHONY : home/heavencornerstone/my_car/project/code/config_setting.cpp.o
+
+home/heavencornerstone/my_car/project/code/config_setting.i: home/heavencornerstone/my_car/project/code/config_setting.cpp.i
+.PHONY : home/heavencornerstone/my_car/project/code/config_setting.i
+
+# target to preprocess a source file
+home/heavencornerstone/my_car/project/code/config_setting.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/config_setting.cpp.i
+.PHONY : home/heavencornerstone/my_car/project/code/config_setting.cpp.i
+
+home/heavencornerstone/my_car/project/code/config_setting.s: home/heavencornerstone/my_car/project/code/config_setting.cpp.s
+.PHONY : home/heavencornerstone/my_car/project/code/config_setting.s
+
+# target to generate assembly for a file
+home/heavencornerstone/my_car/project/code/config_setting.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/home/heavencornerstone/my_car/project/code/config_setting.cpp.s
+.PHONY : home/heavencornerstone/my_car/project/code/config_setting.cpp.s
 
 home/heavencornerstone/my_car/project/code/imgproc.o: home/heavencornerstone/my_car/project/code/imgproc.cpp.o
 .PHONY : home/heavencornerstone/my_car/project/code/imgproc.o
@@ -1089,12 +1137,18 @@ help:
 	@echo "... home/heavencornerstone/my_car/project/code/IMU963R.o"
 	@echo "... home/heavencornerstone/my_car/project/code/IMU963R.i"
 	@echo "... home/heavencornerstone/my_car/project/code/IMU963R.s"
+	@echo "... home/heavencornerstone/my_car/project/code/LADRC.o"
+	@echo "... home/heavencornerstone/my_car/project/code/LADRC.i"
+	@echo "... home/heavencornerstone/my_car/project/code/LADRC.s"
 	@echo "... home/heavencornerstone/my_car/project/code/MadgwickAHRS.o"
 	@echo "... home/heavencornerstone/my_car/project/code/MadgwickAHRS.i"
 	@echo "... home/heavencornerstone/my_car/project/code/MadgwickAHRS.s"
 	@echo "... home/heavencornerstone/my_car/project/code/akima.o"
 	@echo "... home/heavencornerstone/my_car/project/code/akima.i"
 	@echo "... home/heavencornerstone/my_car/project/code/akima.s"
+	@echo "... home/heavencornerstone/my_car/project/code/config_setting.o"
+	@echo "... home/heavencornerstone/my_car/project/code/config_setting.i"
+	@echo "... home/heavencornerstone/my_car/project/code/config_setting.s"
 	@echo "... home/heavencornerstone/my_car/project/code/imgproc.o"
 	@echo "... home/heavencornerstone/my_car/project/code/imgproc.i"
 	@echo "... home/heavencornerstone/my_car/project/code/imgproc.s"

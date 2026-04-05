@@ -168,6 +168,7 @@ public:
     void menu_mode_2(uint8 cl_action);
     void menu_mode_3(uint8 cl_action);
     void menu_mode_4(uint8 cl_action);
+    void menu_mode_6(uint8 cl_action);
     void menu_mode_9(uint8 cl_action);
     void menu_mode_10(uint8 cl_action);
     void menu_mode_11(uint8 cl_action);

@@ -415,10 +415,35 @@ float PDController::compute(float actual, float target) {
     // 计算误差变化率
     float error_delta = error - last_error;
     
+    // ========== 对称分段线性 P 控制（8段）==========
+    // 将误差绝对值范围等分成 4 段，正负对称
+    // 权重数组索引: 0=小误差, 1=中小误差, 2=中大误差, 3=大误差
+    static const float weight[4] = {
+        0.70f,   // 小误差
+        0.70f,   // 中小误差
+        0.70f,   // 中大误差
+        0.70f    // 大误差
+    };
+    
+    // 计算误差绝对值占限幅的比例，映射到 0-3 索引
+    float error_abs = std::fabs(error);
+    float ratio = error_abs / output_limit;
+    if (ratio > 1.0f) ratio = 1.0f;
+    
+    // 确定权重索引
+    int index;
+    if (ratio <= 0.25f) index = 0;      // 小误差
+    else if (ratio <= 0.5f) index = 1;  // 中小误差
+    else if (ratio <= 0.75f) index = 2; // 中大误差
+    else index = 3;                      // 大误差
+    
+    // 获取分段权重（正负对称）
+    float Kp_segmented = Kp * weight[index];
+    
     // 计算控制输出
-    float output = error * Kp                     // 线性比例项
-                 + error * std::fabs(error) * Kp2  // 非线性比例项
-                 + error_delta * Kd;              // 微分项
+    float output = error * Kp_segmented                     // 分段线性比例项
+                 + error * std::fabs(error) * Kp2           // 非线性比例项
+                 + error_delta * Kd;                        // 微分项
     
     // 更新误差记录
     last_error = error;
@@ -434,4 +459,83 @@ float PDController::compute(float actual, float target) {
 }
 
 
+// lardc控制方案-----------------------------------------
+#include <algorithm>
+#include <cmath>
+
+SimpleMotorLADRC::SimpleMotorLADRC()
+    : last_pwm(0.0f),
+      last_speed_error(0.0f),
+      ladrc_output(0.0f),
+      pwm_min(-1000.0f),
+      pwm_max(1000.0f),
+      speed_min(-3.0f),
+      speed_max(3.0f) {
+}
+
+void SimpleMotorLADRC::init(unsigned int preset_idx) {
+    if (!ladrc.initWithPreset(preset_idx)) {
+        ladrc.initWithPreset(1);  // 默认使用预设1
+    }
+    reset();
+}
+
+void SimpleMotorLADRC::init(float h, float r, float wc, float w0, float b0,float pwm_min, float pwm_max) {
+    ladrc.initWithParameters(h, r, wc, w0, b0);
+    ladrc.setOutputLimit(pwm_max, pwm_min);
+    reset();
+}
+
+void SimpleMotorLADRC::reset() {
+    ladrc.reset();
+    last_pwm = 0.0f;
+    last_speed_error = 0.0f;
+    ladrc_output = 0.0f;
+}
+
+float SimpleMotorLADRC::calculatePWM(float target_speed, float actual_speed) {
+    // 限制速度范围
+    float limited_target = limitSpeed(target_speed);
+    float limited_actual = limitSpeed(actual_speed);
+    
+    // LADRC控制计算
+    ladrc_output = ladrc.update(limited_target, limited_actual);
+    
+    // 记录速度误差
+    last_speed_error = limited_target - limited_actual;
+    
+    // PWM限幅和死区处理
+    float pwm_value = ladrc_output;
+    if (pwm_value > pwm_max) pwm_value = pwm_max;
+    if (pwm_value < pwm_min) pwm_value = pwm_min;
+    
+    last_pwm = pwm_value;
+    return last_pwm;
+}
+
+void SimpleMotorLADRC::setBandwidth(float wc, float w0) {
+    ladrc.setBandwidth(wc, w0);
+}
+
+void SimpleMotorLADRC::setTrackingSpeed(float r) {
+    ladrc.setTrackingSpeed(r);
+}
+
+void SimpleMotorLADRC::setPWMLimits(float pwm_min_val, float pwm_max_val) {
+    pwm_min = pwm_min_val;
+    pwm_max = pwm_max_val;
+}
+
+void SimpleMotorLADRC::setSpeedLimits(float speed_min_val, float speed_max_val) {
+    speed_min = speed_min_val;
+    speed_max = speed_max_val;
+}
+
+LADRCParameters SimpleMotorLADRC::getParameters() const {
+    return ladrc.getParameters();
+}
+
+float SimpleMotorLADRC::limitSpeed(float speed) {
+    return std::max(speed_min, std::min(speed_max, speed));
+}
 

@@ -83,20 +83,6 @@
 //===================================================外部组件库===================================================
 
 
-//===================================================TFLITE组件库===================================================
-// #include "tensorflow/lite/core/c/common.h"
-// #include "tensorflow/lite/micro/micro_interpreter.h"
-// #include "tensorflow/lite/micro/micro_log.h"
-// #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
-// #include "tensorflow/lite/micro/micro_profiler.h"
-// #include "tensorflow/lite/micro/recording_micro_interpreter.h"
-// #include "tensorflow/lite/micro/system_setup.h"
-// #include "tensorflow/lite/micro/cortex_m_generic/debug_log_callback.h"
-// #include "tensorflow/lite/schema/schema_generated.h"
-
-//===================================================TFLITE组件库===================================================
-
-
 //===================================================用户自定义文件===================================================
 #include "my_image_transmitter.hpp"
 #include "my_task_function.hpp"
@@ -109,9 +95,8 @@
 #include "my_menu.hpp"
 #include "my_pid.hpp"
 #include "navigation.hpp"
-#include "red_rect.hpp"
-#include "tflm_model_process_lq.hpp"
 #include "udp_sender.hpp"
+#include "config_seting.hpp"
 //===================================================用户自定义文件===================================================
                                                                      
 

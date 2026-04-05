@@ -301,3 +301,121 @@ void esc_set_power(float power) {
     esc_duty = (uint16)(500.0f + power * 5.0f);
     esc_pwm.set_duty(esc_duty);
 }
+
+// LARDC----------------------------------------
+/**
+ * @brief T/M法测速 - 累积脉冲法（Accumulation Method）
+ * 
+ * @details 在极端采样周期下提高速度分辨率：
+ *          - 采样T个周期内累积编码器脉冲
+ *          - 每T个周期输出一次速度值
+ *          - 分辨率提升 T 倍
+ * 
+ * @param T           累积周期数 (建议 T ≥ 10)
+ * @param encoder_cpr 编码器每转脉冲数 (Counts Per Revolution)，逐飞编码器1024
+ * @param wheel_radius 轮子半径 (单位: 米)
+ * @param ts          单个采样周期 (单位: 秒)
+ * @param left_speed  左轮速度输出指针 (单位: m/s)
+ * @param right_speed 右轮速度输出指针 (单位: m/s)
+ */
+void lardc_get_speed(uint8_t T, float encoder_cpr, float wheel_radius, 
+                     float ts, float *left_speed, float *right_speed) {
+    
+    static uint8_t t_index = 0;
+    static float right_pulse_pool = 0.0f;  // 右轮脉冲累积池
+    static float left_pulse_pool = 0.0f;   // 左轮脉冲累积池
+    static float last_right_speed = 0.0f;  // 右轮上次速度值
+    static float last_left_speed = 0.0f;   // 左轮上次速度值
+
+    right_pulse_pool += encoder2.get_count();
+    left_pulse_pool  += -encoder1.get_count();
+    
+    encoder1.clear_count();  // 清零右轮编码器计数
+    encoder2.clear_count();  // 清零左轮编码器计数
+    
+    t_index++;
+
+    if (t_index >= T) {
+        // 重置计数器
+        t_index = 0;
+        
+        // 脉冲数转换为距离（米）
+        // 距离 = (脉冲数 / 编码器分辨率)*齿轮比 / 2π * 轮子周长
+        float pulse_to_distance = (2.0f * 3.14159265359f * wheel_radius)*(30.0f/68.0f) / encoder_cpr;
+        
+        // 时间累积（秒）
+        float total_time = T * ts;
+        
+        // 速度计算：距离 / 时间（m/s）
+        *right_speed = (right_pulse_pool * pulse_to_distance) / total_time;
+        *left_speed  = (left_pulse_pool * pulse_to_distance) / total_time; 
+        
+        // 更新历史值
+        last_right_speed = *right_speed;
+        last_left_speed = *left_speed;
+        
+        // 清空脉冲累积池
+        right_pulse_pool = 0.0f;
+        left_pulse_pool = 0.0f;
+        
+    } else {
+        // 未到达输出周期，返回上次计算的速度值
+        *right_speed = last_right_speed;
+        *left_speed = last_left_speed;
+    }
+}
+
+/**
+ * @brief LADRC版本的电机速度设置函数
+ * @details 直接操作全局结构体，无额外封装
+ *          输入：LADRC计算的PWM值
+ *          输出：直接控制电机方向和PWM
+ * 
+ * @param left_pwm  左电机PWM值（来自LADRC计算）
+ * @param right_pwm 右电机PWM值（来自LADRC计算）
+ */
+void motor_set_speed_ladrc(float left_pwm, float right_pwm) {
+    // 从1000线性映射到实际的1W
+    int16_t left_pwm_int = (int16_t)(left_pwm * 10);
+    int16_t right_pwm_int = (int16_t)(right_pwm * 10);
+    
+    if (abs(left_pwm_int) < PWM_DEAD_ZONE) {
+        left_pwm_int = 0;
+    }
+    if (abs(right_pwm_int) < PWM_DEAD_ZONE) {
+        right_pwm_int = 0;
+    }
+    
+    if (left_pwm_int > MOTOR_PWM_MAX) {
+        left_pwm_int = MOTOR_PWM_MAX;
+    }
+    if (left_pwm_int < MOTOR_PWM_MIN) {
+        left_pwm_int = MOTOR_PWM_MIN;
+    }
+    
+    if (right_pwm_int > MOTOR_PWM_MAX) {
+        right_pwm_int = MOTOR_PWM_MAX;
+    }
+    if (right_pwm_int < MOTOR_PWM_MIN) {
+        right_pwm_int = MOTOR_PWM_MIN;
+    }
+    // right_pwm控制左电机，left_pwm控制右电机
+    
+    // 控制左电机（使用right_pwm）
+    if (right_pwm_int <= 0) {
+        left_dir.set_level(0);              // 反转
+        left_motor.set_duty(-right_pwm_int); // PWM取绝对值
+    } else {
+        left_dir.set_level(1);              // 正转
+        left_motor.set_duty(right_pwm_int);  // PWM直接输出
+    }
+    
+    // 控制右电机（使用left_pwm）
+    if (left_pwm_int <= 0) {
+        right_dir.set_level(0);             // 反转
+        right_motor.set_duty(-left_pwm_int); // PWM取绝对值
+    } else {
+        right_dir.set_level(1);             // 正转
+        right_motor.set_duty(left_pwm_int);  // PWM直接输出
+    }
+}
