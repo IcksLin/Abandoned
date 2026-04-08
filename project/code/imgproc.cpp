@@ -804,10 +804,8 @@ void track_rightline(float dist) {
  * @param dist 补线步长
  */
 void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) {
-    // 1. 安全检查
     if (corner_index <= 1 || corner_index >= *num) return;
 
-    // 2. 统计斜率（平均角度）
     float avg_angle = 0;
     for (int i = 0; i < corner_index - 1; i++) {
         float dx = pts_in[i + 1][0] - pts_in[i][0];
@@ -820,13 +818,10 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
     float start_y = pts_in[corner_index][1];
     float abs_angle = fabs(avg_angle);
 
-    // 3. 补线逻辑
     // 垂直趋势判定：45° ~ 135° (PI/4 ~ 3PI/4)
     if (abs_angle > PI / 4 && abs_angle < 3 * PI / 4) {
         int current_idx = corner_index;
 
-        // --- 修改部分开始 ---
-        // 取消了 start_y >= 0 的限制，使其能够补出图像之外的“虚拟点”
         // 循环直到 current_idx 达到数组的最大索引 (POINTS_MAX_LEN - 1)
         while (current_idx < (POINTS_MAX_LEN - 1)) {
             start_x += dist * (float)cos(avg_angle);
@@ -851,8 +846,6 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
 }
 
 /*---------------------------角度计算-----------------------------*/
-#include <math.h>
-
 // /**
 //  * @brief 计算加权前瞻偏移角度 (适配 Mline[i][2] 数据结构)
 //  * @param Mline 中线点集指针，Mline[i][0]为x, Mline[i][1]为y
@@ -993,9 +986,6 @@ cv::Mat De_distortion_image;
 
 // 一次图像处理
 void image_proc() {   
-    // ---------------------------------------------------------
-    // 1. 尺度转换：准备 160x120 的循迹图
-    // ---------------------------------------------------------
     cv::Mat frame_resized;
     cv::resize(uvc.frame_mjpg, frame_resized, cv::Size(160, 120), 0, 0, cv::INTER_NEAREST);
 
@@ -1003,9 +993,6 @@ void image_proc() {
     cv::cvtColor(frame_resized, frame_gray_small, cv::COLOR_BGR2GRAY);
     img_gray = reinterpret_cast<uint8_t*>(frame_gray_small.ptr(0));
 
-    // ---------------------------------------------------------
-    // 2. 核心算法逻辑 (循迹 + 元素识别)
-    // ---------------------------------------------------------
     start_thre = get_otsu_thres(img_gray, 0, 160, TRACK_HEIGHT_MAX, 120);
     line_process(120, 120 / 2);
 
@@ -1018,9 +1005,6 @@ void image_proc() {
     max_angle = std::max(nms_Lline, nms_Rline);
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
 
-    // ---------------------------------------------------------
-    // 3. 图传集成：彩色图 + 轨迹点同步
-    // ---------------------------------------------------------
     // if (udp.is_enable()) {
     //     // A. 发送原始 320x160 彩色图像 (用于确认识别结果)
     //     udp.send_image(uvc.frame_mjpg); 
@@ -1071,7 +1055,9 @@ void image_proc() {
     //     udp.send_data(&track_packet, sizeof(track_packet));
     // }
     // printf("onto:   %f     ,middle_line_length: %d    \r",onto,middle_line_length);
-    printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
+
+    // 调试要看状态机请解注释这行
+    // printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
 
 }
 //状态机初始化

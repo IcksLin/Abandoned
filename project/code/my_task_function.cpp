@@ -87,7 +87,6 @@ void tracking()
     send_img_infor();
 
     cruising_speed = CRUISING_SPEED;
-    // udp.process_frame(uvc.frame_rgb);
     
     // 开关，1使能循迹
     onto_pd_control_enable = 0;

@@ -215,7 +215,6 @@ int PathTracker::find_closest_index() {
 
     int best_idx = last_closest_idx;
     
-    // 计算当前记录的最近点的平方距离（避免开方，提升龙芯运算速度）
     auto get_dist_sq = [&](const MapPoint& p) {
         return (p.x - current_location.x) * (p.x - current_location.x) + (p.y - current_location.y) * (p.y - current_location.y);
     };

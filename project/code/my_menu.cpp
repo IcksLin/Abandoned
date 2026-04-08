@@ -47,13 +47,6 @@ MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) : key_manager(key_mgr
     current_menu = &main_menu;
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 析构函数
-// 参数说明 无
-// 返回参数 无
-// 使用示例 自动调用
-// 备注信息 清理资源
-//-------------------------------------------------------------------------------------------------------------------
 MyMenu::~MyMenu()
 {
     // 清除全局实例指针
@@ -308,15 +301,6 @@ void MyMenu::menu_system(void)
         case 0:
             menu_mode_0(cl_action);
             break;
-        // case 1:
-        //     menu_mode_1(cl_action);
-        //     break;
-        // case 2:
-        //     menu_mode_2(cl_action);
-        //     break;
-        // case 3:
-        //     menu_mode_3(cl_action);
-        //     break;
         case 4:
             menu_mode_4(cl_action);
             break;
@@ -392,6 +376,7 @@ void MyMenu::static_option_func(void)
     }
 }
 
+// 菜单功能函数，命名规范为 menu_mode_X，其中X为菜单项id-------------------------------------------------------------------
 void MyMenu::menu_mode_0(uint8 cl_action)
 {
     // 模式0的具体实现
@@ -497,9 +482,6 @@ void MyMenu::menu_mode_4(uint8 cl_action)
 
 void MyMenu::menu_mode_6(uint8 cl_action)
 {
-    static uint8_t run_test_flag = 0;
-    static uint8_t chose_index = 0;
-    static float change_step_index = 0;
 
     // 模式4的具体实现
     switch (cl_action)
@@ -514,16 +496,6 @@ void MyMenu::menu_mode_6(uint8 cl_action)
     default:
         break;
     }
-
-    if(!run_test_flag){
-        // 显示模式4信息
-        // ips_display->clear();
-        // ips_display->show_string(0, 0, "Mode 4 Active");
-        // ips_display->show_int(x,y,date,length);
-        // ips_display->show_float(x,y,date,length,pointlength);
-        // ips_display->update();
-    }
-    
 }
 
 
