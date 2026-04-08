@@ -56,7 +56,6 @@ private:
     Menu map_record,path_reproduction;
     Menu brushless_motor_set;
     
-    // 禁用拷贝构造和赋值
     MyMenu(const MyMenu&) = delete;
     MyMenu& operator=(const MyMenu&) = delete;
 

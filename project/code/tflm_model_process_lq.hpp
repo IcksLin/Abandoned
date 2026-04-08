@@ -6,7 +6,6 @@
 #include <opencv2/core.hpp>
 #include <net.h> // ncnn 头文件
 
-// 定义推理结果结构体，兼容你之前的过滤与累计逻辑
 struct LQ_InferenceResult {
     int class_index;
     std::string label;
@@ -19,7 +18,7 @@ public:
     ~LQ_NCNN();
 
     // 初始化：加载 param 和 bin 文件
-    bool init(const std::string& param_path, const std::string& bin_path);
+    bool init(const std::string& param_path, const std::string& bin_path,int input_width = 40, int input_height = 40);
 
     // 执行推理
     LQ_InferenceResult infer(const cv::Mat& bgr_image) const;
@@ -34,8 +33,8 @@ private:
     bool initialized_ = false;
 
     // 模型输入尺寸（需与训练时保持一致）
-    const int kInputWidth = 40;
-    const int kInputHeight = 40;
+    int kInputWidth = 40;
+    int kInputHeight = 40;
 
     // 归一化参数 (ImageNet 标准)
     // ncnn 的 substract_mean_normalize 公式: (x - mean) * norm

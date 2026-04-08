@@ -13,7 +13,10 @@ LQ_NCNN::~LQ_NCNN() {
     net_.clear();
 }
 
-bool LQ_NCNN::init(const std::string& param_path, const std::string& bin_path) {
+bool LQ_NCNN::init(const std::string& param_path, const std::string& bin_path,int input_width, int input_height) {
+    kInputWidth = input_width;
+    kInputHeight = input_height;
+
     // 针对龙芯等嵌入式优化配置
     net_.opt.use_vulkan_compute = false;
     net_.opt.num_threads = 1; // 2K0300 建议单线程或根据核心数调整
