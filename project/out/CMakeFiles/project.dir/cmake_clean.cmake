@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/project.dir/font_data.cpp.o"
+  "CMakeFiles/project.dir/font_data.cpp.o.d"
   "CMakeFiles/project.dir/home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.cpp.o"
   "CMakeFiles/project.dir/home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.cpp.o.d"
   "CMakeFiles/project.dir/home/heavencornerstone/my_project/libraries/zf_common/zf_common_font.cpp.o"
@@ -75,6 +77,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/tflm_model_process_lq.cpp.o.d"
   "CMakeFiles/project.dir/main.cpp.o"
   "CMakeFiles/project.dir/main.cpp.o.d"
+  "font_data.cpp"
   "project"
   "project.pdb"
 )

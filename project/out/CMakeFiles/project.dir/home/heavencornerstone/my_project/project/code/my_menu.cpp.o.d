@@ -304,6 +304,7 @@ CMakeFiles/project.dir/home/heavencornerstone/my_project/project/code/my_menu.cp
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/inttypes.h \
  /home/heavencornerstone/my_project/project/user/../../libraries/zf_device/zf_device_ips200_fb.hpp \
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/algorithm \
+ /home/heavencornerstone/my_project/project/user/../../libraries/zf_device/stb_truetype.h \
  /home/heavencornerstone/my_project/project/code/my_task_function.hpp \
  /home/heavencornerstone/my_project/project/code/my_global.hpp \
  /home/heavencornerstone/my_project/project/user/../../libraries/zf_common/zf_common_headfile.hpp \

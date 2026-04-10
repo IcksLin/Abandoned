@@ -129,6 +129,30 @@ project/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/build
 .PHONY : project/fast
 
+font_data.o: font_data.cpp.o
+.PHONY : font_data.o
+
+# target to build an object file
+font_data.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/font_data.cpp.o
+.PHONY : font_data.cpp.o
+
+font_data.i: font_data.cpp.i
+.PHONY : font_data.i
+
+# target to preprocess a source file
+font_data.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/font_data.cpp.i
+.PHONY : font_data.cpp.i
+
+font_data.s: font_data.cpp.s
+.PHONY : font_data.s
+
+# target to generate assembly for a file
+font_data.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/project.dir/build.make CMakeFiles/project.dir/font_data.cpp.s
+.PHONY : font_data.cpp.s
+
 home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.o: home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.cpp.o
 .PHONY : home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.o
 
@@ -1050,6 +1074,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... project"
+	@echo "... font_data.o"
+	@echo "... font_data.i"
+	@echo "... font_data.s"
 	@echo "... home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.o"
 	@echo "... home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.i"
 	@echo "... home/heavencornerstone/my_project/libraries/zf_common/zf_common_fifo.s"

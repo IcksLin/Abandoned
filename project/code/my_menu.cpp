@@ -18,8 +18,11 @@ Menu MyMenu::menu_table[] = {
     { 2 ,0,"mode2",nullptr},
     { 3 ,0,"mode3",nullptr},
     { 4 ,0,"mode4",nullptr},
-    { 5 ,1,"key_remap_test",MyMenu::key_remap_test},
-    { 6 ,1,"imu_angle_display",MyMenu::imu_angle_display},
+    { 5 ,0,"mode5",nullptr},
+    { 6 ,0,"mode6",nullptr},
+    { 7 ,0,"mode7",nullptr},
+    { 8 ,1,"key_remap_test",MyMenu::key_remap_test},
+    { 9 ,1,"imu_angle_display",MyMenu::imu_angle_display},
     { 10,2,"brushless_calibration",MyMenu::brushless_calibration}
 };
 
@@ -37,6 +40,7 @@ MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp)
 void MyMenu::init(){
     g_menu_instance->ips_display->init(IPS_DEVICE_PATH);
     g_menu_instance->ips_display->clear();
+    draw_menu(current_menu);
     g_menu_instance->ips_display->update();
 
 }
@@ -113,11 +117,12 @@ Menu* MyMenu::menu_navigate(Menu *current, MenuAction action)
     return current;
 }
 
+
 void MyMenu::draw_menu(Menu *selected_menu)
 {
     if (!selected_menu) return;
 
-    // 1. 统计当前层级（同级菜单）的总数，并找到选中项在同级中的序号
+    // 1. 统计当前层级并找到选中项序号
     int p_id = selected_menu->parent_id;
     int total_in_level = 0;
     int selected_index_in_level = -1;
@@ -127,54 +132,49 @@ void MyMenu::draw_menu(Menu *selected_menu)
         if (menu_table[i].parent_id == p_id)
         {
             if (&menu_table[i] == selected_menu)
-            {
                 selected_index_in_level = total_in_level;
-            }
             total_in_level++;
         }
     }
-    // 2. 计算滚动分页逻辑
-    // page_start 是当前屏幕显示的第一个同级项的序号
+
+    // 2. 计算滚动分页逻辑 (保持原样)
     uint8 page_start = 0;
     if (selected_index_in_level >= MENU_MAX_ROW)
-    {
         page_start = selected_index_in_level - (MENU_MAX_ROW - 1);
-    }
+
     // 3. 执行绘制
     ips_display->clear();
 
-    int current_item_count = 0; // 用于记录遍历到的同级项序号
-    int display_row = 0;        // 实际渲染的行数
+    int current_item_count = 0; 
+    int display_row = 0;         
+
+    // 定义菜单布局参数
+    const uint16 ITEM_HEIGHT = 28; // 由于使用了 TTF 24号字，行高建议设为 28-32
 
     for (int i = 0; i < MENU_TABLE_SIZE; i++)
     {
-        // 筛选同级菜单
         if (menu_table[i].parent_id == p_id)
         {
-            // 只处理处于当前分页范围内的项
             if (current_item_count >= page_start && display_row < MENU_MAX_ROW)
             {
-                uint16 y = display_row * FONT_H;
+                uint16 y_offset = display_row * ITEM_HEIGHT;
 
-                // 判断是否为当前选中的项
                 if (&menu_table[i] == selected_menu)
                 {
-                    // 绘制选中背景 (建议封装成 fill_rect 函数以提高效率)
-                    // 假设菜单宽度覆盖 20 个字符
-                    for(uint16 bx = 0; bx < FONT_W * 20; bx++)
-                    {
-                        for(uint16 by = 0; by < FONT_H; by++)
-                        {
-                            ips_display->draw_point(bx, y + by, MENU_SELECT_COLOR);
-                        }
-                    }
-                    // 高亮文字显示
-                    ips_display->show_string(2, y + 2, menu_table[i].name);
+                    // --- 优化：绘制选中背景 ---
+                    // 建议封装此功能，直接操作 buffer 以节省性能
+                    // 这里直接调用你类的 pen_color 或者显式传参
+                    ips_display->fill_rect(0, y_offset, ips_display->get_width(), ITEM_HEIGHT, MENU_SELECT_COLOR);
+
+                    // --- 使用样式版 print：白色高亮文字 ---
+                    // 假设选中时文字为白色，字号 24
+                    ips_display->print(8, y_offset + 2, RGB565_WHITE, MENU_FONT_SIZE, menu_table[i].name);
                 }
                 else
                 {
-                    // 普通文字显示
-                    ips_display->show_string(2, y + 2, menu_table[i].name);
+                    // --- 使用标准版 print：默认颜色文字 ---
+                    // 假设非选中时使用默认画笔颜色
+                    ips_display->print(8, y_offset + 2, menu_table[i].name);
                 }
                 display_row++;
             }
@@ -187,21 +187,31 @@ void MyMenu::draw_menu(Menu *selected_menu)
 void MyMenu::menu_system(void)
 {
     uint8 cl_action = key_manager->get_menu_action(); // 获取菜单动作
-    if (cl_action == WAITING) return;             // 无按键则跳过
+    if (cl_action == WAITING) return;                 // 无按键则跳过
 
     if (mode_inter_flag == 0)
     {
+        uint8 pre_flag = mode_inter_flag; 
+        
         // 1. 正常的菜单导航模式
         Menu* next_menu = menu_navigate(current_menu, (MenuAction)cl_action);
         
+        // 如果菜单项发生了切换，刷新菜单界面
         if (next_menu != current_menu) {
             current_menu = next_menu;
             draw_menu(current_menu);
+        }
+        else if (mode_inter_flag != pre_flag && mode_inter_flag == 1) {
+            if (current_menu->handler != nullptr) {
+                // 此时 flag 刚变 1，通常需要立即执行一次 handler(ENTER) 来初始化功能界面
+                current_menu->handler(cl_action);
+            }
         }
     }
     else
     {   
         uint8 pre_flag = mode_inter_flag;
+        
         // 2. 模式交互模式：直接调用当前菜单绑定的函数
         if (current_menu->handler != nullptr) {
             current_menu->handler(cl_action);
@@ -209,6 +219,7 @@ void MyMenu::menu_system(void)
             mode_inter_flag = 0; // 防御性逻辑
         }
 
+        // 退出交互模式回到菜单导航时，立即刷新菜单页面
         if (pre_flag == 1 && mode_inter_flag == 0) {
             draw_menu(current_menu); 
         }
@@ -356,11 +367,16 @@ void MyMenu::key_remap_test(uint8 cl_action)
     
     // 显示模式4信息
     g_menu_instance->ips_display->clear();
-    g_menu_instance->ips_display->show_string(0, 0, "this is model 4!");
-    g_menu_instance->ips_display->show_string(0,16,"key remap test:1.+;2.-;");
-    g_menu_instance->ips_display->show_string(0,2*16,"     3.set 0;4.return;");
+    g_menu_instance->ips_display->print(0, 0, "this is model 4!");
+    g_menu_instance->ips_display->print(0, 16, "key remap test:1.+;2.-;");
+    g_menu_instance->ips_display->print(0, 32, "     3.set 0;4.return;");
     g_menu_instance->ips_display->print(0,3*16,"-------\ntest num:%d\n--------",temp_test);
+    g_menu_instance->ips_display->print(0,7*16,"你好，世界");
+    g_menu_instance->ips_display->print(0,7*16+24,DEFAULT_PENCOLOR,36,"你好，世界");
+    g_menu_instance->ips_display->print(0,7*16+24+36,DEFAULT_PENCOLOR,48,"你好，世界");
+    g_menu_instance->ips_display->print(0,7*16+24+36+48,DEFAULT_PENCOLOR,64,"你好，世界");
     g_menu_instance->ips_display->update();
+    
 }
 
 void MyMenu::menu_mode_6(uint8 cl_action)

@@ -1,4 +1,10 @@
 #include "zf_device_ips200_fb.hpp"
+
+#if WHETHER_USE_TTF
+    #define STB_TRUETYPE_IMPLEMENTATION 
+    #include "stb_truetype.h"
+#endif
+
 #include "zf_common_font.hpp"
 #include "zf_common_function.hpp"
 
@@ -11,9 +17,6 @@
 #include <sys/ioctl.h>
 #include <linux/fb.h>
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     无参构造函数
-//-------------------------------------------------------------------------------------------------------------------
 zf_device_ips200::zf_device_ips200(void)
 {
     pen_color = DEFAULT_PENCOLOR;
@@ -27,11 +30,12 @@ zf_device_ips200::zf_device_ips200(void)
     dirty_min_y = 10000;
     dirty_max_x = -1;
     dirty_max_y = -1;
+
+    #if WHETHER_USE_TTF
+    f_info = nullptr; 
+    #endif
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     析构函数
-//-------------------------------------------------------------------------------------------------------------------
 zf_device_ips200::~zf_device_ips200()
 {
     if (buffer) {
@@ -42,6 +46,13 @@ zf_device_ips200::~zf_device_ips200()
         munmap((void*)screen_base, width * height * sizeof(uint16));
         screen_base = nullptr;
     }
+
+    #if WHETHER_USE_TTF
+    if (f_info) {
+        delete f_info;
+        f_info = nullptr;
+    }
+    #endif
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -132,6 +143,28 @@ void zf_device_ips200::draw_line(uint16 x_start, uint16 y_start, uint16 x_end, u
     }while(0);
 }
 
+// 画框框
+void zf_device_ips200::fill_rect(uint16 x, uint16 y, uint16 w, uint16 h, uint16 color) {
+    if (x >= width || y >= height) return;
+    if (x + w > width)  w = width - x;
+    if (y + h > height) h = height - y;
+
+    // 2. 核心填充逻辑
+    for (uint16 j = 0; j < h; j++) {
+        // 计算当前行在 buffer 中的起始指针
+        uint16 *ptr = &buffer[(y + j) * width + x];
+        
+        // 使用循环填充
+        // 如果追求极致，这里可以用更底层的 memset 处理（但 uint16 需要特殊处理）
+        for (uint16 i = 0; i < w; i++) {
+            *ptr++ = color;
+        }
+    }
+
+    // 3. 标记脏区域：这是为了配合你之前的更新机制
+    mark_dirty_rect(x, y, x + w - 1, y + h - 1);
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     显示单个字符
 //-------------------------------------------------------------------------------------------------------------------
@@ -184,88 +217,7 @@ void zf_device_ips200::show_string(uint16 x, uint16 y, const char dat[])
     }
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     显示有符号整型数
-//-------------------------------------------------------------------------------------------------------------------
-void zf_device_ips200::show_int(uint16 x, uint16 y, const int32 dat, uint8 num)
-{
-    int32 dat_temp = dat;
-    int32 offset = 1;
-    char data_buffer[12] = {0};
 
-    std::memset(data_buffer, 0, 12);
-    std::memset(data_buffer, ' ', num+1);
-
-    if(10 > num)
-    {
-        for(; 0 < num; num --)
-        {
-            offset *= 10;
-        }
-        dat_temp %= offset;
-    }
-    func_int_to_str(data_buffer, dat_temp);
-    show_string(x, y, (const char *)&data_buffer);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     显示无符号整型数
-//-------------------------------------------------------------------------------------------------------------------
-void zf_device_ips200::show_uint(uint16 x, uint16 y, const uint32 dat, uint8 num)
-{
-    uint32 dat_temp = dat;
-    int32 offset = 1;
-    char data_buffer[12] = {0};
-    std::memset(data_buffer, 0, 12);
-    std::memset(data_buffer, ' ', num);
-
-    if(10 > num)
-    {
-        for(; 0 < num; num --)
-        {
-            offset *= 10;
-        }
-        dat_temp %= offset;
-    }
-    func_uint_to_str(data_buffer, dat_temp);
-    show_string(x, y, (const char *)&data_buffer);
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介     显示浮点数
-//-------------------------------------------------------------------------------------------------------------------
-void zf_device_ips200::show_float(uint16 x, uint16 y, const double dat, uint8 num, uint8 pointnum)
-{
-    double dat_temp = dat;
-    double offset = 1.0;
-    char data_buffer[17] = {0};
-    std::memset(data_buffer, 0, 17);
-    std::memset(data_buffer, ' ', num+pointnum+2);
-
-    for(; 0 < num; num --)
-    {
-        offset *= 10;
-    }
-    dat_temp = dat_temp - ((int)dat_temp / (int)offset) * offset;
-    func_double_to_str(data_buffer, dat_temp, pointnum);
-    show_string(x, y, data_buffer);
-}
-
-// 前面的显示函数还是太麻烦了，都龙芯了，还是print省事
-void zf_device_ips200::print(uint16 x, uint16 y, const char* fmt, ...)
-{
-    char buffer[512]; // 根据需求调整缓冲区大小
-    va_list args;
-    va_start(args, fmt);
-    
-    // 使用标准库函数将格式化内容填入 buffer
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
-    
-    va_end(args);
-
-    // 调用你现有的 show_string 显示生成的字符串
-    this->show_string(x, y, buffer);
-}
 
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     显示灰度图像
@@ -327,6 +279,15 @@ void zf_device_ips200::init(const char *path, uint8 is_reload_driver)
         usleep(200*1000);
     }
 
+    #if WHETHER_USE_TTF
+    f_info = new stbtt_fontinfo; 
+    if (!stbtt_InitFont(f_info, vector_font_data, 0)) {
+        printf("TTF Init Failed!\n");
+    } else {
+        printf("TTF Font Parser Initialized (Pre-loaded).\n");
+    }
+    #endif
+
     if (0 > (fd = open(path, O_RDWR))) {
         perror("open error");
         exit(EXIT_FAILURE);
@@ -386,4 +347,160 @@ void zf_device_ips200::update(void)
     dirty_min_y = height;
     dirty_max_x = -1;
     dirty_max_y = -1;
+}
+
+static const char* get_next_utf8_char(const char* s, uint32_t* codepoint) {
+    unsigned char c = (unsigned char)*s;
+    if (c < 0x80) { // 单字节 (ASCII)
+        *codepoint = c;
+        return s + 1;
+    } else if ((c & 0xE0) == 0xC0) { // 双字节
+        *codepoint = ((c & 0x1F) << 6) | (s[1] & 0x3F);
+        return s + 2;
+    } else if ((c & 0xF0) == 0xE0) { // 三字节 (常用汉字)
+        *codepoint = ((c & 0x0F) << 12) | ((s[1] & 0x3F) << 6) | (s[2] & 0x3F);
+        return s + 3;
+    } else if ((c & 0xF8) == 0xF0) { // 四字节
+        *codepoint = ((c & 0x07) << 18) | ((s[1] & 0x3F) << 12) | ((s[2] & 0x3F) << 6) | (s[3] & 0x3F);
+        return s + 4;
+    }
+    *codepoint = '?'; // 无法识别的编码
+    return s + 1;
+}
+
+
+#if WHETHER_USE_TTF
+// 引用在 font_data.cpp 中生成的全局数组
+// extern unsigned char JetBrainsMono_Bold_ttf[]; 
+extern unsigned char vector_font_data[]; 
+void zf_device_ips200::render_glyph_to_buffer(int x, int y, unsigned char* bitmap, int bw, int bh, uint16 color) {
+    for (int j = 0; j < bh; j++) {
+        int screen_y = y + j;
+        if (screen_y < 0 || screen_y >= height) continue;
+
+        for (int i = 0; i < bw; i++) {
+            int screen_x = x + i;
+            if (screen_x < 0 || screen_x >= width) continue;
+
+            uint8 alpha = bitmap[j * bw + i];
+            if (alpha == 0) continue;
+
+            if (alpha == 255) {
+                draw_point(screen_x, screen_y, color);
+            } else {
+                uint16 bg = buffer[screen_y * width + screen_x];
+                
+                // 使用传入的 color 进行精确混合
+                uint8 r = ((((color >> 11) & 0x1F) * alpha) + (((bg >> 11) & 0x1F) * (255 - alpha))) >> 8;
+                uint8 g = ((((color >> 5) & 0x3F) * alpha) + (((bg >> 5) & 0x3F) * (255 - alpha))) >> 8;
+                uint8 b = (((color & 0x1F) * alpha) + ((bg & 0x1F) * (255 - alpha))) >> 8;
+
+                draw_point(screen_x, screen_y, (uint16)((r << 11) | (g << 5) | b));
+            }
+        }
+    }
+}
+
+void zf_device_ips200::_print_internal(uint16 x, uint16 y, uint16 color, float size, const char* text) {
+    if (!f_info) return;
+
+    float scale = stbtt_ScaleForPixelHeight(f_info, size);
+    int cur_x = x;
+    int cur_y = y;
+    int ascent, descent, lineGap;
+    
+    stbtt_GetFontVMetrics(f_info, &ascent, &descent, &lineGap);
+    int baseline = (int)(ascent * scale);
+
+    const char* ptr = text;
+    while (*ptr != '\0') {
+        uint32_t codepoint;
+        
+        // 1. 处理换行
+        if (*ptr == '\n') {
+            cur_x = x;
+            cur_y += (int)((ascent - descent + lineGap) * scale);
+            ptr++;
+            continue;
+        }
+
+        // 2. 解码获取 Unicode 码点
+        ptr = get_next_utf8_char(ptr, &codepoint);
+
+        // 3. 获取字符水平度量
+        int advance, lsb;
+        stbtt_GetCodepointHMetrics(f_info, codepoint, &advance, &lsb);
+
+        // 4. 获取字符包围盒（计算 bitmap 的宽高）
+        int x1, y1, x2, y2;
+        stbtt_GetCodepointBitmapBox(f_info, codepoint, scale, scale, &x1, &y1, &x2, &y2);
+
+        int bitmap_w = x2 - x1;
+        int bitmap_h = y2 - y1;
+        
+        // 5. 渲染位图到缓冲区
+        if (bitmap_w > 0 && bitmap_h > 0) {
+            uint8_t* target_ptr = glyph_render_buf; // 指向你在类里定义的静态数组
+            bool is_heap = false;
+
+            // 检查预设 buffer (16384 字节, 对应 128x128 像素) 是否够用
+            if (bitmap_w * bitmap_h > 16384) {
+                target_ptr = new uint8_t[bitmap_w * bitmap_h];
+                is_heap = true;
+            }
+
+            // 生成灰度位图
+            stbtt_MakeCodepointBitmap(f_info, target_ptr, bitmap_w, bitmap_h, bitmap_w, scale, scale, codepoint);
+
+            // 6. 将位图混合到屏幕 Buffer
+            render_glyph_to_buffer(
+                cur_x + (int)(lsb * scale), 
+                cur_y + baseline + y1, 
+                target_ptr, 
+                bitmap_w, 
+                bitmap_h, 
+                color
+            );
+
+            // 如果用了堆内存，记得释放
+            if (is_heap) delete[] target_ptr;
+        }
+
+        // 7. 移动光标位置
+        cur_x += (int)(advance * scale);
+    }
+}
+#endif
+// 重载 1：使用类默认参数
+void zf_device_ips200::print(uint16 x, uint16 y, const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+#if WHETHER_USE_TTF
+    this->_print_internal(x, y, this->pen_color, this->current_font_size, buf);
+#else
+    this->show_string(x, y, buf);
+#endif
+}
+
+// 重载 2：使用指定颜色和大小
+void zf_device_ips200::print(uint16 x, uint16 y, uint16 color, float size, const char* fmt, ...) {
+    char buf[512];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+#if WHETHER_USE_TTF
+    this->_print_internal(x, y, color, size, buf);
+#else
+    // 如果没有开启 TTF，指定的大小将被忽略，只使用指定的颜色（如果 show_string 支持）
+    uint16 old_color = this->pen_color;
+    this->pen_color = color;
+    this->show_string(x, y, buf);
+    this->pen_color = old_color; // 恢复颜色
+#endif
 }

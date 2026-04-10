@@ -1,0 +1,2 @@
+# Hashes of file build rules.
+aee3939e572b2fcd6cf3c456b6d304b8 font_data.cpp

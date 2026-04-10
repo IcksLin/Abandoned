@@ -318,6 +318,7 @@ CMakeFiles/project.dir/main.cpp.o: \
  /home/heavencornerstone/my_project/project/user/../../libraries/zf_device/zf_device_imu.hpp \
  /home/heavencornerstone/my_project/project/user/../../libraries/zf_device/zf_device_ips200_fb.hpp \
  /opt/ls_2k0300_env/loongson-gnu-toolchain-8.3-x86_64-loongarch64-linux-gnu-rc1.6/loongarch64-linux-gnu/sysroot/usr/include/c++/8.3.0/algorithm \
+ /home/heavencornerstone/my_project/project/user/../../libraries/zf_device/stb_truetype.h \
  /home/heavencornerstone/my_project/project/user/../../libraries/zf_device/zf_device_uvc.hpp \
  /opt/ls_2k0300_env/opencv_4_10_build/include/opencv4/opencv2/imgproc/imgproc.hpp \
  /opt/ls_2k0300_env/opencv_4_10_build/include/opencv4/opencv2/imgproc.hpp \

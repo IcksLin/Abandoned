@@ -18,9 +18,7 @@ int main()
     {
         printf("key scaning thread init successfully,period: %dms\n", KEY_SCAN_PERIOD);
     }
-    // ips200.init("/dev/fb0");
-    // ips200.clear();
-    // ips200.update();
+
     menu_system.init();
 
 
