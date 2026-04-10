@@ -233,7 +233,7 @@ bool car_init(){
 
     // 6. 初始化菜单系统
     printf("------------初始化菜单系统------------\n");
-    menu_system.init_menu();
+    // menu_system.init_menu();
 
     // printf("8. 初始化图像分类组件...\n");
     // if (!ncnn_classifier.init("/home/root/models/model_1/tiny_classifier_fp32.ncnn.param", "/home/root/models/model_1/tiny_classifier_fp32.ncnn.bin")) {

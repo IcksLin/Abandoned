@@ -251,6 +251,22 @@ void zf_device_ips200::show_float(uint16 x, uint16 y, const double dat, uint8 nu
     show_string(x, y, data_buffer);
 }
 
+// 前面的显示函数还是太麻烦了，都龙芯了，还是print省事
+void zf_device_ips200::print(uint16 x, uint16 y, const char* fmt, ...)
+{
+    char buffer[512]; // 根据需求调整缓冲区大小
+    va_list args;
+    va_start(args, fmt);
+    
+    // 使用标准库函数将格式化内容填入 buffer
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    
+    va_end(args);
+
+    // 调用你现有的 show_string 显示生成的字符串
+    this->show_string(x, y, buffer);
+}
+
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介     显示灰度图像
 //-------------------------------------------------------------------------------------------------------------------

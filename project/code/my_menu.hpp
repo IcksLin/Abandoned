@@ -25,20 +25,20 @@
 #define MENU_TEXT_COLOR     0x0000  // 黑色文字
 #define MENU_SELECT_COLOR   0x001F  // 蓝色选中框
 
+#define IPS_DEVICE_PATH     "/dev/fb0"
+
 // 菜单结构体
 typedef struct Menu {
-    const char *name;
     int id;
-    void (*func)();
-    struct Menu *parent;
-    struct Menu *child;
-    struct Menu *sibling;
+    int parent_id;
+
+    const char *name;
+    void (*handler)(uint8 action);
 } Menu;
 
 // 前向声明
 class MyMenu;
 
-// 全局函数指针，用于访问MyMenu实例的option_func
 extern MyMenu* g_menu_instance;
 
 class MyMenu {
@@ -49,73 +49,23 @@ private:
     uint8 mode_inter_flag;        // 模式交互标志位
 
     // 菜单项定义
-    Menu main_menu;
-    Menu mode1, mode2, mode3, mode4, mode5;
-    Menu Pid_Set, car_pid, tripod_pid;
-    Menu gray_calibration, IMU_angle;
-    Menu map_record,path_reproduction;
-    Menu brushless_motor_set;
-    
+    static Menu menu_table[];
+    static const int MENU_TABLE_SIZE;
+
     MyMenu(const MyMenu&) = delete;
     MyMenu& operator=(const MyMenu&) = delete;
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 获取同级菜单的上一个
-// 参数说明 current 当前菜单项
-// 返回参数 Menu* 上一个同级菜单项指针
-// 使用示例 内部使用
-// 备注信息 从parent的child链表遍历查找
-//-------------------------------------------------------------------------------------------------------------------
-    Menu* menu_get_prev_sibling(Menu *current);
+    // 根据 ID 查找菜单项指针
+    Menu* find_menu_by_id(int id);
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 初始化菜单父子关系
-// 参数说明 无
-// 返回参数 无
-// 使用示例 内部使用
-// 备注信息 设置每个菜单项的parent指针
-//-------------------------------------------------------------------------------------------------------------------
-    void init_menu_parents(void);
+    Menu* get_first_child(int parent_id);
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 菜单导航函数
-// 参数说明 current 当前菜单项
-// 参数说明 action 菜单动作
-// 返回参数 Menu* 导航后的菜单项指针
-// 使用示例 内部使用
-// 备注信息 根据动作进行菜单导航
-//-------------------------------------------------------------------------------------------------------------------
     Menu* menu_navigate(Menu *current, MenuAction action);
 
 public:
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 构造函数
-// 参数说明 key_mgr 按键管理器指针
-// 参数说明 ips_disp IPS显示屏对象指针
-// 返回参数 无
-// 使用示例 MyMenu menu_system(&key_manager, &ips200);
-// 备注信息 初始化菜单系统和菜单结构
-//-------------------------------------------------------------------------------------------------------------------
     MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp);
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 析构函数
-// 参数说明 无
-// 返回参数 无
-// 使用示例 自动调用
-// 备注信息 清理资源
-//-------------------------------------------------------------------------------------------------------------------
-    ~MyMenu();
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 初始化菜单系统
-// 参数说明 无
-// 返回参数 无
-// 使用示例 menu_system.init_menu();
-// 备注信息 初始化菜单结构体和显示
-//-------------------------------------------------------------------------------------------------------------------
-    void init_menu(void);
-
+    void init();
 //-------------------------------------------------------------------------------------------------------------------
 // 函数简介 菜单系统主循环
 // 参数说明 无
@@ -125,22 +75,8 @@ public:
 //-------------------------------------------------------------------------------------------------------------------
     void menu_system(void);
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 绘制菜单显示
-// 参数说明 selected_menu 选中的菜单项
-// 返回参数 无
-// 使用示例 内部使用或外部调用显示
-// 备注信息 在OLED上绘制菜单界面
-//-------------------------------------------------------------------------------------------------------------------
     void draw_menu(Menu *selected_menu);
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 获取当前菜单
-// 参数说明 无
-// 返回参数 Menu* 当前菜单指针
-// 使用示例 Menu* current = menu_system.get_current_menu();
-// 备注信息 获取当前选中的菜单项
-//-------------------------------------------------------------------------------------------------------------------
     Menu* get_current_menu(void);
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -162,20 +98,18 @@ public:
     uint8 get_mode_inter_flag(void);
 
     // 菜单回调函数声明
-    void menu_mode_0(uint8 cl_action);
-    void menu_mode_1(uint8 cl_action);
-    void menu_mode_2(uint8 cl_action);
-    void menu_mode_3(uint8 cl_action);
-    void menu_mode_4(uint8 cl_action);
-    void menu_mode_6(uint8 cl_action);
-    void menu_mode_9(uint8 cl_action);
-    void menu_mode_10(uint8 cl_action);
-    void menu_mode_11(uint8 cl_action);
-    void menu_mode_12(uint8 cl_action);
-    void option_func(void);
+    static void menu_mode_0(uint8 cl_action);
+    static void menu_mode_1(uint8 cl_action);
+    static void menu_mode_2(uint8 cl_action);
+    static void menu_mode_3(uint8 cl_action);
+    static void key_remap_test(uint8 cl_action);
+    static void menu_mode_6(uint8 cl_action);
+    static void imu_angle_display(uint8 cl_action);
+    static void get_map(uint8 cl_action);
+    static void tracking_by_map(uint8 cl_action);
+    static void brushless_calibration(uint8 cl_action);
+    static void option_func(void);
     
-    // 静态包装函数，用于菜单回调
-    static void static_option_func(void);
 };
 
 #endif
