@@ -1,0 +1,21 @@
+# --- 编译产物 ---
+project/out/      # 你的 CMake/Make 输出目录
+*.o               # 对象文件
+*.d               # 依赖文件
+*.o.d             # 静态链接依赖
+project/out/project  # 最终生成的可执行程序
+
+# --- CMake 缓存 ---
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# --- 编辑器相关 ---
+.vscode/          # VS Code 配置
+.idea/            # JetBrains 配置
+*.swp             # Vim 临时文件
+.DS_Store         # macOS 系统文件
+
+# --- 其他 ---
+build/            # 常用的构建文件夹名称
