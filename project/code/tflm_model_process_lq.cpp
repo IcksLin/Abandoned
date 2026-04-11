@@ -17,7 +17,6 @@ bool LQ_NCNN::init(const std::string& param_path, const std::string& bin_path,in
     kInputWidth = input_width;
     kInputHeight = input_height;
 
-    // 针对龙芯等嵌入式优化配置
     net_.opt.use_vulkan_compute = false;
     net_.opt.num_threads = 1; // 2K0300 建议单线程或根据核心数调整
     net_.opt.use_fp16_packed = true;

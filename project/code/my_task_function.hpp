@@ -18,7 +18,6 @@
 void thread_callback_test();
 void camera_test();
 
-void show_all_of_the_component();
 void show_all_of_the_component_without_ips();
 void send_picture_to_Serve();
 void tracking();

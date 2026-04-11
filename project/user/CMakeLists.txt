@@ -54,14 +54,54 @@ macro(add_dir_to_srcs DIR_PATH)
     endif()
 endmacro()
 
-# 仅收集当前项目所需的目录
+# 收集基础目录
 add_dir_to_srcs(../user)
 add_dir_to_srcs(../code)
-add_dir_to_srcs(../model) # 存放新的 .param 和 .bin 
+add_dir_to_srcs(../model)
 add_dir_to_srcs(../../libraries/zf_common)
 add_dir_to_srcs(../../libraries/zf_device)
 add_dir_to_srcs(../../libraries/zf_driver)
 add_dir_to_srcs(../../libraries/zf_components)
+
+# --- 关键修改：将 TTF 逻辑放在 DIR_SRCS 初始化之后 ---
+option(USE_TTF "Whether to use Vector Fonts" ON) 
+
+if(USE_TTF)
+    add_definitions(-DWHETHER_USE_TTF=1)
+    
+    set(FONT_INPUT_FILE "${CMAKE_CURRENT_LIST_DIR}/../../assets/fonts/MiSans_Mini.ttf")
+    # 建议放到二进制生成目录，避免污染源码
+    set(FONT_OUTPUT_CPP "${CMAKE_BINARY_DIR}/font_data.cpp")
+    
+    # add_custom_command(
+    #     OUTPUT ${FONT_OUTPUT_CPP}
+    #     COMMAND xxd -i JetBrainsMono-Bold.ttf ${FONT_OUTPUT_CPP}
+    #     # 这里的 WORKING_DIRECTORY 必须是 ttf 所在的物理目录
+    #     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../../assets/fonts"
+    #     DEPENDS ${FONT_INPUT_FILE}
+    #     COMMENT "Generating C++ source from JetBrainsMono-Bold.ttf"
+    # )
+
+    set(FONT_OUTPUT_CPP "${CMAKE_BINARY_DIR}/font_data.cpp")
+
+    add_custom_command(
+        OUTPUT ${FONT_OUTPUT_CPP}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}"
+
+        COMMAND sh -c "echo 'unsigned char vector_font_data[] = {' > ${FONT_OUTPUT_CPP} && xxd -i < ${FONT_INPUT_FILE} >> ${FONT_OUTPUT_CPP} && echo '};' >> ${FONT_OUTPUT_CPP}"        
+        DEPENDS ${FONT_INPUT_FILE}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../../assets/fonts"
+        COMMENT "Generating font data into ${FONT_OUTPUT_CPP}"
+        VERBATIM
+    )
+    
+    # 将生成的 cpp 文件加入源码列表
+    list(APPEND DIR_SRCS ${FONT_OUTPUT_CPP})
+    message(STATUS "TTF Font Support: ENABLED (Source: ${FONT_INPUT_FILE})")
+else()
+    add_definitions(-DWHETHER_USE_TTF=0)
+    message(STATUS "TTF Font Support: DISABLED")
+endif()
 
 # 6. 生成可执行文件
 add_executable(${PROJ_NAME} ${DIR_SRCS})

@@ -5,320 +5,223 @@
 * 日期              作者                        备注
 * 2026-01-22        HeavenCornerstone         
 ********************************************************************************************************************/
-
-
 #include "my_menu.hpp"
 #include "my_task_function.hpp"
 
 // 全局菜单实例指针
 MyMenu* g_menu_instance = nullptr;
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 构造函数
-// 参数说明 key_mgr 按键管理器指针
-// 参数说明 ips_disp IPS显示屏对象指针
-// 返回参数 无
-// 使用示例 MyMenu menu_system(&key_manager, &ips200);
-// 备注信息 初始化菜单系统和菜单结构
-//-------------------------------------------------------------------------------------------------------------------
-MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) : key_manager(key_mgr), ips_display(ips_disp), mode_inter_flag(0)
+Menu MyMenu::menu_table[] = {
+    // ID, ParentID, Name, Function
+    { 0 ,-1,"Main Menu",nullptr },
+    { 1 ,0,"mode1",nullptr},
+    { 2 ,0,"mode2",nullptr},
+    { 3 ,0,"mode3",nullptr},
+    { 4 ,0,"mode4",nullptr},
+    { 5 ,0,"mode5",nullptr},
+    { 6 ,0,"mode6",nullptr},
+    { 7 ,0,"mode7",nullptr},
+    { 8 ,1,"key_remap_test",MyMenu::key_remap_test},
+    { 9 ,1,"imu_angle_display",MyMenu::imu_angle_display},
+    { 10,2,"brushless_calibration",MyMenu::brushless_calibration}
+};
+
+//计算table大小
+const int MyMenu::MENU_TABLE_SIZE = sizeof(MyMenu::menu_table) / sizeof(Menu);
+
+MyMenu::MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp) 
+    : key_manager(key_mgr), ips_display(ips_disp), mode_inter_flag(0) 
 {
-    // 设置全局实例指针
+    //赋值操作，硬件初始化在init函数中进行
     g_menu_instance = this;
-    
-    // 初始化菜单项
-    main_menu = {"Main Menu", -1, nullptr, nullptr, nullptr, nullptr};
-    
-    mode1 = {"Run By Image", 0, static_option_func, nullptr, nullptr, nullptr};
-    mode2 = {"Inertial navigation", 1, static_option_func, nullptr, nullptr, nullptr};
-    mode3 = {"Config_calibration", 2, static_option_func, nullptr, nullptr, nullptr};
-    mode4 = {"Mode4", 3, static_option_func, nullptr, nullptr, nullptr};
-    mode5 = {"Mode5", 4, static_option_func, nullptr, nullptr, nullptr};
-    
-    Pid_Set = {"Set_PID", 5, static_option_func, nullptr, nullptr, nullptr};
-    car_pid = {"Car_PID", 6, static_option_func, nullptr, nullptr, nullptr};
-    tripod_pid = {"Tripod_PID", 7, static_option_func, nullptr, nullptr, nullptr};
-    gray_calibration = {"Gray_Calibration", 8, static_option_func, nullptr, nullptr, nullptr};
-    IMU_angle = {"IMU_Angle", 9, static_option_func, nullptr, nullptr, nullptr};
-    map_record = {"Map record",10,static_option_func,nullptr,nullptr,nullptr};
-    path_reproduction = {"Path reproduction",11,static_option_func,nullptr,nullptr,nullptr};
-    brushless_motor_set = {"Brushless_motor_set",12,static_option_func,nullptr,nullptr,nullptr};
-    
-    current_menu = &main_menu;
+    current_menu = &menu_table[0]; 
 }
 
-MyMenu::~MyMenu()
-{
-    // 清除全局实例指针
-    if(g_menu_instance == this)
-    {
-        g_menu_instance = nullptr;
+void MyMenu::init(){
+    g_menu_instance->ips_display->init(IPS_DEVICE_PATH);
+    g_menu_instance->ips_display->clear();
+    draw_menu(current_menu);
+    g_menu_instance->ips_display->update();
+
+}
+
+// 根据 ID 查找菜单项指针
+Menu* MyMenu::find_menu_by_id(int id) {
+    if (id == -1) return nullptr;
+    for (int i = 0; i < MENU_TABLE_SIZE; i++) {
+        if (menu_table[i].id == id) return &menu_table[i];
     }
+    return nullptr;
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 初始化菜单父子关系
-// 参数说明 无
-// 返回参数 无
-// 使用示例 内部使用
-// 备注信息 设置每个菜单项的parent指针
-//-------------------------------------------------------------------------------------------------------------------
-void MyMenu::init_menu_parents(void)
-{
-    // 设置主菜单的子菜单链表
-    main_menu.child = &mode1;
-    
-    // 设置模式菜单的兄弟关系和父菜单
-    mode1.parent = &main_menu;
-    mode1.sibling = &mode2;
-    
-    mode2.parent = &main_menu;
-    mode2.child  = &map_record;
-    mode2.sibling = &mode3;
-    
-    mode3.parent = &main_menu;
-    mode3.sibling = &mode4;
-    mode3.child = &brushless_motor_set;
-    
-    mode4.parent = &main_menu;
-    mode4.sibling = &mode5;
-    
-    mode5.parent = &main_menu;
-    mode5.child = &Pid_Set;
-    mode5.sibling = nullptr;
-    
-    // 设置PID设置菜单
-    Pid_Set.parent = &mode5;
-    Pid_Set.child = &tripod_pid;
-    Pid_Set.sibling = &gray_calibration;
-    
-    car_pid.parent = &mode3;
-    car_pid.sibling = nullptr;
-    
-    tripod_pid.parent = &mode5;
-    tripod_pid.sibling = nullptr;
-    
-    gray_calibration.parent = &mode5;
-    gray_calibration.sibling = &IMU_angle;
-    
-    // 陀螺仪演示
-    IMU_angle.parent = &mode5;
-    IMU_angle.sibling = nullptr;
-
-    // 路径录制器
-    map_record.parent = &mode2;
-    map_record.sibling = &path_reproduction;
-
-    // 路径复现器
-    path_reproduction.parent = &mode2;
-    path_reproduction.sibling = nullptr;
-
-    //无刷电机校准
-    brushless_motor_set.parent = &mode3;
-    brushless_motor_set.sibling = &car_pid;
-}
-
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 获取同级菜单的上一个
-// 参数说明 current 当前菜单项
-// 返回参数 Menu* 上一个同级菜单项指针
-// 使用示例 内部使用
-// 备注信息 从parent的child链表遍历查找
-//-------------------------------------------------------------------------------------------------------------------
-Menu* MyMenu::menu_get_prev_sibling(Menu *current)
-{
-    if (!current || !current->parent || current->parent->child == current)
-        return nullptr;
-        
-    Menu *p = current->parent->child;
-    while (p && p->sibling != current)
-    {
-        p = p->sibling;
+Menu* MyMenu::get_first_child(int parent_id) {
+    for (int i = 0; i < MENU_TABLE_SIZE; i++) {
+        if (menu_table[i].parent_id == parent_id) return &menu_table[i];
     }
-    return p;
+    return nullptr;
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 菜单导航函数
-// 参数说明 current 当前菜单项
-// 参数说明 action 菜单动作
-// 返回参数 Menu* 导航后的菜单项指针
-// 使用示例 内部使用
-// 备注信息 根据动作进行菜单导航
-//-------------------------------------------------------------------------------------------------------------------
 Menu* MyMenu::menu_navigate(Menu *current, MenuAction action)
 {
-    if (!current)
-        return nullptr;
+    if (!current) return &menu_table[0];
+    int curr_idx = current - menu_table; // 计算当前指针在数组中的下标
 
     switch (action)
     {
     case MENU_UP:
     {
-        Menu *prev = menu_get_prev_sibling(current);
-        if (prev)
-            return prev;
-        break;
+        // 向上找：在当前项之前，寻找第一个 parent_id 相同的项
+        for (int i = curr_idx - 1; i >= 0; i--) {
+            if (menu_table[i].parent_id == current->parent_id) {
+                return &menu_table[i];
+            }
+        }
+        break; // 没找到，维持现状
     }
     case MENU_DOWN:
-        if (current->sibling)
-            return current->sibling;
+    {
+        // 向下找：在当前项之后，寻找第一个 parent_id 相同的项
+        for (int i = curr_idx + 1; i < MENU_TABLE_SIZE; i++) {
+            if (menu_table[i].parent_id == current->parent_id) {
+                return &menu_table[i];
+            }
+        }
         break;
+    }
     case MENU_OK:
-        if (current->child)
-        {
-            return current->child;
+    {
+        // 1. 优先检查是否有子菜单
+        Menu* child = get_first_child(current->id);
+        if (child) {
+            return child; // 发现子菜单，进入下一层，不改变 flag
         }
-        else
-        {
-            if (current->func)
-                current->func();
-            return current;
+        
+        // 2. 如果没有子菜单，说明这是一个功能叶子节点
+        if (current->handler != nullptr) {
+            //修改标志位，进入菜单交互
+            this->mode_inter_flag = 1; 
+            ips_display->clear();
+
         }
-        break;
-    case MENU_BACK:
-        if (current->parent)
-            return current->parent;
-        break;
-    default:
         return current;
     }
-
-    // 若无可跳转项，返回自身
+    case MENU_BACK:
+    {
+        // 返回父节点
+        Menu* parent = find_menu_by_id(current->parent_id);
+        return parent ? parent : current;
+    }
+    default:
+        break;
+    }
     return current;
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 初始化菜单系统
-// 参数说明 无
-// 返回参数 无
-// 使用示例 menu_system.init_menu();
-// 备注信息 初始化菜单结构体和显示
-//-------------------------------------------------------------------------------------------------------------------
-void MyMenu::init_menu(void)
-{
-    // 初始化菜单结构体
-    init_menu_parents();
-    current_menu = &main_menu;
-    ips_display->clear();
-}
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 绘制菜单显示
-// 参数说明 selected_menu 选中的菜单项
-// 返回参数 无
-// 使用示例 内部使用或外部调用显示
-// 备注信息 在IPS屏幕上绘制菜单界面
-//-------------------------------------------------------------------------------------------------------------------
 void MyMenu::draw_menu(Menu *selected_menu)
 {
-    // 1. 找到同级菜单链表头
-    Menu *head = selected_menu;
-    while (head->parent && head->parent->child && head->parent->child != head)
+    if (!selected_menu) return;
+
+    // 1. 统计当前层级并找到选中项序号
+    int p_id = selected_menu->parent_id;
+    int total_in_level = 0;
+    int selected_index_in_level = -1;
+
+    for (int i = 0; i < MENU_TABLE_SIZE; i++)
     {
-        head = head->parent->child;
+        if (menu_table[i].parent_id == p_id)
+        {
+            if (&menu_table[i] == selected_menu)
+                selected_index_in_level = total_in_level;
+            total_in_level++;
+        }
     }
 
-    // 2. 遍历同级链表，统计总数和选中项序号
-    int total = 0;
-    int selected_index = -1;
-    Menu *iter = head;
-    while (iter)
-    {
-        if (iter == selected_menu)
-            selected_index = total;
-        total++;
-        iter = iter->sibling;
-    }
-
-    // 3. 计算分页起点
+    // 2. 计算滚动分页逻辑 (保持原样)
     uint8 page_start = 0;
-    if (selected_index >= MENU_MAX_ROW)
-        page_start = selected_index - (MENU_MAX_ROW - 1);
+    if (selected_index_in_level >= MENU_MAX_ROW)
+        page_start = selected_index_in_level - (MENU_MAX_ROW - 1);
 
-    // 4. 定位到page_start
-    iter = head;
-    for (int i = 0; i < page_start && iter; ++i)
-        iter = iter->sibling;
-
-    // 5. 清屏并显示菜单项
+    // 3. 执行绘制
     ips_display->clear();
-    
-    for (int row = 0; row < MENU_MAX_ROW && iter; row++)
+
+    int current_item_count = 0; 
+    int display_row = 0;         
+
+    // 定义菜单布局参数
+    const uint16 ITEM_HEIGHT = 28; // 由于使用了 TTF 24号字，行高建议设为 28-32
+
+    for (int i = 0; i < MENU_TABLE_SIZE; i++)
     {
-        uint16 y = row * FONT_H;
-        
-        // 如果是选中项，绘制选中框
-        if ((page_start + row) == selected_index)
+        if (menu_table[i].parent_id == p_id)
         {
-            // 绘制选中框背景
-            for(uint16 i = 0; i < FONT_W * 20; i++) // 假设菜单项最长20个字符
+            if (current_item_count >= page_start && display_row < MENU_MAX_ROW)
             {
-                for(uint16 j = 0; j < FONT_H; j++)
+                uint16 y_offset = display_row * ITEM_HEIGHT;
+
+                if (&menu_table[i] == selected_menu)
                 {
-                    ips_display->draw_point(i, y + j, MENU_SELECT_COLOR);
+                    // --- 优化：绘制选中背景 ---
+                    // 建议封装此功能，直接操作 buffer 以节省性能
+                    // 这里直接调用你类的 pen_color 或者显式传参
+                    ips_display->fill_rect(0, y_offset, ips_display->get_width(), ITEM_HEIGHT, MENU_SELECT_COLOR);
+
+                    // --- 使用样式版 print：白色高亮文字 ---
+                    // 假设选中时文字为白色，字号 24
+                    ips_display->print(8, y_offset + 2, RGB565_WHITE, MENU_FONT_SIZE, menu_table[i].name);
                 }
+                else
+                {
+                    // --- 使用标准版 print：默认颜色文字 ---
+                    // 假设非选中时使用默认画笔颜色
+                    ips_display->print(8, y_offset + 2, menu_table[i].name);
+                }
+                display_row++;
             }
-            // 显示选中项文字（白色）
-            ips_display->show_string(2, y + 2, iter->name);
+            current_item_count++;
         }
-        else
-        {
-            // 显示普通菜单项（黑色文字）
-            ips_display->show_string(2, y + 2, iter->name);
-        }
-        
-        iter = iter->sibling;
     }
     ips_display->update();
 }
 
-//-------------------------------------------------------------------------------------------------------------------
-// 函数简介 菜单系统主循环
-// 参数说明 无
-// 返回参数 无
-// 使用示例 menu_system.menu_system();
-// 备注信息 处理按键输入和菜单显示，需要在主循环中调用
-//         当一个菜单下有挂载子菜单后，该菜单对应id的任务函数需要沉默
-//         否则无法进入子菜单
-//-------------------------------------------------------------------------------------------------------------------
 void MyMenu::menu_system(void)
 {
-    static uint8 cl_action = 0;
-    cl_action = key_manager->get_menu_action(); // 获取菜单动作
+    uint8 cl_action = key_manager->get_menu_action(); // 获取菜单动作
+    if (cl_action == WAITING) return;                 // 无按键则跳过
 
     if (mode_inter_flag == 0)
     {
-        current_menu = menu_navigate(current_menu, (MenuAction)cl_action);
-        draw_menu(current_menu);
+        uint8 pre_flag = mode_inter_flag; 
         
+        // 1. 正常的菜单导航模式
+        Menu* next_menu = menu_navigate(current_menu, (MenuAction)cl_action);
+        
+        // 如果菜单项发生了切换，刷新菜单界面
+        if (next_menu != current_menu) {
+            current_menu = next_menu;
+            draw_menu(current_menu);
+        }
+        else if (mode_inter_flag != pre_flag && mode_inter_flag == 1) {
+            if (current_menu->handler != nullptr) {
+                // 此时 flag 刚变 1，通常需要立即执行一次 handler(ENTER) 来初始化功能界面
+                current_menu->handler(cl_action);
+            }
+        }
     }
     else
-    {
-        // 处理菜单回调函数
-        switch (current_menu->id)
-        {
-        case 0:
-            menu_mode_0(cl_action);
-            break;
-        case 4:
-            menu_mode_4(cl_action);
-            break;
-        case 9:
-            menu_mode_9(cl_action);
-            break;
-        case 10:
-            menu_mode_10(cl_action);
-            break;
-        case 11:
-            menu_mode_11(cl_action);
-            break;
-        case 12:
-            menu_mode_12(cl_action);
-            break;
-        default:
-            mode_inter_flag = 0; // 重置标志
-            break;
+    {   
+        uint8 pre_flag = mode_inter_flag;
+        
+        // 2. 模式交互模式：直接调用当前菜单绑定的函数
+        if (current_menu->handler != nullptr) {
+            current_menu->handler(cl_action);
+        } else {
+            mode_inter_flag = 0; // 防御性逻辑
+        }
+
+        // 退出交互模式回到菜单导航时，立即刷新菜单页面
+        if (pre_flag == 1 && mode_inter_flag == 0) {
+            draw_menu(current_menu); 
         }
     }
 }
@@ -359,26 +262,10 @@ uint8 MyMenu::get_mode_inter_flag(void)
     return mode_inter_flag;
 }
 
-// 菜单回调函数实现（示例）
-void MyMenu::option_func(void)
-{
-    if (mode_inter_flag == 0)
-        mode_inter_flag = 1;
-    return;
-}
-
-// 静态包装函数
-void MyMenu::static_option_func(void)
-{
-    if(g_menu_instance != nullptr)
-    {
-        g_menu_instance->option_func();
-    }
-}
-
-// 菜单功能函数，命名规范为 menu_mode_X，其中X为菜单项id-------------------------------------------------------------------
+// 菜单功能函数，依照函数功能，注意维护id-------------------------------------------------------------------
 void MyMenu::menu_mode_0(uint8 cl_action)
 {
+    if(g_menu_instance==nullptr) return;
     // 模式0的具体实现
     switch (cl_action)
     {
@@ -390,19 +277,18 @@ void MyMenu::menu_mode_0(uint8 cl_action)
     case 2: // 下键
         break;
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
     default:
         break;
-    }
-    
-    // 显示模式0信息
-    // show_all_of_the_component_without_ips();
+    }  
+
     tracking();
 }
 
 void MyMenu::menu_mode_1(uint8 cl_action)
 {
+    if(g_menu_instance==nullptr) return;
     // 模式1的具体实现
     switch (cl_action)
     {
@@ -410,12 +296,11 @@ void MyMenu::menu_mode_1(uint8 cl_action)
         // 启动模式1
         break;
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
     default:
         break;
     }
-    
     // 显示模式1信息
     // send_picture_to_Serve();
     // tracking();
@@ -430,14 +315,12 @@ void MyMenu::menu_mode_2(uint8 cl_action)
         // 启动模式2
         break;
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
     default:
         break;
     }
     
-    // 显示模式2信息
-    // tracking();
 }
 
 void MyMenu::menu_mode_3(uint8 cl_action)
@@ -449,35 +332,51 @@ void MyMenu::menu_mode_3(uint8 cl_action)
         // 启动模式3
         break;
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
     default:
         break;
     }
     
     // 显示模式3信息
-    ips_display->clear();
-    ips_display->show_string(0, 0, "Mode 3 Active");
+    g_menu_instance->ips_display->clear();
+    g_menu_instance->ips_display->show_string(0, 0, "Mode 3 Active");
 }
 
-void MyMenu::menu_mode_4(uint8 cl_action)
+void MyMenu::key_remap_test(uint8 cl_action)
 {
+    static int temp_test = 0;
     // 模式4的具体实现
     switch (cl_action)
     {
-    case 0: // 确认键
-        // 启动模式4
+    case 0: 
+        temp_test++;
+        break;
+    case 1:
+        temp_test--;
+        break;
+    case 2:
+        temp_test = 0;
         break;
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
     default:
         break;
     }
     
     // 显示模式4信息
-    ips_display->clear();
-    ips_display->show_string(0, 0, "Mode 4 Active");
+    g_menu_instance->ips_display->clear();
+    g_menu_instance->ips_display->print(0, 0, "this is model 4!");
+    g_menu_instance->ips_display->print(0, 16, "key remap test:1.+;2.-;");
+    g_menu_instance->ips_display->print(0, 32, "     3.set 0;4.return;");
+    g_menu_instance->ips_display->print(0,3*16,"-------\ntest num:%d\n--------",temp_test);
+    g_menu_instance->ips_display->print(0,7*16,"你好，世界");
+    g_menu_instance->ips_display->print(0,7*16+24,DEFAULT_PENCOLOR,36,"你好，世界");
+    g_menu_instance->ips_display->print(0,7*16+24+36,DEFAULT_PENCOLOR,48,"你好，世界");
+    g_menu_instance->ips_display->print(0,7*16+24+36+48,DEFAULT_PENCOLOR,64,"你好，世界");
+    g_menu_instance->ips_display->update();
+    
 }
 
 void MyMenu::menu_mode_6(uint8 cl_action)
@@ -491,7 +390,7 @@ void MyMenu::menu_mode_6(uint8 cl_action)
     case 1: // +
         break;
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
     default:
         break;
@@ -499,38 +398,27 @@ void MyMenu::menu_mode_6(uint8 cl_action)
 }
 
 
-void MyMenu::menu_mode_9(uint8 cl_action)
+void MyMenu::imu_angle_display(uint8 cl_action)
 {
     // IMU角度显示模式
     switch (cl_action)
     {
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
     default:
         break;
     }
-    
-    // // 显示IMU角度信息（需要用户提供实际的IMU数据变量）
-    // ips_display->clear();
-    // ips_display->show_string(0, 0, "IMU Angle");
-    // ips_display->show_string(0, 1 * 16, "Roll:");
-    // // ips_display->show_float(5 * 8, 1 * 16, Roll_copy, 3, 2);
-    // ips_display->show_string(0, 2 * 16, "Pitch:");
-    // // ips_display->show_float(5 * 8, 2 * 16, Pitch_copy, 3, 2);
-    // ips_display->show_string(0, 3 * 16, "Yaw:");
-    // // ips_display->show_float(5 * 8, 3 * 16, Yaw_copy, 3, 2);
-    printf("yaw: %f\r", ahrs.getYaw());
 }
 
 // 惯性导航地图记录界面
-void MyMenu::menu_mode_10(uint8 cl_action) {
+void MyMenu::get_map(uint8 cl_action) {
     if (!path_tracker_component.is_recording) {
-        ips200.show_string(1,1,"1, record");
-        ips200.show_string(1,1+1*16,"2, clear_map");
-        ips200.show_string(1,1+2*16,"3, insert_map");
-        ips200.show_string(1,1+4*16,"4, return");
-        ips200.update();
+        g_menu_instance->ips_display->show_string(1,1,"1, record");
+        g_menu_instance->ips_display->show_string(1,1+1*16,"2, clear_map");
+        g_menu_instance->ips_display->show_string(1,1+2*16,"3, insert_map");
+        g_menu_instance->ips_display->show_string(1,1+4*16,"4, return");
+        g_menu_instance->ips_display->update();
     }
 
     switch (cl_action) {
@@ -594,7 +482,7 @@ void MyMenu::menu_mode_10(uint8 cl_action) {
                 }
                 else
                 {
-                     ips200.show_string(1,1,"map too short");
+                     g_menu_instance->ips_display->show_string(1,1,"map too short");
                 }
                 
             }
@@ -605,19 +493,19 @@ void MyMenu::menu_mode_10(uint8 cl_action) {
             ahrs.reset();
             path_tracker_component.reset();
             
-            mode_inter_flag = 0;
+            g_menu_instance->mode_inter_flag = 0;
             break;
     }
 }
 
 // 惯导路径复现
-void MyMenu::menu_mode_11(uint8 cl_action){
+void MyMenu::tracking_by_map(uint8 cl_action){
     if (!path_tracker_component.is_reproduction) {
-        ips200.show_string(1,1,"1, reproduction");
-        ips200.show_string(1,1+1*16,"2, check_and_load_map");
-        ips200.show_string(1,1+2*16,"3, reset_status");
-        ips200.show_string(1,1+4*16,"4, return");
-        ips200.update();
+        g_menu_instance->ips_display->show_string(1,1,"1, reproduction");
+        g_menu_instance->ips_display->show_string(1,1+1*16,"2, check_and_load_map");
+        g_menu_instance->ips_display->show_string(1,1+2*16,"3, reset_status");
+        g_menu_instance->ips_display->show_string(1,1+4*16,"4, return");
+        g_menu_instance->ips_display->update();
     }else{
         path_tracker_component.find_closest_index();
         path_tracker_component.get_look_ahead_point(3);
@@ -669,7 +557,7 @@ void MyMenu::menu_mode_11(uint8 cl_action){
     case 3: // 返回键
         //清除所有状态
         path_tracker_component.reset();
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         break;
 
     default:
@@ -678,7 +566,7 @@ void MyMenu::menu_mode_11(uint8 cl_action){
 }
 
 // 无刷电调校准菜单
-void MyMenu::menu_mode_12(uint8 cl_action)
+void MyMenu::brushless_calibration(uint8 cl_action)
 {
     switch (cl_action)
     {
@@ -687,15 +575,16 @@ void MyMenu::menu_mode_12(uint8 cl_action)
         break;
     case 1:
         esc_set_power(0);
+        break;
     case 3: // 返回键
-        mode_inter_flag = 0; // 返回菜单
+        g_menu_instance->mode_inter_flag = 0; // 返回菜单
         esc_set_power(0);    // 安全处理，关闭无刷电机
         break;
     default:
         break;
     }
-    ips200.show_string(1,1,"1.full power");
-    ips200.show_string(1,1+16*1,"2.min power");
-    ips200.update();
+    g_menu_instance->ips_display->show_string(1,1,"1.full power");
+    g_menu_instance->ips_display->show_string(1,1+16*1,"2.min power");
+    g_menu_instance->ips_display->update();
 
 }
