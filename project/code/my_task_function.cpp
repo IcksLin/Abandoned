@@ -64,7 +64,7 @@ void send_picture_to_Serve()
 
 void tracking()
 {
-    my_timer.stop();
+    // my_timer.stop();
     // printf("time: %lld  ms",my_timer.elapsed_ms());
 
     //图像采样
@@ -74,11 +74,11 @@ void tracking()
     // image_proc();
     send_img_infor();
 
-    cruising_speed = CRUISING_SPEED;
+    cruising_speed = 0;
     
     // 开关，1使能循迹
-    onto_pd_control_enable = 0;
-    my_timer.start();
+    onto_pd_control_enable = 1;
+    // my_timer.start();
 
     // 调试信息===========================================
     // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);

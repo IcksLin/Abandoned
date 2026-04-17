@@ -262,6 +262,7 @@ float MadgwickAHRS::getYawRadians() {
     return yaw_;
 }
 
+
 // Quaternion getter
 void MadgwickAHRS::getQuaternion(float& q0, float& q1, float& q2, float& q3) const {
     q0 = q0_;

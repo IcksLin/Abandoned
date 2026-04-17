@@ -401,7 +401,7 @@ void zf_device_ips200::render_glyph_to_buffer(int x, int y, unsigned char* bitma
     }
 }
 
-void zf_device_ips200::_print_internal(uint16 x, uint16 y, uint16 color, float size, const char* text) {
+void zf_device_ips200::m_print_internal(uint16 x, uint16 y, uint16 color, float size, const char* text) {
     if (!f_info) return;
 
     float scale = stbtt_ScaleForPixelHeight(f_info, size);
@@ -480,7 +480,7 @@ void zf_device_ips200::print(uint16 x, uint16 y, const char* fmt, ...) {
     va_end(args);
 
 #if WHETHER_USE_TTF
-    this->_print_internal(x, y, this->pen_color, this->current_font_size, buf);
+    this->m_print_internal(x, y, this->pen_color, this->current_font_size, buf);
 #else
     this->show_string(x, y, buf);
 #endif
@@ -495,7 +495,7 @@ void zf_device_ips200::print(uint16 x, uint16 y, uint16 color, float size, const
     va_end(args);
 
 #if WHETHER_USE_TTF
-    this->_print_internal(x, y, color, size, buf);
+    this->m_print_internal(x, y, color, size, buf);
 #else
     // 如果没有开启 TTF，指定的大小将被忽略，只使用指定的颜色（如果 show_string 支持）
     uint16 old_color = this->pen_color;

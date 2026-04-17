@@ -85,7 +85,7 @@ private:
          * @param size 字体大小 (像素高度)
          * @param text 待打印的字符串
          */
-        void _print_internal(uint16 x, uint16 y, uint16 color, float size, const char* text);
+        void m_print_internal(uint16 x, uint16 y, uint16 color, float size, const char* text);
         alignas(16) uint8_t glyph_render_buf[16384];  ///< 字形渲染缓冲区
     #endif
 
