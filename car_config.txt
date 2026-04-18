@@ -1,7 +1,9 @@
 whether_use_lardc: true
 lardc_r: h=0.001,r=13.3,wc=29,w0=190,b0=0.83,pwm_min=-1000,pwm_max=1000;
-lardc_l: h=0.001f,r=13.3,wc=29,w0=190,b0=0.83,pwm_min=-1000,pwm_max=1000;
+lardc_l: h=0.001,r=13.3,wc=29,w0=190,b0=0.83,pwm_min=-1000,pwm_max=1000;
 whether_use_pid: false
 pid_r: p=2.5,t=0.015,i_gain=1.1,d=1.2,error_filter=1.1,output_max=120,output_min=-120,integral_max=60,integral_min=-60;
 pid_l: p=2.5,t=0.015,i_gain=1.1,d=1.2,error_filter=1.1,output_max=120,output_min=-120,integral_max=60,integral_min=-60;
 onto_pd: kp=0.02,kp2=0.0167,kd=1.9,limit=2;
+angle_speed_pd: kp = 0.0,kd = 0.0;
+onto_control: kp = 0.0,kd = 0.0;

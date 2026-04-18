@@ -50,6 +50,13 @@ extern float onto_kp2;
 extern float onto_kd;
 extern float onto_limit;
 
+//
+// ==================== 三串pd参数缓存 ====================
+extern float angle_speed_kd;
+extern float angle_speed_kp;
+extern float onto_control_kp;
+extern float onto_control_kd;
+
 // 接收缓存区
 extern std::string received;
 

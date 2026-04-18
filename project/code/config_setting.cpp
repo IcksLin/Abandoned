@@ -23,6 +23,10 @@ float pid_l_integral_max = 60.0f, pid_l_integral_min = -60.0f;
 
 float onto_kp = 0.0f, onto_kp2 = 0.65f, onto_kd = 4.0f, onto_limit = 45.0f;
 
+// 三串pd参数缓存
+float angle_speed_kp = 0.0f,angle_speed_kd = 0.0f;
+float onto_control_kp = 0.0f,onto_control_kd = 0.0f; 
+
 std::string received;
 
 /**
@@ -150,6 +154,23 @@ void param_loading_from_file(const char* config_file) {
             pos = line.find("limit=");
             if (pos != std::string::npos) onto_limit = std::stof(line.substr(pos + 6));
         }
+
+        // 解析三串控制器的角速度环与方向环
+        // 解析 angle_speed_pd
+        else if (line.find("angle_speed_pd:") != std::string::npos) {
+            size_t pos = line.find("kp=");
+            if (pos != std::string::npos) angle_speed_kp = std::stof(line.substr(pos + 3));
+            pos = line.find("kd=");
+            if (pos != std::string::npos) angle_speed_kd = std::stof(line.substr(pos + 3));
+        }
+
+        // 解析 onto_control
+        else if (line.find("onto_control:") != std::string::npos) {
+            size_t pos = line.find("kp=");
+            if (pos != std::string::npos) onto_control_kp = std::stof(line.substr(pos + 3));
+            pos = line.find("kd=");
+            if (pos != std::string::npos) onto_control_kd = std::stof(line.substr(pos + 3));
+        }
     }
     
     file.close();
@@ -243,6 +264,12 @@ bool write_param_into_file() {
     // 写入 onto_pd 参数
     file << "onto_pd: kp=" << onto_kp << "f,kp2=" << onto_kp2 << "f,kd=" << onto_kd << "f,limit=" << onto_limit << "f;\n";
     
+    // 写入 angle_speed_pd 参数
+    file << "angle_speed_pd: kp=" << angle_speed_kp << "f,kd=" << angle_speed_kd << "f;\n";
+
+    // 写入 onto_control 参数
+    file << "onto_control: kp=" << onto_control_kp << "f,kd=" << onto_control_kd << "f;\n";
+
     // 检查写入是否成功
     if (file.fail()) {
         printf("错误：写入配置文件失败\n");
@@ -312,6 +339,11 @@ void param_print() {
     printf("  LADRC控制周期 = %d ms\n", LARDC_PERIOD);
     printf("  按键扫描周期 = %d ms\n", KEY_SCAN_PERIOD);
     
+        // ========== 三串 PD 参数 ==========
+    printf("\n---------- 三串 PD 参数 ----------\n");
+    printf("  angle_speed_pd: Kp=%.3f, Kd=%.3f\n", angle_speed_kp, angle_speed_kd);
+    printf("  onto_control: Kp=%.3f, Kd=%.3f\n", onto_control_kp, onto_control_kd);
+
     printf("\n===================================\n");
     fflush(stdout);
 }
@@ -340,6 +372,10 @@ bool handleWriteCommand(TCPClient& client) {
         client.sendFormattedData("kp2:%.6f\n", onto_kp2);
         client.sendFormattedData("kd:%.6f\n", onto_kd);
         client.sendFormattedData("limit:%.6f\n", onto_limit);
+        client.sendFormattedData("angle_speed_kp:%.6f\n", angle_speed_kp);
+        client.sendFormattedData("angle_speed_kd:%.6f\n", angle_speed_kd);
+        client.sendFormattedData("onto_control_kp:%.6f\n", onto_control_kp);
+        client.sendFormattedData("onto_control_kd:%.6f\n", onto_control_kd);
         printf("已发送当前参数\n");
         return true;
     }
@@ -424,11 +460,27 @@ bool parseAndUpdateParameter(const std::string& line) {
         pid_r_kd = value;
         pid_l_kd = value;
         printf("更新 PID Kd: %.6f\n", value);
+    }else if (key == "angle_speed_kp") {
+    angle_speed_kp = value;
+    printf("更新 angle_speed_kp: %.6f\n", value);
     }
-    else {
+    else if (key == "angle_speed_kd") {
+        angle_speed_kd = value;
+        printf("更新 angle_speed_kd: %.6f\n", value);
+    }
+    else if (key == "onto_control_kp") {
+        onto_control_kp = value;
+        printf("更新 onto_control_kp: %.6f\n", value);
+    }
+    else if (key == "onto_control_kd") {
+        onto_control_kd = value;
+        printf("更新 onto_control_kd: %.6f\n", value);
+    }else {
         printf("未知参数: %s\n", key.c_str());
         return false;
     }
+
+
     
     return true;
 }
