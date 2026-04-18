@@ -154,19 +154,20 @@ void encoder_get_count_handler()
 
 void hight_frequence_encoder_get_speed_handler(){
     my_timer.stop();
-    printf("current period:%  lld    \r",my_timer.elapsed_us());
+    // printf("current period:%  lld    \r",my_timer.elapsed_us());
     lardc_get_speed(1,1024,0.035,0.001, &left_speed,&right_speed);
     if(onto_pd_control_enable==1){
-        target_speed_l = target_speed_r = cruising_speed;//添加基准速度
+        // target_speed_l = target_speed_r = cruising_speed;//添加基准速度
+        target_speed_l = target_speed_r = 0;//添加基准速度(调角速度环用的)
 
         // speed_to_pwm_l = (int16_t)ladrc_left.calculatePWM(0, left_speed);
         // speed_to_pwm_r = (int16_t)ladrc_right.calculatePWM(-0, right_speed);
 
-        // speed_to_pwm_l = (int16_t)ladrc_left.calculatePWM(target_speed_l+onto_control, left_speed);
-        // speed_to_pwm_r = (int16_t)ladrc_right.calculatePWM(target_speed_r-onto_control, right_speed);
+        speed_to_pwm_l = (int16_t)ladrc_left.calculatePWM(target_speed_l+onto_control, left_speed);
+        speed_to_pwm_r = (int16_t)ladrc_right.calculatePWM(target_speed_r-onto_control, right_speed);
         
-        speed_to_pwm_l = (int16_t)ladrc_left.calculatePWM(target_speed_l, left_speed);
-        speed_to_pwm_r = (int16_t)ladrc_right.calculatePWM(target_speed_r, right_speed);        
+        // speed_to_pwm_l = (int16_t)ladrc_left.calculatePWM(target_speed_l, left_speed);
+        // speed_to_pwm_r = (int16_t)ladrc_right.calculatePWM(target_speed_r, right_speed);        
     }
     else{
         // speed_to_pwm_l = 0;
@@ -216,6 +217,7 @@ bool car_init(){
     // 最终参与控制方向的角速度环返回值范围应该控制在+-CRUISING_SPEED*k左右，其中k决定了最大转弯半径
     // 实际上这里的angle_speed_pd可以使ladrc的b0量化，因此可以使用ladrc控制，且会有更强的适应能力，但是目前不打算测试，留给后人或者未来的自己
     // 注意：onto_control_pd传入当前方向为onto，由图像处理中的方向计算器获取，依照赛道场景不同刚性不同，其b0极难量化，如果使用ladrc则参数极其难以整定，实际上如果可以使用，两个ladrc就够了
+    // 两个环的限幅设置暂时还是硬编码，所以即使有从文件读取参数，这里依旧要调用初始化函数
     onto_control_pd.init(1.0f,1.0f,0.0f,1.0f,5,700.0f,-700.0f,0.0f,0.0f);
     angle_speed_pd.init(1.0f,1.0f,0.0f,1.0f,5,CRUISING_SPEED*0.6,-CRUISING_SPEED*0.6,0.0f,0.0f);
 
@@ -262,8 +264,8 @@ bool car_init(){
     // }
 
 
-    // printf("9. TCP图像传输组件初始化...\n");
-    // img_transmitter_init();
+    printf("9. TCP图像传输组件初始化...\n");
+    img_transmitter_init();
 
     if(control_model == 0){
         printf("pid control model");

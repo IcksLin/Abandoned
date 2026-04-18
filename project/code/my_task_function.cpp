@@ -71,15 +71,13 @@ void tracking()
     uvc.wait_image_refresh();
     uvc.frame_rgb = uvc.frame_mjpg.clone();
 
-    // image_proc();
-    send_img_infor();
+    image_proc();
 
     cruising_speed = 0;
     
     // 开关，1使能循迹
-    onto_pd_control_enable = 1;
+    onto_pd_control_enable = 0;
     // my_timer.start();
-
     // 调试信息===========================================
     // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);
 }
@@ -90,46 +88,3 @@ void get_image_datasets(){
     uvc.get_rgb_image_ptr();
 }
 
-void send_img_infor(){
-    // 传输灰度图像 + 三条边线（左边线、右边线、中线）
-    // 参数说明：
-    //   - Lline, Lline_num: 原始左边线坐标和点数（蓝色）
-    //   - Rline, Rline_num: 原始右边线坐标和点数（红色）
-    //   - Mline, Mline_num: 中线坐标和点数（绿色）
-    //   - true, true: 垂直翻转和水平翻转（根据你的摄像头安装方向调整）
-    // 注意：Lline和Rline是int类型，需要reinterpret_cast转换为float类型
-    // static uint8_t L_buf[IMG_H][2];
-    // static uint8_t R_buf[IMG_H][2];
-    // static uint8_t M_buf[IMG_H][2];
-    // // std::cout << "DEBUG: L_num=" << Lline_num << " R_num=" << Rline_num << std::endl;
-
-    // for (int i = 0; i < IMG_H; ++i) {
-    //     // 只有在 i 小于有效点数时才进行转换和打印
-    //     if (i < sampled_Lline_num) {
-    //         L_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][0], 255));
-    //         L_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Lline[i][1], 255));
-            
-    //         // 只打印有效点
-    //         // std::cout << "Lline[" << i << "]: (" << (int)L_buf[i][0] << ", " << (int)L_buf[i][1] << ")" << std::endl;
-    //     }
-
-    //     if (i < sampled_Rline_num) {
-    //         R_buf[i][0] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][0], 255));
-    //         R_buf[i][1] = (uint8_t)std::max(0, std::min((int)sampled_Rline[i][1], 255));
-    //         // std::cout << "Rline[" << i << "]: (" << (int)R_buf[i][0] << ", " << (int)R_buf[i][1] << ")" << std::endl;
-    //     }
-
-    //    if (i < middle_line_length) {
-    //         M_buf[i][0] = (uint8_t)std::clamp((int)Mline[i][0], 0, 255);
-    //         M_buf[i][1] = (uint8_t)std::clamp((int)Mline[i][1], 0, 255);
-    //     }
-    // }
-
-    // gray_img_with_centerline_transmitter(
-    //     img_gray, UVC_WIDTH, IMG_H, 
-    //     L_buf, (uint16_t)sampled_Lline_num, 
-    //     R_buf, (uint16_t)sampled_Rline_num, 
-    //     M_buf, (uint16_t)middle_line_length, 
-    //     false, false 
-    // );
-}

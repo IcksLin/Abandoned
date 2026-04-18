@@ -24,8 +24,8 @@ float pid_l_integral_max = 60.0f, pid_l_integral_min = -60.0f;
 float onto_kp = 0.0f, onto_kp2 = 0.65f, onto_kd = 4.0f, onto_limit = 45.0f;
 
 // 三串pd参数缓存
-float angle_speed_kp = 0.0f,angle_speed_kd = 0.0f;
-float onto_control_kp = 0.0f,onto_control_kd = 0.0f; 
+float angle_speed_kp = 0.0f,angle_speed_kd = 0.0f,angle_output_max = 700.0f,angle_output_min = -700.0f;
+float onto_control_kp = 0.0f,onto_control_kd = 0.0f,angle_speed_output_max = 700.0f,angle_speed_output_min = -700.0f; 
 
 std::string received;
 

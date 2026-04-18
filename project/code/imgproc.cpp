@@ -55,14 +55,14 @@ float nms_Lline,nms_Rline;          // 角点值
 int nms_Lline_idx,nms_Rline_idx;    // 索引
 
 cv::Mat M = (cv::Mat_<float>(3, 3) <<
--1.7987879419009005,-4.6836929815029515,224.950105042017,
--0.02597752463054235,-8.582940180382508,304.59513546798064,
--0.0003848522167487723,-0.05828171785955768,1.0);
+1.5360623310525794,3.0427514623608087,-39.26262588199695,
+0.09632163103102988,5.765739308053739,-31.18755847752825,
+0.0006237666251147745,0.03824158874651807,1.0);
 
 cv::Mat M_Reverse = (cv::Mat_<float>(3, 3) <<
--0.5567704942449283,0.5116792735001106,-30.609436463231717,
-0.005540545406144685,0.10396670497412587,-32.91409885685576,
-0.00010863814521852267,0.006256279068760795,-0.9300703326531625);
+0.6734254415129036,-0.4397836609005967,12.72467252774094,
+-0.011204598799908662,0.15102839149009167,4.270284820525578,
+8.42134445690619e-06,-0.005501243266471631,0.8287602980246425);
 /*边线处理变量**************/
 
 //巡线决策机
@@ -904,79 +904,79 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
 
 //     return final_angle;
 // }
-
 /**
- * @brief 计算加权前瞻偏移角度 (适配数组权重分配，压制近端震荡)
- * @param Mline 中线点集指针，Mline[i][0]为x, Mline[i][1]为y
- * @param num 中线数组的有效点数
- * @return float 最终的加权偏移角度（度）
+ * @brief 采用双预瞄点机制计算偏移角度
+ * @param Mline 逆透视后的中线点集（坐标单位通常为mm或实际物理尺度）
+ * @param num 有效点数
+ * @return float 最终转向角度（度）
  */
 float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
-    const int target_samples = 15;
-    const int start_idx = 3;
-    static float last_angle = 0.0f; // 静态变量保持记忆
+    // --- 核心参数定义 ---
+    const float R_FAR = 68.0f;          // 第一预瞄点（远点）半径
+    const float R_NEAR = R_FAR / 2.0f;  // 第二预瞄点（近点）半径
     
-    // --- 权重分配数组 (由近及远) ---
-    // 索引 0-4 为近处，5-9 为中处，10-14 为远处
-    // 你可以根据实测调整这些数值：数值越大，该点对转向的影响越大
-    const float weights[15] = {
-        0.20f,  0.32f,  0.7f,  1.00f,  1.1f,  // 近处：低权重，减少抖动
-        1.20f,  1.20f,  1.3f,  1.30f,  1.3f,  // 中间：过渡区
-        1.2f,   1.2f,   1.0f,  1.0f,   1.0f   // 远处：高权重，提供前瞻预判
-    };
+    // 小车转矩中心坐标 (基于逆透视坐标系)
+    const float CX = (float)CAR_TURN_CENTRAL_X;
+    const float CY = (float)CAR_TURN_CENTRAL_Y;
+    
+    // 图像底端中心点 (计算斜率的参考基准)
+    const float BASE_X = (float)IMG_W / 2.0f;
+    const float BASE_Y = (float)IMG_H - 1.0f;
 
-    // 情况 A: 点数不足，直接返回上一帧
-    if (num <= start_idx) return last_angle;
+    static float last_angle = 0.0f;
+    
+    // 情况 A: 丢线或点数过少，返回记忆值
+    if (num < 5) return last_angle;
 
-    float total_weighted_angle = 0.0f;
-    float total_weight = 0.0f;
-    const int origin_x = IMG_W / 2;
-    const int origin_y = IMG_H - 1;
+    int idx_far = -1;
+    int idx_near = -1;
 
-    // 计算采样步长
-    int available_points = num - start_idx;
-    float step = (available_points > target_samples) ? 
-                 (float)available_points / (float)target_samples : 1.0f;
+    // --- 寻找预瞄点：遍历中线，寻找与圆半径最接近的交点 ---
+    for (int i = 0; i < num; i++) {
+        float dx = Mline[i][0] - CX;
+        float dy = Mline[i][1] - CY;
+        float dist = sqrtf(dx * dx + dy * dy);
 
-    for (int k = 0; k < target_samples; k++) {
-        int i = start_idx + (int)(k * step);
-        if (i >= num) break;
-
-        float dx = Mline[i][0] - (float)origin_x;
-        float dy = (float)origin_y - Mline[i][1];
-
-        // --- 已根据要求删除 dy_safe 阻尼补偿逻辑，直接判断 dy ---
-        if (dy <= 0) continue;
-
-        // 直接使用原始 dy 计算当前点连线角度（弧度）
-        float current_angle = atan2f(dx, dy);
-        
-        // 从权重数组中直接取值
-        float weight = weights[k]; 
-        
-        total_weighted_angle += current_angle * weight;
-        total_weight += weight;
-
-        // 步长为1且点数较少时的退出保护
-        if (step == 1.0f && i == num - 1) break;
+        // 寻找近点 (靠近 R_NEAR)
+        if (idx_near == -1 && dist >= R_NEAR) {
+            idx_near = i;
+        }
+        // 寻找远点 (靠近 R_FAR)
+        if (idx_far == -1 && dist >= R_FAR) {
+            idx_far = i;
+        }
     }
 
-    // 情况 B: 循环完发现没有有效权重（计算失败），返回上一帧
-    if (total_weight < 1e-5f) return last_angle; 
+    float angle_far = 0.0f, angle_near = 0.0f;
+    float final_angle = 0.0f;
 
-    // 计算加权平均角度并从弧度转为角度
-    float final_angle = (total_weighted_angle / total_weight) * 180.0f / 3.14159265f;
-    
-    // 加上外部偏置补偿（如零位校准）
+    // --- 逻辑判断与加权 ---
+    if (idx_near != -1 && idx_far != -1) {
+        // 情况 1: 两个预瞄点都存在，各占 0.5
+        angle_near = atan2f(Mline[idx_near][0] - BASE_X, BASE_Y - Mline[idx_near][1]);
+        angle_far  = atan2f(Mline[idx_far][0] - BASE_X, BASE_Y - Mline[idx_far][1]);
+        final_angle = (angle_near * 0.5f + angle_far * 0.5f) * 180.0f / 3.14159265f;
+    } 
+    else if (idx_near != -1 && idx_far == -1) {
+        // 情况 2: 赛道不够长，只有近点，权重给 1
+        angle_near = atan2f(Mline[idx_near][0] - BASE_X, BASE_Y - Mline[idx_near][1]);
+        final_angle = angle_near * 180.0f / 3.14159265f;
+    } 
+    else {
+        // 情况 3: 连近点都没找到，取轨迹最远点 (num-1)，权重给 1
+        int furthest_idx = num - 1;
+        float angle_max = atan2f(Mline[furthest_idx][0] - BASE_X, BASE_Y - Mline[furthest_idx][1]);
+        final_angle = angle_max * 180.0f / 3.14159265f;
+    }
+
+    // --- 后处理 ---
     final_angle += angle_compensation;
 
-    // 限幅控制
-    if (final_angle > 30.0f)  final_angle = 30.0f;
-    if (final_angle < -30.0f) final_angle = -30.0f;
+    // 限幅上调至 +-90 度
+    if (final_angle > 90.0f)  final_angle = 90.0f;
+    if (final_angle < -90.0f) final_angle = -90.0f;
 
-    // 更新记忆，用于下一帧丢线或点数不足时使用
     last_angle = final_angle;
-
     return final_angle;
 }
 
@@ -994,7 +994,7 @@ void image_proc() {
     img_gray = reinterpret_cast<uint8_t*>(frame_gray_small.ptr(0));
 
     start_thre = get_otsu_thres(img_gray, 0, 160, TRACK_HEIGHT_MAX, 120);
-    line_process(120, 120 / 2);
+    line_process(120, 0);
 
     element_status();
     no_element_process();
@@ -1004,62 +1004,176 @@ void image_proc() {
 
     max_angle = std::max(nms_Lline, nms_Rline);
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
-
-    // if (udp.is_enable()) {
-    //     // A. 发送原始 320x160 彩色图像 (用于确认识别结果)
-    //     udp.send_image(uvc.frame_mjpg); 
-
-    //     // B. 准备并打包轨迹点 (适配 160x120 尺度)
-    //     // 定义符合上位机格式的缓冲区
-    //     static uint8_t L_buf[120][2];
-    //     static uint8_t R_buf[120][2];
-    //     static uint8_t M_buf[120][2];
-
-    //     // 清零缓冲区防止旧数据干扰
-    //     memset(L_buf, 0, sizeof(L_buf));
-    //     memset(R_buf, 0, sizeof(R_buf));
-    //     memset(M_buf, 0, sizeof(M_buf));
-
-    //     // 转换边线坐标到传输格式 (uint8_t[y][x])
-    //     for (int i = 0; i < 120; ++i) {
-    //         // 左边线
-    //         if (i < sampled_Lline_num) {
-    //             L_buf[i][0] = (uint8_t)std::clamp((int)sampled_Lline[i][0], 0, 159);
-    //             L_buf[i][1] = (uint8_t)std::clamp((int)sampled_Lline[i][1], 0, 119);
-    //         }
-    //         // 右边线
-    //         if (i < sampled_Rline_num) {
-    //             R_buf[i][0] = (uint8_t)std::clamp((int)sampled_Rline[i][0], 0, 159);
-    //             R_buf[i][1] = (uint8_t)std::clamp((int)sampled_Rline[i][1], 0, 119);
-    //         }
-    //         // 中线
-    //         if (i < middle_line_length) {
-    //             M_buf[i][0] = (uint8_t)std::clamp((int)Mline[i][0], 0, 159);
-    //             M_buf[i][1] = (uint8_t)std::clamp((int)Mline[i][1], 0, 119);
-    //         }
-    //     }
-
-    //     // C. 发送轨迹点数据包 (根据你 udp_sender 的实现调用)
-    //     // 如果你的上位机支持单独发送数组，则按顺序发送。
-    //     // 下面是示例：将三条线作为一个整体 Data 包发送
-    //     struct {
-    //         uint8_t L[120][2];
-    //         uint8_t R[120][2];
-    //         uint8_t M[120][2];
-    //     } track_packet;
-        
-    //     memcpy(track_packet.L, L_buf, sizeof(L_buf));
-    //     memcpy(track_packet.R, R_buf, sizeof(R_buf));
-    //     memcpy(track_packet.M, M_buf, sizeof(M_buf));
-
-    //     udp.send_data(&track_packet, sizeof(track_packet));
-    // }
-    // printf("onto:   %f     ,middle_line_length: %d    \r",onto,middle_line_length);
-
+    printf("onto:   %f     ,middle_line_length: %d    \r",onto,middle_line_length);
+    send_img_infor();
     // 调试要看状态机请解注释这行
     // printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
 
 }
+
+void send_img_infor(){
+    // 传输灰度图像 + 三条边线（左边线、右边线、中线）
+    // 参数说明：
+    //   - Lline, Lline_num: 原始左边线坐标和点数（蓝色）
+    //   - Rline, Rline_num: 原始右边线坐标和点数（红色）
+    //   - Mline, Mline_num: 中线坐标和点数（绿色）
+    //   - true, true: 垂直翻转和水平翻转（根据你的摄像头安装方向调整）
+    // 注意：Lline和Rline是int类型，需要reinterpret_cast转换为float类型
+    static uint8_t L_buf[IMG_H][2];
+    static uint8_t R_buf[IMG_H][2];
+    static uint8_t M_buf[IMG_H][2];
+    // std::cout << "DEBUG: L_num=" << Lline_num << " R_num=" << Rline_num << std::endl;
+
+    for (int i = 0; i < IMG_H; ++i) {
+        // 只有在 i 小于有效点数时才进行转换和打印
+        if (i < Lline_num) {
+            L_buf[i][0] = (uint8_t)std::max(0, std::min((int)Lline[i][0], 255));
+            L_buf[i][1] = (uint8_t)std::max(0, std::min((int)Lline[i][1], 255));
+            
+            // 只打印有效点
+            // std::cout << "Lline[" << i << "]: (" << (int)L_buf[i][0] << ", " << (int)L_buf[i][1] << ")" << std::endl;
+        }
+
+        if (i < Rline_num) {
+            R_buf[i][0] = (uint8_t)std::max(0, std::min((int)Rline[i][0], 255));
+            R_buf[i][1] = (uint8_t)std::max(0, std::min((int)Rline[i][1], 255));
+            // std::cout << "Rline[" << i << "]: (" << (int)R_buf[i][0] << ", " << (int)R_buf[i][1] << ")" << std::endl;
+        }
+
+       if (i < middle_line_length) {
+            M_buf[i][0] = (uint8_t)std::clamp((int)Mline[i][0], 0, 255);
+            M_buf[i][1] = (uint8_t)std::clamp((int)Mline[i][1], 0, 255);
+        }
+    }
+
+
+
+    gray_img_with_centerline_transmitter(
+        img_gray, IMG_W, IMG_H, 
+        L_buf, (uint16_t)sampled_Lline_num, 
+        R_buf, (uint16_t)sampled_Rline_num, 
+        M_buf, (uint16_t)middle_line_length, 
+        false, false 
+    );
+}
+
+/**
+ * @brief 灰度图像和边线（左、右、中）发送函数
+ * @param gray_image_ptr 灰度图像数据指针 (uint8格式)
+ * @param width 图像宽度
+ * @param height 图像高度
+ * @param Lline 左边线点数组指针 [x, y]格式
+ * @param Lline_num 左边线点数
+ * @param Rline 右边线点数组指针 [x, y]格式
+ * @param Rline_num 右边线点数
+ * @param Mline 中线点数组指针 [x, y]格式
+ * @param Mline_num 中线点数
+ * @param flip_vertical 是否垂直翻转
+ * @param flip_horizontal 是否水平翻转
+ * @return 发送是否成功
+ * @note 左边线、右边线、中线分别对应逐飞助手的三条边界线（通常为蓝色、红色、绿色）
+ */
+#define BOUNDARY_MAX_LEN   120 
+// 三条边线的XY坐标发送缓冲区
+uint8 boundary_x1_buffer[BOUNDARY_MAX_LEN];  // 左边线X坐标
+uint8 boundary_y1_buffer[BOUNDARY_MAX_LEN];  // 左边线Y坐标
+uint8 boundary_x2_buffer[BOUNDARY_MAX_LEN];  // 中线X坐标
+uint8 boundary_y2_buffer[BOUNDARY_MAX_LEN];  // 中线Y坐标
+uint8 boundary_x3_buffer[BOUNDARY_MAX_LEN];  // 右边线X坐标
+uint8 boundary_y3_buffer[BOUNDARY_MAX_LEN];  // 右边线Y坐标
+uint8 gray_image_copy[IMG_W][IMG_W];         // 缓冲区
+
+bool gray_img_with_centerline_transmitter(const uint8_t* gray_image_ptr, 
+                                          uint32_t width, uint32_t height,
+                                          uint8 (*Lline)[2], int Lline_num,
+                                          uint8 (*Rline)[2], int Rline_num,
+                                          uint8 (*Mline)[2], int Mline_num,
+                                          bool flip_vertical,
+                                          bool flip_horizontal)
+{
+    if (!gray_image_ptr || width == 0 || height == 0) return false;
+
+    // --- 1. 计算图像映射参数 ---
+    // 实际拷贝的尺寸（不能超过缓冲区）
+    uint32_t copy_w = std::min(width, (uint32_t)IMG_W);
+    uint32_t copy_h = std::min(height, (uint32_t)IMG_H);
+    
+    // 垂直居中偏移量：如果图像矮于缓冲区，将其放在中间
+    int offset_y = (height < IMG_H) ? (int)(IMG_H - height) / 2 : 0;
+    int offset_x = 0; // 默认左对齐
+
+    // 清空图像缓冲区（背景置黑）
+    memset(gray_image_copy, 0, sizeof(gray_image_copy));
+
+    // --- 2. 拷贝图像并处理翻转 ---
+    for (uint32_t row = 0; row < copy_h; ++row) {
+        // 计算目标行索引：考虑垂直翻转 + 垂直偏移
+        uint32_t dst_row = (flip_vertical ? (copy_h - 1 - row) : row) + offset_y;
+        
+        uint8_t* dst_ptr = &((uint8_t*)gray_image_copy)[dst_row * IMG_W];
+        const uint8_t* src_ptr = &gray_image_ptr[row * width];
+
+        for (uint32_t col = 0; col < copy_w; ++col) {
+            // 计算目标列索引：考虑水平翻转
+            uint32_t dst_col = (flip_horizontal ? (copy_w - 1 - col) : col) + offset_x;
+            dst_ptr[dst_col] = src_ptr[col];
+        }
+    }
+
+    // --- 3. 映射赛道线坐标 ---
+    // 定义一个 lambda 闭包来统一处理坐标映射逻辑，确保线和图像是对齐的
+    auto map_points = [&](uint8 (*src_line)[2], int num, uint8* target_x, uint8* target_y) -> int {
+        int actual_num = std::min(num, BOUNDARY_MAX_LEN);
+        if (src_line == nullptr || actual_num <= 0) return 0;
+
+        for (int i = 0; i < actual_num; ++i) {
+            // 获取原始坐标（此时已经是 uint8）
+            int sx = src_line[i][0];
+            int sy = src_line[i][1];
+
+            // 执行与图像完全一致的翻转和偏移逻辑
+            int tx = (flip_horizontal ? ((int)copy_w - 1 - sx) : sx) + offset_x;
+            int ty = (flip_vertical ? ((int)copy_h - 1 - sy) : sy) + offset_y;
+
+            // 限制在 UVC 范围内，防止上位机结算错误
+            target_x[i] = (uint8)std::max(0, std::min(tx, (int)IMG_W - 1));
+            target_y[i] = (uint8)std::max(0, std::min(ty, (int)IMG_H - 1));
+        }
+        return actual_num;
+    };
+
+    // 填充发送缓冲区
+    int n1 = map_points(Lline, Lline_num, boundary_x1_buffer, boundary_y1_buffer);
+    int n2 = map_points(Mline, Mline_num, boundary_x2_buffer, boundary_y2_buffer);
+    int n3 = map_points(Rline, Rline_num, boundary_x3_buffer, boundary_y3_buffer);
+
+    // --- 4. 调用协议发送 ---
+    // 计算三条线中最大的点数
+    uint16_t max_points = (uint16_t)std::max({n1, n2, n3});
+
+    seekfree_assistant_camera_boundary_config(
+        XY_BOUNDARY, max_points,
+        n1 ? boundary_x1_buffer : nullptr, 
+        n2 ? boundary_x2_buffer : nullptr, 
+        n3 ? boundary_x3_buffer : nullptr,
+        n1 ? boundary_y1_buffer : nullptr, 
+        n2 ? boundary_y2_buffer : nullptr, 
+        n3 ? boundary_y3_buffer : nullptr
+    );
+
+    seekfree_assistant_camera_information_config(
+        SEEKFREE_ASSISTANT_GRAY, 
+        (uint8_t*)gray_image_copy, 
+        IMG_W, 
+        IMG_H
+    );
+
+    seekfree_assistant_camera_send();
+
+    return true;
+}
+
+
 //状态机初始化
 void tracking_decision_machine_init(){
     tracking_decision_machine.max_angle = 0;

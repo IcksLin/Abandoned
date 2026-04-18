@@ -22,5 +22,4 @@ void show_all_of_the_component_without_ips();
 void send_picture_to_Serve();
 void tracking();
 void get_image_datasets();
-void send_img_infor();
 #endif // __MY_TASK_FUNCTION_HPP__

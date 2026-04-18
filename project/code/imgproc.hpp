@@ -10,6 +10,7 @@
 #include <cmath>
 #include "my_timestamp.hpp"
 #include "zf_device_uvc.hpp"
+#include "my_image_transmitter.hpp"
 
 extern zf_device_uvc uvc;
 //图像处理变量
@@ -84,7 +85,8 @@ typedef struct {
 /*------------------------正常巡线状态参数------------------------*/
 #define __N_DFT_LEN_THRE        30          /* 切换巡线长度差阈值 sample_line*/
 /*------------------------预瞄点参数宏定义------------------------*/
-
+#define CAR_TURN_CENTRAL_X      79.52383864171065   /* 小车转矩中心x坐标 */
+#define CAR_TURN_CENTRAL_Y      138.57287952493448  /* 小车转矩中心y坐标 */
 
 /*------------------------其他宏定义------------------------*/
 #define IMG_AT(img, x, y)   (img[(y) * (IMG_W) + (x)])     // 用于访问图像数据
@@ -154,7 +156,17 @@ void auto_tracking();
 void left_path_adjust(void);
 void right_path_adjust(void);
 
+void send_img_infor();
 
 void supplement_line(float pts_in[][2],int* num,int corner_index,float dist);   //补线
+
 void load_undistort_map(void);
+
+bool gray_img_with_centerline_transmitter(const uint8_t* gray_image_ptr, 
+                                          uint32_t width, uint32_t height,
+                                          uint8 (*Lline)[2], int Lline_num,
+                                          uint8 (*Rline)[2], int Rline_num,
+                                          uint8 (*Mline)[2], int Mline_num,
+                                          bool flip_vertical,
+                                          bool flip_horizontal);
 #endif

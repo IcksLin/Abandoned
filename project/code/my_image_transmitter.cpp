@@ -43,7 +43,6 @@ uint32 tcp_read_wrap(uint8 *buf, uint32 len)
 /// @brief 图像数据拷贝缓冲区
 /// @note 二维数组存储，用于存放格式转换后的摄像头图像数据，供上位机发送使用
 uint16 image_copy[UVC_HEIGHT][UVC_WIDTH];
-uint8 gray_image_copy[UVC_HEIGHT][UVC_WIDTH];
 // ============================================================================
 // 初始化函数
 // ============================================================================
@@ -248,119 +247,7 @@ bool rgb_img_transmitter(const uint16_t* rgb_image_ptr, uint32_t width, uint32_t
     return true;
 }
 
-/**
- * @brief 灰度图像和边线（左、右、中）发送函数
- * @param gray_image_ptr 灰度图像数据指针 (uint8格式)
- * @param width 图像宽度
- * @param height 图像高度
- * @param Lline 左边线点数组指针 [x, y]格式
- * @param Lline_num 左边线点数
- * @param Rline 右边线点数组指针 [x, y]格式
- * @param Rline_num 右边线点数
- * @param Mline 中线点数组指针 [x, y]格式
- * @param Mline_num 中线点数
- * @param flip_vertical 是否垂直翻转
- * @param flip_horizontal 是否水平翻转
- * @return 发送是否成功
- * @note 左边线、右边线、中线分别对应逐飞助手的三条边界线（通常为蓝色、红色、绿色）
- */
-#define BOUNDARY_MAX_LEN   120 
-// 三条边线的XY坐标发送缓冲区
-uint8 boundary_x1_buffer[BOUNDARY_MAX_LEN];  // 左边线X坐标
-uint8 boundary_y1_buffer[BOUNDARY_MAX_LEN];  // 左边线Y坐标
-uint8 boundary_x2_buffer[BOUNDARY_MAX_LEN];  // 中线X坐标
-uint8 boundary_y2_buffer[BOUNDARY_MAX_LEN];  // 中线Y坐标
-uint8 boundary_x3_buffer[BOUNDARY_MAX_LEN];  // 右边线X坐标
-uint8 boundary_y3_buffer[BOUNDARY_MAX_LEN];  // 右边线Y坐标
-bool gray_img_with_centerline_transmitter(const uint8_t* gray_image_ptr, 
-                                          uint32_t width, uint32_t height,
-                                          uint8 (*Lline)[2], int Lline_num,
-                                          uint8 (*Rline)[2], int Rline_num,
-                                          uint8 (*Mline)[2], int Mline_num,
-                                          bool flip_vertical,
-                                          bool flip_horizontal)
-{
-    if (!gray_image_ptr || width == 0 || height == 0) return false;
 
-    // --- 1. 计算图像映射参数 ---
-    // 实际拷贝的尺寸（不能超过缓冲区）
-    uint32_t copy_w = std::min(width, (uint32_t)UVC_WIDTH);
-    uint32_t copy_h = std::min(height, (uint32_t)UVC_HEIGHT);
-    
-    // 垂直居中偏移量：如果图像矮于缓冲区，将其放在中间
-    int offset_y = (height < UVC_HEIGHT) ? (int)(UVC_HEIGHT - height) / 2 : 0;
-    int offset_x = 0; // 默认左对齐
-
-    // 清空图像缓冲区（背景置黑）
-    memset(gray_image_copy, 0, sizeof(gray_image_copy));
-
-    // --- 2. 拷贝图像并处理翻转 ---
-    for (uint32_t row = 0; row < copy_h; ++row) {
-        // 计算目标行索引：考虑垂直翻转 + 垂直偏移
-        uint32_t dst_row = (flip_vertical ? (copy_h - 1 - row) : row) + offset_y;
-        
-        uint8_t* dst_ptr = &((uint8_t*)gray_image_copy)[dst_row * UVC_WIDTH];
-        const uint8_t* src_ptr = &gray_image_ptr[row * width];
-
-        for (uint32_t col = 0; col < copy_w; ++col) {
-            // 计算目标列索引：考虑水平翻转
-            uint32_t dst_col = (flip_horizontal ? (copy_w - 1 - col) : col) + offset_x;
-            dst_ptr[dst_col] = src_ptr[col];
-        }
-    }
-
-    // --- 3. 映射赛道线坐标 ---
-    // 定义一个 lambda 闭包来统一处理坐标映射逻辑，确保线和图像是对齐的
-    auto map_points = [&](uint8 (*src_line)[2], int num, uint8* target_x, uint8* target_y) -> int {
-        int actual_num = std::min(num, BOUNDARY_MAX_LEN);
-        if (src_line == nullptr || actual_num <= 0) return 0;
-
-        for (int i = 0; i < actual_num; ++i) {
-            // 获取原始坐标（此时已经是 uint8）
-            int sx = src_line[i][0];
-            int sy = src_line[i][1];
-
-            // 执行与图像完全一致的翻转和偏移逻辑
-            int tx = (flip_horizontal ? ((int)copy_w - 1 - sx) : sx) + offset_x;
-            int ty = (flip_vertical ? ((int)copy_h - 1 - sy) : sy) + offset_y;
-
-            // 限制在 UVC 范围内，防止上位机结算错误
-            target_x[i] = (uint8)std::max(0, std::min(tx, (int)UVC_WIDTH - 1));
-            target_y[i] = (uint8)std::max(0, std::min(ty, (int)UVC_HEIGHT - 1));
-        }
-        return actual_num;
-    };
-
-    // 填充发送缓冲区
-    int n1 = map_points(Lline, Lline_num, boundary_x1_buffer, boundary_y1_buffer);
-    int n2 = map_points(Mline, Mline_num, boundary_x2_buffer, boundary_y2_buffer);
-    int n3 = map_points(Rline, Rline_num, boundary_x3_buffer, boundary_y3_buffer);
-
-    // --- 4. 调用协议发送 ---
-    // 计算三条线中最大的点数
-    uint16_t max_points = (uint16_t)std::max({n1, n2, n3});
-
-    seekfree_assistant_camera_boundary_config(
-        XY_BOUNDARY, max_points,
-        n1 ? boundary_x1_buffer : nullptr, 
-        n2 ? boundary_x2_buffer : nullptr, 
-        n3 ? boundary_x3_buffer : nullptr,
-        n1 ? boundary_y1_buffer : nullptr, 
-        n2 ? boundary_y2_buffer : nullptr, 
-        n3 ? boundary_y3_buffer : nullptr
-    );
-
-    seekfree_assistant_camera_information_config(
-        SEEKFREE_ASSISTANT_GRAY, 
-        (uint8_t*)gray_image_copy, 
-        UVC_WIDTH, 
-        UVC_HEIGHT
-    );
-
-    seekfree_assistant_camera_send();
-
-    return true;
-}
 
 // ============================================================================
 // 辅助函数（可根据需要添加）

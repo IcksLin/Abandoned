@@ -18,7 +18,7 @@ public:
     ~LQ_NCNN();
 
     // 初始化：加载 param 和 bin 文件
-    bool init(const std::string& param_path, const std::string& bin_path,int input_width = 40, int input_height = 40);
+    bool init(const std::string& param_path, const std::string& bin_path,int input_width, int input_height);
 
     // 执行推理
     LQ_InferenceResult infer(const cv::Mat& bgr_image) const;
