@@ -66,11 +66,11 @@ typedef struct {
 
 /*---------------------边线参数宏定义---------------------*/
 #define POINTS_MAX_LEN      100             //巡线最大长度
-#define TRACK_HEIGHT_MAX    IMG_H/3              //迷宫巡线最大高度
-#define CAR_IMGAGE_W        IMG_W*4/8                        
+#define TRACK_HEIGHT_MAX    20              //迷宫巡线最大高度
+#define CAR_IMGAGE_W        IMG_W*1/8                        
 #define CHECK_DIS           6               //检测是否为噪音的距离
 
-#define M2PIX               100             //米转像素  
+#define M2PIX                116             //米转像素  
 #define sampled_dist        0.02f           //重采样距离
 #define ROAD_W              0.45f           //道路宽度
 #define angle_idx           10              //角度采样索引距离

@@ -55,14 +55,16 @@ float nms_Lline,nms_Rline;          // 角点值
 int nms_Lline_idx,nms_Rline_idx;    // 索引
 
 cv::Mat M = (cv::Mat_<float>(3, 3) <<
-1.5360623310525794,3.0427514623608087,-39.26262588199695,
-0.09632163103102988,5.765739308053739,-31.18755847752825,
-0.0006237666251147745,0.03824158874651807,1.0);
+1.732504085918988,3.293840248330767,-58.82915385387417,
+-0.01998186145173008,6.399158501244792,-54.97937395365965,
+-0.0004440413655939945,0.04121425563002599,1);
 
 cv::Mat M_Reverse = (cv::Mat_<float>(3, 3) <<
-0.6734254415129036,-0.4397836609005967,12.72467252774094,
--0.011204598799908662,0.15102839149009167,4.270284820525578,
-8.42134445690619e-06,-0.005501243266471631,0.8287602980246425);
+0.5761432258126453,-0.3802198877448752,12.98976708025549,
+0.002951828357680149,0.113457548147921,6.411478532094091,
+0.0001341740162581868,-0.00484490175070463,0.7415236787249149);
+
+
 /*边线处理变量**************/
 
 //巡线决策机
@@ -847,63 +849,82 @@ void supplement_line(float pts_in[][2], int* num, int corner_index, float dist) 
 
 /*---------------------------角度计算-----------------------------*/
 // /**
-//  * @brief 计算加权前瞻偏移角度 (适配 Mline[i][2] 数据结构)
-//  * @param Mline 中线点集指针，Mline[i][0]为x, Mline[i][1]为y
-//  * @param num 中线数组的有效点数
-//  * @return float 最终的加权偏移角度（度）
+//  * @brief 采用双预瞄点机制计算偏移角度
+//  * @param Mline 逆透视后的中线点集（坐标单位通常为mm或实际物理尺度）
+//  * @param num 有效点数
+//  * @return float 最终转向角度（度）
 //  */
 // float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
-//     const int target_samples = 15;
-//     const int start_idx = 3;
-//     static float last_angle = 0.0f; // 静态变量保持记忆
+//     // --- 核心参数定义 ---
+//     const float R_FAR = 68.0f;          // 第一预瞄点（远点）半径
+//     const float R_NEAR = R_FAR / 2.0f;  // 第二预瞄点（近点）半径
     
-//     // 情况 A: 点数不足，直接返回上一帧
-//     if (num <= start_idx) return last_angle;
+//     // 小车转矩中心坐标 (基于逆透视坐标系)
+//     const float CX = (float)CAR_TURN_CENTRAL_X;
+//     const float CY = (float)CAR_TURN_CENTRAL_Y;
+    
+//     // 图像底端中心点 (计算斜率的参考基准)
+//     const float BASE_X = (float)IMG_W / 2.0f;
+//     const float BASE_Y = (float)IMG_H - 1.0f;
 
-//     float total_weighted_angle = 0.0f;
-//     float total_weight = 0.0f;
-//     const int origin_x = IMG_W / 2;
-//     const int origin_y = IMG_H - 1;
+//     static float last_angle = 0.0f;
+    
+//     // 情况 A: 丢线或点数过少，返回记忆值
+//     if (num < 5) return last_angle;
 
-//     int available_points = num - start_idx;
-//     float step = (available_points > target_samples) ? 
-//                  (float)available_points / (float)target_samples : 1.0f;
+//     int idx_far = -1;
+//     int idx_near = -1;
 
-//     for (int k = 0; k < target_samples; k++) {
-//         int i = start_idx + (int)(k * step);
-//         if (i >= num) break;
+//     // --- 寻找预瞄点：遍历中线，寻找与圆半径最接近的交点 ---
+//     for (int i = 0; i < num; i++) {
+//         float dx = Mline[i][0] - CX;
+//         float dy = Mline[i][1] - CY;
+//         float dist = sqrtf(dx * dx + dy * dy);
 
-//         float dx = Mline[i][0] - (float)origin_x;
-//         float dy = (float)origin_y - Mline[i][1];
-
-//         if (dy <= 0) continue;
-
-//         float current_angle = atan2f(dx, dy);
-//         float weight = (float)(target_samples - k); 
-        
-//         total_weighted_angle += current_angle * weight;
-//         total_weight += weight;
-
-//         if (step == 1.0f && i == num - 1) break;
+//         // 寻找近点 (靠近 R_NEAR)
+//         if (idx_near == -1 && dist >= R_NEAR) {
+//             idx_near = i;
+//         }
+//         // 寻找远点 (靠近 R_FAR)
+//         if (idx_far == -1 && dist >= R_FAR) {
+//             idx_far = i;
+//         }
 //     }
 
-//     // 情况 B: 循环完发现没有有效权重（计算失败），也要返回上一帧
-//     // 而不是返回 0.0f
-//     if (total_weight < 1e-5f) return last_angle; 
+//     float angle_far = 0.0f, angle_near = 0.0f;
+//     float final_angle = 0.0f;
 
-//     // 计算平均弧度并转换
-//     float final_angle = (total_weighted_angle / total_weight) * 180.0f / 3.14159265f;
+//     // --- 逻辑判断与加权 ---
+//     if (idx_near != -1 && idx_far != -1) {
+//         // 情况 1: 两个预瞄点都存在，各占 0.5
+//         angle_near = atan2f(Mline[idx_near][0] - BASE_X, BASE_Y - Mline[idx_near][1]);
+//         angle_far  = atan2f(Mline[idx_far][0] - BASE_X, BASE_Y - Mline[idx_far][1]);
+//         final_angle = (angle_near * 0.5f + angle_far * 0.5f) * 180.0f / 3.14159265f;
+//     } 
+//     else if (idx_near != -1 && idx_far == -1) {
+//         // 情况 2: 赛道不够长，只有近点，权重给 1
+//         angle_near = atan2f(Mline[idx_near][0] - BASE_X, BASE_Y - Mline[idx_near][1]);
+//         final_angle = angle_near * 180.0f / 3.14159265f;
+//     } 
+//     else {
+//         // 情况 3: 连近点都没找到，取轨迹最远点 (num-1)，权重给 1
+//         int furthest_idx = num - 1;
+//         float angle_max = atan2f(Mline[furthest_idx][0] - BASE_X, BASE_Y - Mline[furthest_idx][1]);
+//         final_angle = angle_max * 180.0f / 3.14159265f;
+//     }
+
+//     // --- 后处理 ---
 //     final_angle += angle_compensation;
 
-//     // 限幅
-//     if (final_angle > 30.0f)  final_angle = 30.0f;
-//     if (final_angle < -30.0f) final_angle = -30.0f;
+//     // 限幅上调至 +-90 度
+//     if (final_angle > 90.0f)  final_angle = 90.0f;
+//     if (final_angle < -90.0f) final_angle = -90.0f;
 
-//     // 更新记忆
 //     last_angle = final_angle;
-
 //     return final_angle;
 // }
+
+// 调试用，在图像上画点===========================================================
 /**
  * @brief 采用双预瞄点机制计算偏移角度
  * @param Mline 逆透视后的中线点集（坐标单位通常为mm或实际物理尺度）
@@ -969,6 +990,47 @@ float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
         final_angle = angle_max * 180.0f / 3.14159265f;
     }
 
+    // --- 绘制预瞄点标记 ---
+    if (img_gray != nullptr) {
+        const uint8_t mark_pattern[5][5] = {
+            {0, 1, 1, 1, 0},
+            {1, 0, 1, 0, 1},
+            {1, 1, 0, 1, 1},
+            {1, 0, 1, 0, 1},
+            {0, 1, 1, 1, 0}
+        };
+        
+        // 绘制近点
+        if (idx_near != -1) {
+            int px = (int)(Mline[idx_near][0] + 0.5f);
+            int py = (int)(Mline[idx_near][1] + 0.5f);
+            if (px >= 2 && px < IMG_W - 2 && py >= 2 && py < IMG_H - 2) {
+                for (int dy = -2; dy <= 2; dy++) {
+                    for (int dx = -2; dx <= 2; dx++) {
+                        if (mark_pattern[dy + 2][dx + 2]) {
+                            img_gray[(py + dy) * IMG_W + (px + dx)] = 255;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 绘制远点
+        if (idx_far != -1) {
+            int px = (int)(Mline[idx_far][0] + 0.5f);
+            int py = (int)(Mline[idx_far][1] + 0.5f);
+            if (px >= 2 && px < IMG_W - 2 && py >= 2 && py < IMG_H - 2) {
+                for (int dy = -2; dy <= 2; dy++) {
+                    for (int dx = -2; dx <= 2; dx++) {
+                        if (mark_pattern[dy + 2][dx + 2]) {
+                            img_gray[(py + dy) * IMG_W + (px + dx)] = 255;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // --- 后处理 ---
     final_angle += angle_compensation;
 
@@ -979,7 +1041,7 @@ float calculate_weighted_offset_angle(float (*Mline)[2], int num) {
     last_angle = final_angle;
     return final_angle;
 }
-
+// =======================================================
 
 //去畸变后Mat
 cv::Mat De_distortion_image;
@@ -994,7 +1056,7 @@ void image_proc() {
     img_gray = reinterpret_cast<uint8_t*>(frame_gray_small.ptr(0));
 
     start_thre = get_otsu_thres(img_gray, 0, 160, TRACK_HEIGHT_MAX, 120);
-    line_process(120, 0);
+    line_process(120, 60);
 
     element_status();
     no_element_process();
@@ -1050,8 +1112,8 @@ void send_img_infor(){
 
     gray_img_with_centerline_transmitter(
         img_gray, IMG_W, IMG_H, 
-        L_buf, (uint16_t)sampled_Lline_num, 
-        R_buf, (uint16_t)sampled_Rline_num, 
+        L_buf, (uint16_t)Lline_num, 
+        R_buf, (uint16_t)Rline_num, 
         M_buf, (uint16_t)middle_line_length, 
         false, false 
     );
