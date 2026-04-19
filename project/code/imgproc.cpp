@@ -1067,7 +1067,7 @@ void image_proc() {
     max_angle = std::max(nms_Lline, nms_Rline);
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
     printf("onto:   %f     ,middle_line_length: %d    \r",onto,middle_line_length);
-    send_img_infor();
+    // send_img_infor();
     // 调试要看状态机请解注释这行
     // printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
 

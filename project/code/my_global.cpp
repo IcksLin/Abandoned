@@ -264,8 +264,8 @@ bool car_init(){
     // }
 
 
-    printf("9. TCP图像传输组件初始化...\n");
-    img_transmitter_init();
+    // printf("9. TCP图像传输组件初始化...\n");
+    // img_transmitter_init();
 
     if(control_model == 0){
         printf("pid control model");
