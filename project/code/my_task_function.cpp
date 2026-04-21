@@ -73,10 +73,10 @@ void tracking()
 
     image_proc();
 
-    cruising_speed = 0;
+    // cruising_speed = 0;
     
     // 开关，1使能循迹
-    onto_pd_control_enable = 0;
+    // onto_pd_control_enable = 0;
     // my_timer.start();
     // 调试信息===========================================
     // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);

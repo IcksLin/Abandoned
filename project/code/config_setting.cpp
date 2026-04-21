@@ -202,6 +202,8 @@ void param_loading_from_file(const char* config_file) {
     // 写入方向环 PD 参数
     pid_angle.setParameters(onto_kp, onto_kp2, onto_kd);
     pid_angle.setOutputLimit(onto_limit);
+    onto_control_pd.init(onto_control_kp,1.0f,0.0f,onto_control_kd,5,700.0f,-700.0f,0.0f,0.0f);
+    angle_speed_pd.init(angle_speed_kp,1.0f,0.0f,angle_speed_kd,10,CRUISING_SPEED*0.6,-CRUISING_SPEED*0.6,0.0f,0.0f);
 }
 
 /**
