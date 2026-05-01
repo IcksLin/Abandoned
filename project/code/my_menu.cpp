@@ -7,9 +7,591 @@
 ********************************************************************************************************************/
 #include "my_menu.hpp"
 #include "my_task_function.hpp"
+#include "zf_driver_delay.hpp"
+
+#include <cstring>
 
 // 全局菜单实例指针
 MyMenu* g_menu_instance = nullptr;
+
+/**
+ * @brief 菜单 UI 移植辅助区域开始
+ * @note 从此标志到“菜单 UI 移植辅助区域结束”的代码只依赖 zf_device_ips200 的基础绘图接口。
+ */
+// ==================== MENU_UI_PORTABLE_HELPER_BEGIN ====================
+
+/**
+ * @brief 菜单绘制辅助函数集中区
+ * @note 这些函数只服务于上层菜单 UI，不写入 zf_device_ips200 底层库。
+ *       若移植到不支持 framebuffer 或 fill_rect 的屏幕库，可优先替换或删除本区域。
+ */
+namespace {
+constexpr uint16 MENU_TTF_ITEM_HEIGHT = ITEM_H;
+constexpr uint16 MENU_STATIC_ITEM_HEIGHT = 24;
+constexpr uint16 MENU_ITEM_MARGIN_X = 4;
+constexpr uint16 MENU_TEXT_X = 12;
+constexpr uint16 MENU_SELECT_RADIUS = 6;
+constexpr uint8 MENU_ANIMATION_FRAMES = 9;
+constexpr uint16 MENU_ANIMATION_DELAY_MS = 22;
+constexpr uint16 MENU_SELECT_PADDING_X = 6;
+constexpr uint16 MENU_SELECT_PADDING_Y = 2;
+
+struct menu_level_info_t {
+    int page_start;
+    int selected_index;
+    int selected_row;
+};
+
+struct menu_render_style_t {
+    bool use_ttf;
+    uint16 item_height;
+    uint16 text_y_offset;
+    uint16 max_text_chars;
+    uint16 text_width;
+    uint16 text_height;
+};
+
+struct menu_highlight_rect_t {
+    int x;
+    int y;
+    int w;
+    int h;
+};
+
+/**
+ * @brief 统计当前菜单层级信息
+ * @param menu_table 菜单表
+ * @param table_size 菜单表长度
+ * @param selected_menu 当前选中项
+ * @return 当前选中项在本层级中的序号、分页起点和显示行号
+ */
+menu_level_info_t get_menu_level_info(const Menu *menu_table, int table_size, const Menu *selected_menu)
+{
+    menu_level_info_t info = {0, -1, 0};
+    int current_index = 0;
+    const int parent_id = selected_menu->parent_id;
+
+    for (int i = 0; i < table_size; i++)
+    {
+        if (menu_table[i].parent_id == parent_id)
+        {
+            if (&menu_table[i] == selected_menu)
+                info.selected_index = current_index;
+            current_index++;
+        }
+    }
+
+    if (info.selected_index >= MENU_MAX_ROW)
+        info.page_start = info.selected_index - (MENU_MAX_ROW - 1);
+
+    info.selected_row = info.selected_index - info.page_start;
+    if (info.selected_row < 0)
+        info.selected_row = 0;
+
+    return info;
+}
+
+/**
+ * @brief 以当前显示库已有的 fill_rect 绘制圆角矩形
+ * @param ips_display 屏幕对象
+ * @param x 矩形左上角 X 坐标
+ * @param y 矩形左上角 Y 坐标
+ * @param w 矩形宽度
+ * @param h 矩形高度
+ * @param radius 圆角半径
+ * @param color RGB565 填充颜色
+ * @note 该函数通过逐行短矩形近似圆角，不要求底层库提供专用圆角 API。
+ */
+void draw_menu_round_rect(zf_device_ips200 *ips_display, uint16 x, uint16 y,
+                          uint16 w, uint16 h, uint16 radius, uint16 color)
+{
+    if (!ips_display || w == 0 || h == 0)
+        return;
+
+    if (radius * 2 > h)
+        radius = h / 2;
+    if (radius * 2 > w)
+        radius = w / 2;
+
+    for (uint16 row = 0; row < h; row++)
+    {
+        uint16 inset = 0;
+
+        if (row < radius)
+        {
+            const int dy = radius - 1 - row;
+            inset = static_cast<uint16>((dy * dy) / (radius ? radius : 1));
+        }
+        else if (row >= h - radius)
+        {
+            const int dy = row - (h - radius);
+            inset = static_cast<uint16>((dy * dy) / (radius ? radius : 1));
+        }
+
+        if (inset * 2 >= w)
+            continue;
+
+        ips_display->fill_rect(x + inset, y + row, w - inset * 2, 1, color);
+    }
+}
+
+/**
+ * @brief 将菜单名截断到静态缓冲区，防止文本超出屏幕
+ * @param dst 输出缓冲区
+ * @param dst_size 输出缓冲区大小
+ * @param src 原始菜单名
+ * @param max_chars 最大显示字符数
+ * @note 菜单名当前为 ASCII，静态字库与 TTF 分支共用该截断逻辑，保持布局一致。
+ */
+void copy_menu_label(char *dst, size_t dst_size, const char *src, uint16 max_chars)
+{
+    if (!dst || dst_size == 0)
+        return;
+
+    strncpy(dst, src, dst_size - 1);
+    dst[dst_size - 1] = '\0';
+
+    if (max_chars == 0 || strlen(dst) <= max_chars
+        || static_cast<size_t>(max_chars) + 1 > dst_size)
+        return;
+
+    if (max_chars > 3)
+    {
+        dst[max_chars - 3] = '.';
+        dst[max_chars - 2] = '.';
+        dst[max_chars - 1] = '.';
+        dst[max_chars] = '\0';
+    }
+    else
+    {
+        dst[max_chars] = '\0';
+    }
+}
+
+/**
+ * @brief 计算菜单名对应的选中色块矩形
+ * @param ips_display 屏幕对象
+ * @param style 菜单绘制风格
+ * @param display_row 当前页显示行号
+ * @param label 已截断后的菜单名
+ * @return 仅包裹菜单名文字和少量内边距的色块矩形
+ */
+menu_highlight_rect_t get_menu_highlight_rect(zf_device_ips200 *ips_display,
+                                              const menu_render_style_t &style,
+                                              int display_row, const char *label)
+{
+    const size_t label_len = label ? strlen(label) : 0;
+    const uint16 max_w = static_cast<uint16>(ips_display->get_width() - MENU_ITEM_MARGIN_X * 2);
+    uint16 text_w = static_cast<uint16>(label_len * style.text_width);
+    uint16 rect_w = static_cast<uint16>(text_w + MENU_SELECT_PADDING_X * 2);
+    uint16 rect_h = static_cast<uint16>(style.text_height + MENU_SELECT_PADDING_Y * 2);
+
+    if (rect_w > max_w)
+        rect_w = max_w;
+    if (rect_h > style.item_height - 2)
+        rect_h = style.item_height - 2;
+
+    menu_highlight_rect_t rect = {};
+    rect.x = MENU_TEXT_X - MENU_SELECT_PADDING_X;
+    rect.y = display_row * style.item_height + style.text_y_offset - MENU_SELECT_PADDING_Y;
+    rect.w = rect_w;
+    rect.h = rect_h;
+
+    if (rect.x < MENU_ITEM_MARGIN_X)
+        rect.x = MENU_ITEM_MARGIN_X;
+    if (rect.x + rect.w > ips_display->get_width() - MENU_ITEM_MARGIN_X)
+        rect.x = ips_display->get_width() - MENU_ITEM_MARGIN_X - rect.w;
+    if (rect.y < display_row * style.item_height)
+        rect.y = display_row * style.item_height;
+    if (rect.y + rect.h > (display_row + 1) * style.item_height)
+        rect.y = (display_row + 1) * style.item_height - rect.h;
+
+    return rect;
+}
+
+void clamp_menu_highlight_rect(zf_device_ips200 *ips_display, menu_highlight_rect_t &rect)
+{
+    if (rect.w < 1)
+        rect.w = 1;
+    if (rect.h < 1)
+        rect.h = 1;
+    if (rect.w > ips_display->get_width())
+        rect.w = ips_display->get_width();
+    if (rect.h > ips_display->get_height())
+        rect.h = ips_display->get_height();
+
+    if (rect.x < 0)
+        rect.x = 0;
+    if (rect.y < 0)
+        rect.y = 0;
+    if (rect.x + rect.w > ips_display->get_width())
+        rect.x = ips_display->get_width() - rect.w;
+    if (rect.y + rect.h > ips_display->get_height())
+        rect.y = ips_display->get_height() - rect.h;
+}
+
+void clear_menu_highlight_rect(zf_device_ips200 *ips_display, const menu_highlight_rect_t &rect)
+{
+    int x = rect.x - 1;
+    int y = rect.y - 1;
+    int w = rect.w + 2;
+    int h = rect.h + 2;
+
+    if (x < 0)
+    {
+        w += x;
+        x = 0;
+    }
+    if (y < 0)
+    {
+        h += y;
+        y = 0;
+    }
+    if (x + w > ips_display->get_width())
+        w = ips_display->get_width() - x;
+    if (y + h > ips_display->get_height())
+        h = ips_display->get_height() - y;
+    if (w <= 0 || h <= 0)
+        return;
+
+    ips_display->fill_rect(static_cast<uint16>(x), static_cast<uint16>(y),
+                           static_cast<uint16>(w), static_cast<uint16>(h),
+                           MENU_BG_COLOR);
+}
+
+/**
+ * @brief 带轻微回弹的插值因子，单位为千分比
+ * @param frame 当前帧序号，从 1 开始
+ * @return 插值进度，1000 为目标值，允许中间帧略微越过目标形成弹性
+ */
+int get_elastic_progress_permille(uint8 frame)
+{
+    static const int progress[] = {180, 390, 620, 840, 1030, 1110, 1060, 1015, 1000};
+    if (frame == 0)
+        return 0;
+    if (frame > MENU_ANIMATION_FRAMES)
+        return 1000;
+    return progress[frame - 1];
+}
+
+int elastic_lerp(int start, int end, int progress_permille)
+{
+    return start + (end - start) * progress_permille / 1000;
+}
+
+/**
+ * @brief 绘制单个菜单项文字
+ * @param ips_display 屏幕对象
+ * @param style 菜单绘制风格
+ * @param x 文本 X 坐标
+ * @param y 文本 Y 坐标
+ * @param color 文本颜色
+ * @param bg_color 静态字库使用的背景色
+ * @param text 文本内容
+ */
+void draw_menu_text(zf_device_ips200 *ips_display, const menu_render_style_t &style,
+                    uint16 x, uint16 y, uint16 color, uint16 bg_color, const char *text)
+{
+    if (style.use_ttf)
+    {
+        ips_display->print(x, y, color, MENU_FONT_SIZE, text);
+        return;
+    }
+
+    const uint16 old_pen_color = ips_display->pen_color;
+    const uint16 old_bg_color = ips_display->bg_color;
+    ips_display->pen_color = color;
+    ips_display->bg_color = bg_color;
+    ips_display->show_string(x, y, text);
+    ips_display->pen_color = old_pen_color;
+    ips_display->bg_color = old_bg_color;
+}
+
+/**
+ * @brief 绘制菜单的一帧画面
+ * @param ips_display 屏幕对象
+ * @param menu_table 菜单表
+ * @param table_size 菜单表长度
+ * @param selected_menu 当前选中项
+ * @param info 当前层级信息
+ * @param style 绘制风格
+ * @param select_y 选中色块的 Y 坐标，用于动画插值
+ * @param highlight_text 是否用选中态颜色重绘选中项文字
+ */
+void render_menu_frame(zf_device_ips200 *ips_display, const Menu *menu_table, int table_size,
+                       const Menu *selected_menu, const menu_level_info_t &info,
+                       const menu_render_style_t &style, const menu_highlight_rect_t &highlight_rect,
+                       bool highlight_text)
+{
+    ips_display->full(MENU_BG_COLOR);
+
+    draw_menu_round_rect(ips_display, static_cast<uint16>(highlight_rect.x),
+                         static_cast<uint16>(highlight_rect.y),
+                         static_cast<uint16>(highlight_rect.w),
+                         static_cast<uint16>(highlight_rect.h),
+                         MENU_SELECT_RADIUS, MENU_SELECT_COLOR);
+
+    int current_item_count = 0;
+    int display_row = 0;
+
+    for (int i = 0; i < table_size; i++)
+    {
+        if (menu_table[i].parent_id == selected_menu->parent_id)
+        {
+            if (current_item_count >= info.page_start && display_row < MENU_MAX_ROW)
+            {
+                const uint16 y_offset = display_row * style.item_height;
+                const bool is_selected = (&menu_table[i] == selected_menu);
+                char menu_name_buf[32];
+
+                copy_menu_label(menu_name_buf, sizeof(menu_name_buf),
+                                menu_table[i].name, style.max_text_chars);
+
+                if (!is_selected || !highlight_text)
+                {
+                    draw_menu_text(ips_display, style, MENU_TEXT_X, y_offset + style.text_y_offset,
+                                   MENU_TEXT_COLOR, MENU_BG_COLOR, menu_name_buf);
+                }
+                else
+                {
+                    draw_menu_text(ips_display, style, MENU_TEXT_X, y_offset + style.text_y_offset,
+                                   MENU_SELECT_TEXT, MENU_SELECT_COLOR, menu_name_buf);
+                }
+
+                if (!is_selected)
+                    ips_display->fill_rect(MENU_ITEM_MARGIN_X, y_offset + style.item_height - 1,
+                                           ips_display->get_width() - MENU_ITEM_MARGIN_X * 2,
+                                           1, MENU_DIVIDER_COLOR);
+                display_row++;
+            }
+            current_item_count++;
+        }
+    }
+
+    ips_display->update();
+}
+
+/**
+ * @brief 查找当前页指定显示行对应的菜单项
+ * @param menu_table 菜单表
+ * @param table_size 菜单表长度
+ * @param parent_id 当前层级父 ID
+ * @param page_start 当前页起始序号
+ * @param display_row 当前页显示行号
+ * @return 对应菜单项；超出范围时返回 nullptr
+ */
+const Menu *find_menu_by_display_row(const Menu *menu_table, int table_size,
+                                     int parent_id, int page_start, int display_row)
+{
+    int current_item_count = 0;
+
+    for (int i = 0; i < table_size; i++)
+    {
+        if (menu_table[i].parent_id == parent_id)
+        {
+            if (current_item_count == page_start + display_row)
+                return &menu_table[i];
+            current_item_count++;
+        }
+    }
+
+    return nullptr;
+}
+
+/**
+ * @brief 重绘指定行范围内的菜单项普通状态
+ * @param ips_display 屏幕对象
+ * @param menu_table 菜单表
+ * @param table_size 菜单表长度
+ * @param selected_menu 当前选中项
+ * @param info 当前层级信息
+ * @param style 绘制风格
+ * @param first_row 起始显示行
+ * @param last_row 结束显示行
+ * @note 动画过程中只重绘受选中色块影响的局部行，避免每个插帧都重绘全屏。
+ */
+void repaint_menu_rows_normal(zf_device_ips200 *ips_display, const Menu *menu_table, int table_size,
+                              const Menu *selected_menu, const menu_level_info_t &info,
+                              const menu_render_style_t &style, int first_row, int last_row)
+{
+    if (first_row < 0)
+        first_row = 0;
+
+    const int screen_last_row = (ips_display->get_height() - 1) / style.item_height;
+    if (last_row > screen_last_row)
+        last_row = screen_last_row;
+
+    for (int row = first_row; row <= last_row; row++)
+    {
+        const uint16 y_offset = static_cast<uint16>(row * style.item_height);
+        uint16 repaint_h = style.item_height;
+        if (y_offset + repaint_h > ips_display->get_height())
+            repaint_h = static_cast<uint16>(ips_display->get_height() - y_offset);
+
+        ips_display->fill_rect(0, y_offset, ips_display->get_width(), repaint_h, MENU_BG_COLOR);
+
+        const Menu *row_menu = find_menu_by_display_row(menu_table, table_size,
+                                                        selected_menu->parent_id,
+                                                        info.page_start, row);
+        if (!row_menu)
+            continue;
+
+        char menu_name_buf[32];
+
+        copy_menu_label(menu_name_buf, sizeof(menu_name_buf),
+                        row_menu->name, style.max_text_chars);
+
+        if (row_menu != selected_menu)
+            ips_display->fill_rect(MENU_ITEM_MARGIN_X, y_offset + style.item_height - 1,
+                                   ips_display->get_width() - MENU_ITEM_MARGIN_X * 2,
+                                   1, MENU_DIVIDER_COLOR);
+        draw_menu_text(ips_display, style, MENU_TEXT_X, y_offset + style.text_y_offset,
+                       MENU_TEXT_COLOR, MENU_BG_COLOR, menu_name_buf);
+    }
+}
+
+/**
+ * @brief 绘制一个局部插帧
+ * @param ips_display 屏幕对象
+ * @param menu_table 菜单表
+ * @param table_size 菜单表长度
+ * @param selected_menu 当前选中项
+ * @param info 当前层级信息
+ * @param style 绘制风格
+ * @param previous_rect 上一帧选中色块矩形
+ * @param select_rect 当前帧选中色块矩形
+ * @param highlight_text 是否绘制最终选中文字状态
+ * @note 该函数只清理选中色块上一帧和当前帧覆盖的行，降低 TTF 模式下的插帧开销。
+ */
+void render_menu_animation_frame(zf_device_ips200 *ips_display, const Menu *menu_table, int table_size,
+                                 const Menu *selected_menu, const menu_level_info_t &info,
+                                 const menu_render_style_t &style,
+                                 const menu_highlight_rect_t &previous_rect,
+                                 const menu_highlight_rect_t &select_rect, bool highlight_text)
+{
+    const int min_y = previous_rect.y < select_rect.y ? previous_rect.y : select_rect.y;
+    const int previous_bottom = previous_rect.y + previous_rect.h;
+    const int current_bottom = select_rect.y + select_rect.h;
+    const int max_y = previous_bottom > current_bottom ? previous_bottom : current_bottom;
+    const int first_row = min_y / style.item_height;
+    const int last_row = (max_y + 1) / style.item_height;
+
+    clear_menu_highlight_rect(ips_display, previous_rect);
+    clear_menu_highlight_rect(ips_display, select_rect);
+
+    repaint_menu_rows_normal(ips_display, menu_table, table_size, selected_menu,
+                             info, style, first_row, last_row);
+
+    draw_menu_round_rect(ips_display, static_cast<uint16>(select_rect.x),
+                         static_cast<uint16>(select_rect.y),
+                         static_cast<uint16>(select_rect.w),
+                         static_cast<uint16>(select_rect.h),
+                         MENU_SELECT_RADIUS, MENU_SELECT_COLOR);
+
+    if (highlight_text)
+    {
+        char menu_name_buf[32];
+        const uint16 selected_text_y = static_cast<uint16>(info.selected_row * style.item_height
+                                                           + style.text_y_offset);
+
+        copy_menu_label(menu_name_buf, sizeof(menu_name_buf),
+                        selected_menu->name, style.max_text_chars);
+        draw_menu_text(ips_display, style, MENU_TEXT_X, selected_text_y,
+                       MENU_SELECT_TEXT, MENU_SELECT_COLOR, menu_name_buf);
+    }
+
+    ips_display->update();
+}
+
+/**
+ * @brief 生成菜单风格参数
+ * @param ips_display 屏幕对象
+ * @param use_ttf 是否使用 TTF 字库
+ * @return 当前字库模式对应的布局参数
+ */
+menu_render_style_t get_menu_render_style(zf_device_ips200 *ips_display, bool use_ttf)
+{
+    menu_render_style_t style = {};
+    style.use_ttf = use_ttf;
+    style.item_height = use_ttf ? MENU_TTF_ITEM_HEIGHT : MENU_STATIC_ITEM_HEIGHT;
+    style.text_y_offset = use_ttf ? 3 : (MENU_STATIC_ITEM_HEIGHT - MENU_STATIC_FONT_HEIGHT) / 2;
+    style.text_width = use_ttf ? 12 : MENU_STATIC_FONT_WIDTH;
+    style.text_height = use_ttf ? static_cast<uint16>(MENU_FONT_SIZE) : MENU_STATIC_FONT_HEIGHT;
+
+    const uint16 text_right_margin = MENU_ITEM_MARGIN_X;
+    if (use_ttf)
+        style.max_text_chars = (ips_display->get_width() - MENU_TEXT_X - text_right_margin) / 11;
+    else
+        style.max_text_chars = (ips_display->get_width() - MENU_TEXT_X - text_right_margin)
+                               / MENU_STATIC_FONT_WIDTH;
+
+    return style;
+}
+
+/**
+ * @brief 绘制带选中色块移动动画的菜单页面
+ * @param ips_display 屏幕对象
+ * @param menu_table 菜单表
+ * @param table_size 菜单表长度
+ * @param selected_menu 当前选中项
+ * @param use_ttf 是否使用 TTF 字库
+ */
+void draw_menu_with_animation(zf_device_ips200 *ips_display, const Menu *menu_table,
+                              int table_size, const Menu *selected_menu, bool use_ttf)
+{
+    static bool has_last_menu_state = false;
+    static int last_parent_id = -10000;
+    static int last_page_start = 0;
+    static int last_selected_row = 0;
+    static menu_highlight_rect_t last_highlight_rect = {};
+
+    const menu_level_info_t info = get_menu_level_info(menu_table, table_size, selected_menu);
+    const menu_render_style_t style = get_menu_render_style(ips_display, use_ttf);
+    char selected_label[32];
+    copy_menu_label(selected_label, sizeof(selected_label), selected_menu->name, style.max_text_chars);
+    const menu_highlight_rect_t target_rect = get_menu_highlight_rect(ips_display, style,
+                                                                      info.selected_row,
+                                                                      selected_label);
+    const bool can_animate = has_last_menu_state
+                             && last_parent_id == selected_menu->parent_id
+                             && last_page_start == info.page_start
+                             && last_selected_row != info.selected_row;
+
+    if (can_animate)
+    {
+        menu_highlight_rect_t previous_rect = last_highlight_rect;
+
+        for (uint8 frame = 1; frame <= MENU_ANIMATION_FRAMES; frame++)
+        {
+            const int progress = get_elastic_progress_permille(frame);
+            menu_highlight_rect_t select_rect = {};
+            select_rect.x = elastic_lerp(last_highlight_rect.x, target_rect.x, progress);
+            select_rect.y = elastic_lerp(last_highlight_rect.y, target_rect.y, progress);
+            select_rect.w = elastic_lerp(last_highlight_rect.w, target_rect.w, progress);
+            select_rect.h = elastic_lerp(last_highlight_rect.h, target_rect.h, progress);
+            clamp_menu_highlight_rect(ips_display, select_rect);
+            render_menu_animation_frame(ips_display, menu_table, table_size, selected_menu,
+                                        info, style, previous_rect, select_rect,
+                                        frame == MENU_ANIMATION_FRAMES);
+            previous_rect = select_rect;
+            system_delay_ms(MENU_ANIMATION_DELAY_MS);
+        }
+    }
+    else
+    {
+        render_menu_frame(ips_display, menu_table, table_size, selected_menu,
+                          info, style, target_rect, true);
+    }
+
+    has_last_menu_state = true;
+    last_parent_id = selected_menu->parent_id;
+    last_page_start = info.page_start;
+    last_selected_row = info.selected_row;
+    last_highlight_rect = target_rect;
+}
+}
+
+// ===================== MENU_UI_PORTABLE_HELPER_END =====================
 
 Menu MyMenu::menu_table[] = {
     // ID, ParentID, Name, Function
@@ -23,7 +605,8 @@ Menu MyMenu::menu_table[] = {
     { 7 ,0,"mode7",nullptr},
     { 8 ,1,"key_remap_test",MyMenu::key_remap_test},
     { 9 ,1,"imu_angle_display",MyMenu::imu_angle_display},
-    { 10,2,"brushless_calibration",MyMenu::brushless_calibration}
+    { 10,2,"brushless_calibration",MyMenu::brushless_calibration},
+    { 11,0,"anan is cute",nullptr}
 };
 
 //计算table大小
@@ -120,68 +703,33 @@ Menu* MyMenu::menu_navigate(Menu *current, MenuAction action)
 
 void MyMenu::draw_menu(Menu *selected_menu)
 {
+#if WHETHER_USE_TTF
+    draw_menu_ttf(selected_menu);
+#else
+    draw_menu_static(selected_menu);
+#endif
+}
+
+/**
+ * @brief 使用动态 TTF 字库绘制当前层级菜单
+ * @param selected_menu 当前选中的菜单项
+ * @note TTF 模式可显示 UTF-8 字符，但菜单行高仍需大于字号，避免相邻字形上下重叠。
+ */
+void MyMenu::draw_menu_ttf(Menu *selected_menu)
+{
     if (!selected_menu) return;
+    draw_menu_with_animation(ips_display, menu_table, MENU_TABLE_SIZE, selected_menu, true);
+}
 
-    // 1. 统计当前层级并找到选中项序号
-    int p_id = selected_menu->parent_id;
-    int total_in_level = 0;
-    int selected_index_in_level = -1;
-
-    for (int i = 0; i < MENU_TABLE_SIZE; i++)
-    {
-        if (menu_table[i].parent_id == p_id)
-        {
-            if (&menu_table[i] == selected_menu)
-                selected_index_in_level = total_in_level;
-            total_in_level++;
-        }
-    }
-
-    // 2. 计算滚动分页逻辑 (保持原样)
-    uint8 page_start = 0;
-    if (selected_index_in_level >= MENU_MAX_ROW)
-        page_start = selected_index_in_level - (MENU_MAX_ROW - 1);
-
-    // 3. 执行绘制
-    ips_display->clear();
-
-    int current_item_count = 0; 
-    int display_row = 0;         
-
-    // 定义菜单布局参数
-    const uint16 ITEM_HEIGHT = 28; // 由于使用了 TTF 24号字，行高建议设为 28-32
-
-    for (int i = 0; i < MENU_TABLE_SIZE; i++)
-    {
-        if (menu_table[i].parent_id == p_id)
-        {
-            if (current_item_count >= page_start && display_row < MENU_MAX_ROW)
-            {
-                uint16 y_offset = display_row * ITEM_HEIGHT;
-
-                if (&menu_table[i] == selected_menu)
-                {
-                    // --- 优化：绘制选中背景 ---
-                    // 建议封装此功能，直接操作 buffer 以节省性能
-                    // 这里直接调用你类的 pen_color 或者显式传参
-                    ips_display->fill_rect(0, y_offset, ips_display->get_width(), ITEM_HEIGHT, MENU_SELECT_COLOR);
-
-                    // --- 使用样式版 print：白色高亮文字 ---
-                    // 假设选中时文字为白色，字号 24
-                    ips_display->print(8, y_offset + 2, RGB565_WHITE, MENU_FONT_SIZE, menu_table[i].name);
-                }
-                else
-                {
-                    // --- 使用标准版 print：默认颜色文字 ---
-                    // 假设非选中时使用默认画笔颜色
-                    ips_display->print(8, y_offset + 2, menu_table[i].name);
-                }
-                display_row++;
-            }
-            current_item_count++;
-        }
-    }
-    ips_display->update();
+/**
+ * @brief 使用静态 8x16 ASCII 字库绘制当前层级菜单
+ * @param selected_menu 当前选中的菜单项
+ * @note 静态字库不支持 UTF-8 汉字，菜单名称应使用 ASCII；本函数通过固定行高和字符宽度避免文字重叠。
+ */
+void MyMenu::draw_menu_static(Menu *selected_menu)
+{
+    if (!selected_menu) return;
+    draw_menu_with_animation(ips_display, menu_table, MENU_TABLE_SIZE, selected_menu, false);
 }
 
 void MyMenu::menu_system(void)

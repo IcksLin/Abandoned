@@ -64,7 +64,7 @@ add_dir_to_srcs(../../libraries/zf_driver)
 add_dir_to_srcs(../../libraries/zf_components)
 
 # --- 关键修改：将 TTF 逻辑放在 DIR_SRCS 初始化之后 ---
-option(USE_TTF "Whether to use Vector Fonts" ON) 
+option(USE_TTF "Whether to use Vector Fonts" ON)
 
 if(USE_TTF)
     add_definitions(-DWHETHER_USE_TTF=1)

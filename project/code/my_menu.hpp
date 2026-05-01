@@ -16,15 +16,18 @@
 #include "zf_device_ips200_fb.hpp"
 
 // 菜单显示相关宏定义
-#define MENU_MAX_ROW        5       
-#define ITEM_H              30      // 24 号字建议行高 30-32，预留上下间距
-#define MENU_FONT_SIZE      24.0f   // 统一 TTF 字号定义
+#define MENU_MAX_ROW              5
+#define ITEM_H                    30      ///< TTF 模式下 24 号字的推荐行高，预留上下间距
+#define MENU_FONT_SIZE            24.0f   ///< TTF 模式下的菜单字号
+#define MENU_STATIC_FONT_WIDTH    8       ///< 静态 ASCII 字库单字符宽度
+#define MENU_STATIC_FONT_HEIGHT   16      ///< 静态 ASCII 字库单字符高度
 
-// 颜色定义（RGB565格式）
-#define MENU_BG_COLOR       0xFFFF  // 白色背景
-#define MENU_TEXT_COLOR     0x0000  // 黑色文字
-#define MENU_SELECT_COLOR   0x001F  // 蓝色选中框背景
-#define MENU_SELECT_TEXT    0xFFFF  // 选中项文字颜色（设为白色以在蓝底上突出）
+// 颜色定义（RGB565 格式）。整体采用偏暖色调，避免菜单界面过冷或刺眼。
+#define MENU_BG_COLOR             0xFF9C  ///< 暖白背景
+#define MENU_TEXT_COLOR           0x4228  ///< 深棕文字
+#define MENU_SELECT_COLOR         0xF4A5  ///< 暖橙选中框背景
+#define MENU_SELECT_TEXT          0xFFFF  ///< 选中项文字颜色
+#define MENU_DIVIDER_COLOR        0xDEDB  ///< 浅暖灰分隔线
 
 #define IPS_DEVICE_PATH     "/dev/fb0"
 
@@ -62,6 +65,20 @@ private:
     Menu* get_first_child(int parent_id);
 
     Menu* menu_navigate(Menu *current, MenuAction action);
+
+    /**
+     * @brief 使用 TTF 动态字库绘制菜单页面
+     * @param selected_menu 当前选中的菜单项
+     * @note 仅在 WHETHER_USE_TTF 为 1 时由 draw_menu 调用。
+     */
+    void draw_menu_ttf(Menu *selected_menu);
+
+    /**
+     * @brief 使用 8x16 静态 ASCII 字库绘制菜单页面
+     * @param selected_menu 当前选中的菜单项
+     * @note 仅在 WHETHER_USE_TTF 为 0 时由 draw_menu 调用；菜单名称需保持 ASCII 字符。
+     */
+    void draw_menu_static(Menu *selected_menu);
 
 public:
     MyMenu(MyKey* key_mgr, zf_device_ips200* ips_disp);
