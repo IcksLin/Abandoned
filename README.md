@@ -4,6 +4,7 @@
 > 本项目基于逐飞科技开源底层开发，并对其底层库（`ips`、`uvc`、`tcp` 等）进行了大量优化与改进。  
 > 视觉代码参考上海交通大学开源方案并进行针对性设计与改造。
 > 逆矩阵标定工具地址 [calibration](https://github.com/IcksLin/calibration.git)
+> 工程使用说明在project/user/使用指南.md中
 
 ## ✨ 主要特性
 
