@@ -1,9 +1,19 @@
+/**
+ * @file akima.cpp
+ * @brief Akima 插值与地图文件转换实现
+ */
 #include "akima.hpp"
 #include <cmath>
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
 
+/**
+ * @brief 根据输入节点计算 Akima 分段三次多项式系数
+ * @param s 自变量序列，必须递增
+ * @param v 因变量序列，与 s 一一对应
+ * @return true 计算成功，false 点数不足
+ */
 bool AkimaInterpolator::compute(const std::vector<double>& s, const std::vector<double>& v) {
     size_t n = s.size();
     if (n < 5) return false; // Akima 算法至少需要 5 个点来保证局部斜率估计的稳定性
@@ -56,6 +66,11 @@ bool AkimaInterpolator::compute(const std::vector<double>& s, const std::vector<
     return true;
 }
 
+/**
+ * @brief 评估指定自变量位置的插值结果
+ * @param target_s 目标自变量
+ * @return 插值后的因变量，未初始化时返回 0
+ */
 double AkimaInterpolator::evaluate(double target_s) const {
     if (coeffs.empty()) return 0.0;
 
@@ -72,11 +87,22 @@ double AkimaInterpolator::evaluate(double target_s) const {
     return coeffs[idx].d + ds * (coeffs[idx].c + ds * (coeffs[idx].b + ds * coeffs[idx].a));
 }
 
+/**
+ * @brief 清空当前节点与系数缓存
+ */
 void AkimaInterpolator::clear() {
     s_knots.clear();
     coeffs.clear();
 }
 
+/**
+ * @brief 将两路坐标插值器输出为等距路径地图
+ * @param x_interp X 坐标插值器
+ * @param y_interp Y 坐标插值器
+ * @param total_s 总里程
+ * @param resolution 输出采样间隔
+ * @param filename 输出 txt 文件名
+ */
 void AkimaInterpolator::save_as_tracking_map(const AkimaInterpolator& x_interp, 
                                              const AkimaInterpolator& y_interp,
                                              double total_s, 
@@ -119,6 +145,13 @@ void AkimaInterpolator::save_as_tracking_map(const AkimaInterpolator& x_interp,
     outfile.close();
 }
 
+/**
+ * @brief 将文本地图转换为二进制地图
+ * @param txt_filename 文本地图路径，格式为 index x y
+ * @param bin_filename 二进制地图输出路径
+ * @return true 转换成功，false 文件打开失败
+ * @note 转换时会重新生成连续索引，并跳过 nan 坐标点。
+ */
 bool AkimaInterpolator::convert_txt_to_bin(const std::string& txt_filename, 
                                            const std::string& bin_filename) {
     std::ifstream ifs(txt_filename);

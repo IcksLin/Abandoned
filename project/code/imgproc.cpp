@@ -1059,6 +1059,7 @@ void image_proc() {
     line_process(120, 60);
 
     element_status();
+    
     no_element_process();
     crossing_process();
     circle_process();
@@ -1066,7 +1067,7 @@ void image_proc() {
 
     max_angle = std::max(nms_Lline, nms_Rline);
     onto = calculate_weighted_offset_angle(Mline, middle_line_length);
-    printf("onto:   %f     ,middle_line_length: %d    \r",onto,middle_line_length);
+    
     // send_img_infor();
     // 调试要看状态机请解注释这行
     // printf("state:%d ,element_state:%d ,left:%f  ,right:%f  \r   ",tracking_decision_machine.state,cricle_decision_machine.state,nms_Lline, nms_Rline);
@@ -1273,15 +1274,6 @@ void element_status() {
     // 只有在非处理阶段，才允许进入检测
     if (!tracking_decision_machine.element_processing_flage) 
     {
-        // --- 2. 十字检测 (不受冷却限制) ---
-        // if(sampled_Lline_num > LOST_LINE && sampled_Rline_num > LOST_LINE) {
-            // if(nms_Lline > CORNER_ANGLE_THRE && nms_Rline > CORNER_ANGLE_THRE) {
-            //     tracking_decision_machine.state = 1; // 十字路口状态
-            //     tracking_decision_machine.element_processing_flage = 1; 
-            //     return;
-            // }
-        // }
-
         // --- 3. 圆环检测 (受冷却限制) ---
         if (!tracking_decision_machine.is_cooling) // 仅在非冷却状态下检测圆环
         {
@@ -1309,6 +1301,9 @@ void element_status() {
             }
         }
         
+        // 十字状态机，由于十字状态机为了便于进入，需要精确补线避免小车失控，所以状态机进入检测比较宽松，所以我们将其放置于环岛检测后
+        // 使其能触发环岛就一定能触发十字，不能触发环岛可能会触发十字，避免十字状态将原本属于环岛的状态给截胡而导致的将环岛看成十字直接补线掠过这一现象
+        // 写其他元素时也可以尝试通过不同状态判断的先后排序来规避一些问题
         if(nms_Lline > CORNER_ANGLE_THRE || nms_Rline > CORNER_ANGLE_THRE) {
             tracking_decision_machine.state = 1; // 十字路口状态
             tracking_decision_machine.element_processing_flage = 1; 

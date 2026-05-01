@@ -1,9 +1,11 @@
 /*********************************************************************************************************************
-* 文件名称          my_pid
+* 文件名称          my_menu
+* 功能说明          屏幕菜单系统、菜单导航和功能页面回调管理实现
 * 适用平台          LS2K0300
 * 修改记录
 * 日期              作者                        备注
-* 2026-01-22        HeavenCornerstone         
+* 2026-01-22        HeavenCornerstone          first version
+* 2026-05-01        Assistant                  修正文件头并补充说明
 ********************************************************************************************************************/
 #include "my_menu.hpp"
 #include "my_task_function.hpp"
@@ -606,7 +608,6 @@ Menu MyMenu::menu_table[] = {
     { 8 ,1,"key_remap_test",MyMenu::key_remap_test},
     { 9 ,1,"imu_angle_display",MyMenu::imu_angle_display},
     { 10,2,"brushless_calibration",MyMenu::brushless_calibration},
-    { 11,0,"anan is cute",nullptr}
 };
 
 //计算table大小
@@ -943,6 +944,7 @@ void MyMenu::menu_mode_6(uint8 cl_action)
     default:
         break;
     }
+    
 }
 
 

@@ -1,9 +1,11 @@
 /*********************************************************************************************************************
-* 文件名称          my_pid
+* 文件名称          my_key
+* 功能说明          四按键扫描、消抖与菜单动作映射模块
 * 适用平台          LS2K0300
 * 修改记录
 * 日期              作者                        备注
-* 2026-01-22        HeavenCornerstone         
+* 2026-01-22        HeavenCornerstone          first version
+* 2026-05-01        Assistant                  修正文件头并补充说明
 ********************************************************************************************************************/
 
 
@@ -24,7 +26,9 @@
 #define KEY_OK_IDX     2   // 确认键
 #define KEY_BACK_IDX   3   // 返回键
 
-// 按键状态枚举
+/**
+ * @brief 单个按键状态机状态
+ */
 typedef enum {
     KEY_RELEASED = 0,
     KEY_DEBOUNCE,
@@ -32,15 +36,20 @@ typedef enum {
     KEY_LONG_PRESS
 } KeyState;
 
-// 按键信息结构体
+/**
+ * @brief 单个按键的状态缓存
+ */
 typedef struct {
-    KeyState state;
-    uint16 counter;
-    uint8 short_press_flag;
-    uint8 long_press_flag;
+    KeyState state;          ///< 当前状态机状态
+    uint16 counter;          ///< 消抖或长按计数器
+    uint8 short_press_flag;  ///< 短按触发标志，读取后清零
+    uint8 long_press_flag;   ///< 长按触发标志，读取后清零
 } KeyInfo;
 
-// 菜单动作枚举
+/**
+ * @brief 菜单动作枚举
+ * @note 长按动作值通过短按动作值 +5 得到，需与 get_menu_action 中的映射保持一致。
+ */
 typedef enum {
     // 短按动作
     MENU_UP,     // 0

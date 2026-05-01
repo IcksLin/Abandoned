@@ -26,7 +26,11 @@
 
 class MadgwickAHRS {
 public:
-    // Constructor
+    /**
+     * @brief 构造姿态解算器
+     * @param sampleFrequency 解算调用频率，单位 Hz
+     * @param beta 算法收敛增益，越大越依赖加速度/磁力计修正
+     */
     MadgwickAHRS(float sampleFrequency = 100.0f, float beta = 0.1f);
     
     // Destructor
@@ -40,16 +44,46 @@ public:
     MadgwickAHRS(MadgwickAHRS&& other) noexcept = default;
     MadgwickAHRS& operator=(MadgwickAHRS&& other) noexcept = default;
     
-    // Configuration methods
+    /**
+     * @brief 设置解算频率
+     * @param frequency 调用频率，单位 Hz，必须大于 0
+     */
     void setSampleFrequency(float frequency);
+
+    /**
+     * @brief 设置 Madgwick 算法增益
+     * @param beta 收敛增益，必须大于 0
+     */
     void setBeta(float beta);
     float getSampleFrequency() const { return 1.0f / invSampleFreq_; }
     float getBeta() const { return beta_; }
     
-    // Update methods
+    /**
+     * @brief 九轴 AHRS 更新
+     * @param gx X 轴角速度，单位 deg/s
+     * @param gy Y 轴角速度，单位 deg/s
+     * @param gz Z 轴角速度，单位 deg/s
+     * @param ax X 轴加速度
+     * @param ay Y 轴加速度
+     * @param az Z 轴加速度
+     * @param mx X 轴磁力计
+     * @param my Y 轴磁力计
+     * @param mz Z 轴磁力计
+     */
     void update(float gx, float gy, float gz, 
                 float ax, float ay, float az, 
                 float mx, float my, float mz);
+
+    /**
+     * @brief 六轴 IMU 更新
+     * @param gx X 轴角速度，单位 deg/s
+     * @param gy Y 轴角速度，单位 deg/s
+     * @param gz Z 轴角速度，单位 deg/s
+     * @param ax X 轴加速度
+     * @param ay Y 轴加速度
+     * @param az Z 轴加速度
+     * @note 当前工程主要调用该函数，传参顺序和符号需要按 IMU 实际安装方向调整。
+     */
     void updateIMU(float gx, float gy, float gz, 
                    float ax, float ay, float az);
     

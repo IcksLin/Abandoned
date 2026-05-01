@@ -77,13 +77,51 @@ void motor_stop();
 //-------------------------------------------------------------------------------------------------------------------
 bool get_and_remap_speed(float* right_speed, float* left_speed, int16 sampling_period);
 
-//信号发生器，用于测试电机以及电机对磁力轴的影响
+/**
+ * @brief 电机测试信号发生器
+ * @param mode 波形模式，0 为正弦波，其他值为方波
+ * @param period_ms 信号周期，单位 ms
+ * @return 测试速度指令
+ * @note 用于测试电机响应以及电机运行对磁力计的影响。
+ */
 float motor_test_signal_generator(int mode, float period_ms);
+
+/**
+ * @brief 根据可见赛道长度决策巡航速度
+ * @param num 当前有效赛道点数
+ * @param max_speed 最大速度
+ * @param min_speed 最小速度
+ * @return 平滑后的目标速度
+ */
 float speed_decision(int num, float max_speed, float min_speed);
+
+/**
+ * @brief 无刷电调 PWM 初始化
+ */
 void brushless_init();
+
+/**
+ * @brief 设置无刷电调功率
+ * @param power 功率百分比，范围 0~100
+ */
 void esc_set_power(float power);
 
+/**
+ * @brief LADRC 速度环使用的累积脉冲测速函数
+ * @param T 累积周期数
+ * @param encoder_cpr 编码器每转脉冲数
+ * @param wheel_radius 轮半径，单位 m
+ * @param ts 单次采样周期，单位 s
+ * @param left_speed 左轮速度输出指针
+ * @param right_speed 右轮速度输出指针
+ */
 void lardc_get_speed(uint8_t T, float encoder_cpr, float wheel_radius, 
                      float ts, float *left_speed, float *right_speed);
+
+/**
+ * @brief LADRC 输出 PWM 到电机
+ * @param left_pwm 左轮 PWM 指令
+ * @param right_pwm 右轮 PWM 指令
+ */
 void motor_set_speed_ladrc(float left_pwm, float right_pwm);
 #endif  // __MOTOR_H_HPP__

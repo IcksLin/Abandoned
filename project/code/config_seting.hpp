@@ -1,5 +1,10 @@
 #ifndef _CONFIG_SETTING_HPP_
 #define _CONFIG_SETTING_HPP_
+/**
+ * @file config_seting.hpp
+ * @brief 控制器参数缓存、文件读写与 TCP 调参接口声明
+ * @note 文件名 seting 为历史拼写，当前 CMake 会直接包含该文件，不建议单独改名。
+ */
 #include "my_global.hpp"
 // ==================== 控制模式标志 ====================
 extern uint8_t control_model;  // 0: PID模式, 1: LADRC模式
@@ -76,6 +81,12 @@ public:
         }
     }
     
+    /**
+     * @brief 连接上位机 TCP 服务端
+     * @param ip 服务端 IP 地址
+     * @param port 服务端端口
+     * @return true 连接成功，false 连接失败
+     */
     bool connect(const std::string& ip, int port) {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) {
@@ -99,6 +110,10 @@ public:
         return true;
     }
     
+    /**
+     * @brief 发送原始字符串数据
+     * @param data 待发送字符串
+     */
     void sendData(const std::string& data) {
         if (sockfd >= 0) {
             send(sockfd, data.c_str(), data.length(), 0);
@@ -186,12 +201,45 @@ public:
     }
 };
 
+/**
+ * @brief 从配置文件读取参数并写入控制器
+ * @param config_file 配置文件路径
+ */
 void param_loading_from_file(const char* config_file);
+
+/**
+ * @brief 将当前缓存参数重新写入控制器对象
+ */
 void param_setting();
+
+/**
+ * @brief 将当前缓存参数写入配置文件
+ * @return true 写入成功，false 写入失败
+ */
 bool write_param_into_file();
+
+/**
+ * @brief 打印当前控制器参数
+ */
 void param_print();
+
+/**
+ * @brief 解析上位机传入的一行参数并更新缓存
+ * @param line 参数行，格式为 key:value
+ * @return true 解析成功，false 未识别或格式错误
+ */
 bool parseAndUpdateParameter(const std::string& line);
+
+/**
+ * @brief 处理 READ 命令，重新从配置文件加载参数
+ */
 void handleReadCommand();
+
+/**
+ * @brief 处理 WRITE 命令，将当前参数写入文件并回传上位机
+ * @param client TCP 客户端对象
+ * @return true 处理成功，false 写文件失败
+ */
 bool handleWriteCommand(TCPClient& client);
 
 #endif

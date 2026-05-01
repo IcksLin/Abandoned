@@ -1,18 +1,37 @@
+/**
+ * @file tflm_model_process_lq.cpp
+ * @brief 基于 ncnn 的目标分类推理实现
+ */
 #include "tflm_model_process_lq.hpp"
 #include <algorithm>
 #include <cmath>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
 
+/**
+ * @brief 构造分类器并初始化类别表
+ * @note 类别顺序必须与模型训练时的输出顺序一致。
+ */
 LQ_NCNN::LQ_NCNN() : initialized_(false) {
     labels_ = {"material", "traffic", "weapon"};
 
 }
 
+/**
+ * @brief 析构时释放 ncnn 网络资源
+ */
 LQ_NCNN::~LQ_NCNN() {
     net_.clear();
 }
 
+/**
+ * @brief 加载 ncnn 模型参数和权重
+ * @param param_path param 文件路径
+ * @param bin_path bin 文件路径
+ * @param input_width 模型输入宽度
+ * @param input_height 模型输入高度
+ * @return true 加载成功，false 加载失败
+ */
 bool LQ_NCNN::init(const std::string& param_path, const std::string& bin_path,int input_width, int input_height) {
     kInputWidth = input_width;
     kInputHeight = input_height;
@@ -34,6 +53,11 @@ bool LQ_NCNN::init(const std::string& param_path, const std::string& bin_path,in
     return true;
 }
 
+/**
+ * @brief 执行一次 BGR 图像分类推理
+ * @param bgr_image 输入图像
+ * @return 分类结果，失败时 class_index 为 -1
+ */
 LQ_InferenceResult LQ_NCNN::infer(const cv::Mat& bgr_image) const {
     LQ_InferenceResult res = {-1, "None", 0.0f};
 
@@ -79,6 +103,12 @@ LQ_InferenceResult LQ_NCNN::infer(const cv::Mat& bgr_image) const {
     return res;
 }
 
+/**
+ * @brief 获取输出向量中的最大概率类别
+ * @param logits softmax 后的类别概率
+ * @param prob 输出参数，返回最大概率
+ * @return 最大概率类别索引
+ */
 int LQ_NCNN::argmax(const ncnn::Mat& logits, float& prob) {
     if (logits.empty()) return -1;
 

@@ -1,9 +1,11 @@
 /*********************************************************************************************************************
-* 文件名称          my_pid
+* 文件名称          my_menu
+* 功能说明          屏幕菜单系统、菜单导航和功能页面回调管理
 * 适用平台          LS2K0300
 * 修改记录
 * 日期              作者                        备注
-* 2026-01-22        HeavenCornerstone         
+* 2026-01-22        HeavenCornerstone          first version
+* 2026-05-01        Assistant                  修正文件头并补充说明
 ********************************************************************************************************************/
 
 
@@ -31,13 +33,15 @@
 
 #define IPS_DEVICE_PATH     "/dev/fb0"
 
-// 菜单结构体
+/**
+ * @brief 单个菜单项定义
+ */
 typedef struct Menu {
-    int id;
-    int parent_id;
+    int id;             ///< 菜单项唯一 ID
+    int parent_id;      ///< 父菜单 ID，-1 表示根节点
 
-    const char *name;
-    void (*handler)(uint8 action);
+    const char *name;               ///< 菜单显示名称
+    void (*handler)(uint8 action);  ///< 叶子节点功能回调，非叶子节点一般为空
 } Menu;
 
 // 前向声明
@@ -45,6 +49,10 @@ class MyMenu;
 
 extern MyMenu* g_menu_instance;
 
+/**
+ * @brief 按键驱动的 IPS 菜单系统
+ * @details 负责菜单层级导航、页面绘制和叶子功能回调调度。
+ */
 class MyMenu {
 private:
     MyKey* key_manager;           // 按键管理器

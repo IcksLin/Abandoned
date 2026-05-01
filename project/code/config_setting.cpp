@@ -1,3 +1,7 @@
+/**
+ * @file config_setting.cpp
+ * @brief 控制器参数文件读写、上位机调参解析与控制器同步实现
+ */
 #include "config_seting.hpp"
 
 #include <fstream>
@@ -5,9 +9,9 @@
 #include <cstring>
 #include <cstdlib>
 
-uint8_t control_model = 1; //控制模式，0 PID，1 LADRC
+uint8_t control_model = 1; // 控制模式，0 PID，1 LADRC
 
-// 参数缓存区
+// 参数缓存区：所有上位机和配置文件参数先进入这些变量，再统一写入控制器对象。
 float lardc_r_h = 0.001f, lardc_r_r = 150.0f, lardc_r_wc = 1.0f, lardc_r_w0 = 120.0f, lardc_r_b0 = 47.0f;
 float lardc_r_pwm_min = -1000.0f, lardc_r_pwm_max = 1000.0f;
 float lardc_l_h = 0.001f, lardc_l_r = 150.0f, lardc_l_wc = 1.0f, lardc_l_w0 = 120.0f, lardc_l_b0 = 47.0f;
@@ -23,7 +27,7 @@ float pid_l_integral_max = 60.0f, pid_l_integral_min = -60.0f;
 
 float onto_kp = 0.0f, onto_kp2 = 0.65f, onto_kd = 4.0f, onto_limit = 45.0f;
 
-// 三串pd参数缓存
+// 三串 PD 参数缓存：方向环输出目标角速度，角速度环输出左右轮速度差。
 float angle_speed_kp = 0.0f,angle_speed_kd = 0.0f,angle_output_max = 700.0f,angle_output_min = -700.0f;
 float onto_control_kp = 0.0f,onto_control_kd = 0.0f,angle_speed_output_max = 700.0f,angle_speed_output_min = -700.0f; 
 

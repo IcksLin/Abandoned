@@ -8,7 +8,7 @@ int main()
     //     return -1;
     // }
     // onto_pd_control_enable = 1;
-
+    
     if (key_scan.init_ms(KEY_SCAN_PERIOD, key_scan_handler, 95, true) != 0)
     {
         printf("定时器初始化失败\n");
@@ -53,7 +53,7 @@ int main()
         menu_system.menu_system();
         // system_delay_ms(10);
         my_timer.stop();
-        printf("onto:   %f     ,middle_line_length: %d   ,time:  %lld \r",onto,middle_line_length,my_timer.elapsed_us());
+        printf("onto:   %f     ,middle_line_length: %d   ,time:  %lld \r",onto,middle_line_length,my_timer.elapsed_ms());
     }
 
     return 0;

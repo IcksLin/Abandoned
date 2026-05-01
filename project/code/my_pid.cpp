@@ -1,10 +1,12 @@
 /*********************************************************************************************************************
 * 文件名称          my_pid
+* 功能说明          PID、方向 PD 与电机 LADRC 封装控制器实现
 * 适用平台          LS2K0300
 * 修改记录
 * 日期              作者                        备注
 * 2026-01-23        HeavenCornerstone         
 * 2026-01-23        HeavenCornerstone          修正PID计算步骤
+* 2026-05-01        Assistant                  补充控制器说明
 ********************************************************************************************************************/
 
 
@@ -364,12 +366,22 @@ bool MyPID::is_enabled(void) const
 }
 
 //方向控制用PID--------------------------------------------------------------------------------------------------------
+/**
+ * @brief 构造默认方向 PD 控制器
+ */
 PDController::PDController() 
     : Kp(0.5f), Kp2(0.0f), Kd(0.05f), 
       last_error(0.0f), error(0.0f),        
       output_limit(100.0f) {               
 }
 
+/**
+ * @brief 构造指定参数的方向 PD 控制器
+ * @param kp 线性比例系数
+ * @param kp2 非线性比例系数
+ * @param kd 微分系数
+ * @param limit 输出绝对限幅
+ */
 PDController::PDController(float kp, float kp2, float kd, float limit)
     : Kp(kp), Kp2(kp2), Kd(kd), 
       last_error(0.0f), error(0.0f),        
@@ -407,6 +419,12 @@ void PDController::reset() {
     error = 0.0f;
 }
 
+/**
+ * @brief 计算方向控制输出
+ * @param actual 当前值
+ * @param target 目标值
+ * @return 限幅后的控制输出
+ */
 float PDController::compute(float actual, float target) {
     // 计算误差
     error = target - actual;
@@ -462,6 +480,9 @@ float PDController::compute(float actual, float target) {
 #include <algorithm>
 #include <cmath>
 
+/**
+ * @brief 构造电机 LADRC 封装器
+ */
 SimpleMotorLADRC::SimpleMotorLADRC()
     : last_pwm(0.0f),
       last_speed_error(0.0f),
@@ -472,6 +493,10 @@ SimpleMotorLADRC::SimpleMotorLADRC()
       speed_max(3.0f) {
 }
 
+/**
+ * @brief 使用预设参数初始化电机 LADRC
+ * @param preset_idx LADRC 预设参数索引
+ */
 void SimpleMotorLADRC::init(unsigned int preset_idx) {
     if (!ladrc.initWithPreset(preset_idx)) {
         ladrc.initWithPreset(1);  // 默认使用预设1
@@ -479,6 +504,16 @@ void SimpleMotorLADRC::init(unsigned int preset_idx) {
     reset();
 }
 
+/**
+ * @brief 使用自定义参数初始化电机 LADRC
+ * @param h 采样周期
+ * @param r 跟踪速度因子
+ * @param wc 控制器带宽
+ * @param w0 观测器带宽
+ * @param b0 系统输入增益
+ * @param pwm_min PWM 下限
+ * @param pwm_max PWM 上限
+ */
 void SimpleMotorLADRC::init(float h, float r, float wc, float w0, float b0,float pwm_min, float pwm_max) {
     ladrc.initWithParameters(h, r, wc, w0, b0);
     ladrc.setOutputLimit(pwm_max, pwm_min);
@@ -492,6 +527,12 @@ void SimpleMotorLADRC::reset() {
     ladrc_output = 0.0f;
 }
 
+/**
+ * @brief 计算本周期 PWM 输出
+ * @param target_speed 目标速度
+ * @param actual_speed 实际速度
+ * @return 限幅后的 PWM 输出
+ */
 float SimpleMotorLADRC::calculatePWM(float target_speed, float actual_speed) {
     // 限制速度范围
     float limited_target = limitSpeed(target_speed);

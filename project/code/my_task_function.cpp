@@ -1,23 +1,31 @@
 /*********************************************************************************************************************
-* 文件名称          my_pid
+* 文件名称          my_task_function
+* 功能说明          主循环任务函数实现
 * 适用平台          LS2K0300
 * 修改记录
 * 日期              作者                        备注
-* 2026-01-22        HeavenCornerstone         
+* 2026-01-22        HeavenCornerstone          first version
+* 2026-05-01        Assistant                  补充 Doxygen 注释
 ********************************************************************************************************************/
 
 
 
 #include "my_task_function.hpp"
-//注意，所有组件的声明全在globel文件中
+// 注意，所有组件的声明全在 global 文件中
 
+/**
+ * @brief 定时线程回调测试函数
+ * @note 每调用一次递增并打印计数，用于确认线程是否正常运行。
+ */
 void thread_callback_test(){
     static int32_t callback_function_tick = 0;
     callback_function_tick++;
     printf("callback success :%d\n",callback_function_tick);
 }
 
-//camera==================================================
+/**
+ * @brief 摄像头灰度图显示测试函数
+ */
 void camera_test(){
     gray_img_ptr = uvc.get_gray_image_ptr();
     printf("whether get image:%d\n", uvc.wait_image_refresh());
@@ -25,15 +33,20 @@ void camera_test(){
 
 }
 
-//motor===================================================
+/**
+ * @brief 电机速度开环测试函数
+ * @param speed_left 左轮速度指令
+ * @param speed_right 右轮速度指令
+ */
 void motor_speed_test(int16_t speed_left,int16_t speed_right){
     motor_set_speed(speed_left,speed_right);
     get_and_remap_speed(&right_speed,&left_speed,10);
 }
 
-//show test===============================================
-//注意，一旦使用ips屏幕，将会严重打乱线程周期，故此函数仅作测试所有模块是否正常运行用，实际测量编码器，PID等请用无显示屏测试函数
-
+/**
+ * @brief 无屏幕综合状态测试
+ * @note 一旦使用 IPS 屏幕，将会严重打乱线程周期。该函数仅作测试所有模块是否正常运行用。
+ */
 void show_all_of_the_component_without_ips(){
     
     //图像测试
@@ -55,6 +68,9 @@ void show_all_of_the_component_without_ips(){
          right_speed, left_speed,ahrs.getPitch(),ahrs.getRoll(),ahrs.getYaw());
 }
 
+/**
+ * @brief 将当前 RGB 图像发送到上位机
+ */
 void send_picture_to_Serve()
 {
     rgb_img_ptr = uvc.get_rgb_image_ptr();
@@ -62,6 +78,10 @@ void send_picture_to_Serve()
     rgb_img_transmitter(rgb_img_ptr, UVC_WIDTH, UVC_HEIGHT,true);
 }
 
+/**
+ * @brief 主循迹任务
+ * @details 等待摄像头刷新，复制 RGB 帧并调用 image_proc 完成图像处理。
+ */
 void tracking()
 {
     // my_timer.stop();
@@ -82,9 +102,11 @@ void tracking()
     // printf("   L: %f   ,R:  %f    \r",nms_Lline, nms_Rline);
 }
 
-//采集数据集时使用
+/**
+ * @brief 数据集采集辅助函数
+ * @note 只等待并获取 RGB 图像，不做图像处理。
+ */
 void get_image_datasets(){
     uvc.wait_image_refresh();
     uvc.get_rgb_image_ptr();
 }
-

@@ -1,3 +1,7 @@
+/**
+ * @file akima.hpp
+ * @brief Akima 插值与路径地图导出工具
+ */
 #ifndef AKIMA_INTERPOLATOR_H
 #define AKIMA_INTERPOLATOR_H
 
@@ -5,9 +9,9 @@
 #include <string>
 
 struct MapPoint {
-    int32_t index;
-    float x;
-    float y;
+    int32_t index; ///< 地图点索引，复现时用于单向查找
+    float x;       ///< 地图点 X 坐标
+    float y;       ///< 地图点 Y 坐标
 };
 /**
  * @brief Akima 分段立方多项式系数
@@ -21,6 +25,10 @@ struct AkimaCoeffs {
     double d;  // 常数项系数
 };
 
+/**
+ * @brief Akima 分段插值器
+ * @details 用离散路径点计算分段三次多项式，适合将录制路径转换成平滑可复现地图。
+ */
 class AkimaInterpolator {
 public:
     AkimaInterpolator() = default;

@@ -1,13 +1,20 @@
 /*********************************************************************************************************************
 * 文件名称          navigation
+* 功能说明          编码器里程计、路径录制与路径复现基础模块实现
 * 适用平台          LS2K0300
 * 修改记录
 * 日期              作者                        备注
-* 2026-02-22        HeavenCornerstone         
+* 2026-02-22        HeavenCornerstone          first version
+* 2026-05-01        Assistant                  补充 Doxygen 注释
 ********************************************************************************************************************/
 
 #include "navigation.hpp"
 
+/**
+ * @brief 构造整数里程计
+ * @param ppu 每个里程单位对应的编码器脉冲数
+ * @param is_reversed 是否反向累计
+ */
 Odometer::Odometer(int32_t ppu, bool is_reversed) {
     total_distance_units = 0;
     remainder_pulses = 0;
@@ -15,6 +22,10 @@ Odometer::Odometer(int32_t ppu, bool is_reversed) {
     direction_multiplier = is_reversed ? -1 : 1;
 }
 
+/**
+ * @brief 累计本周期编码器脉冲
+ * @param new_raw_pulses 本周期原始脉冲数
+ */
 void Odometer::update(int16_t new_raw_pulses) {
     // 1. 根据安装方向调整脉冲符号
     int32_t current_pulses = new_raw_pulses * direction_multiplier;
@@ -32,7 +43,9 @@ void Odometer::update(int16_t new_raw_pulses) {
     total_distance_units += carry_units;
 }
 
-
+/**
+ * @brief 构造路径记录器并初始化左右轮里程计
+ */
 PathTracker::PathTracker()
     : left_tyre(ENCODER_PPU, false)    // 初始化左轮
     , right_tyre(ENCODER_PPU, false)    // 初始化右轮（反向）
@@ -41,6 +54,9 @@ PathTracker::PathTracker()
     reset();
 }
 
+/**
+ * @brief 重置路径记录与复现状态
+ */
 void PathTracker::reset() {
     current_index = 0;
     //重置内部计算用累计变量
@@ -58,7 +74,11 @@ void PathTracker::reset() {
     right_tyre.reset();
 }
 
-// 此函数与陀螺仪数据更新同步执行
+/**
+ * @brief 记录当前路径采样点
+ * @param current_yaw 当前姿态解算 yaw 角
+ * @note 此函数需要与陀螺仪数据更新同步执行，避免里程和角度错位。
+ */
 void PathTracker::record_sample( float current_yaw) {
     if (!is_recording || current_index >= MAX_POINTS) return;
 
@@ -80,6 +100,10 @@ void PathTracker::record_sample( float current_yaw) {
     current_index++;
 }
 
+/**
+ * @brief 根据当前 yaw 和左右轮里程估算当前位置
+ * @param current_yaw 当前姿态解算 yaw 角
+ */
 void PathTracker::get_location(float current_yaw) {
     if(is_recording) return;
 
@@ -105,7 +129,11 @@ void PathTracker::get_location(float current_yaw) {
     last_total_s = current_total_s;
 }
 
-// 生成高斯权重核
+/**
+ * @brief 生成一维高斯滤波核
+ * @param sigma 高斯标准差
+ * @param size 核大小，建议为奇数
+ */
 void PathTracker::generate_gaussian_kernel(float sigma, int size) {
     gaussian_kernel.clear();
     gaussian_kernel.resize(size);
@@ -125,7 +153,11 @@ void PathTracker::generate_gaussian_kernel(float sigma, int size) {
     }
 }
 
-// 执行高斯卷积滤波
+/**
+ * @brief 对已录制路径执行高斯平滑
+ * @param sigma 高斯标准差
+ * @param kernel_size 核大小，必须小于当前路径点数量
+ */
 void PathTracker::apply_gaussian_filter(float sigma, int kernel_size) {
     if (current_index < kernel_size) return; 
     
@@ -177,10 +209,17 @@ void PathTracker::apply_gaussian_filter(float sigma, int kernel_size) {
     }
 }
 
+/**
+ * @brief 开始路径录制
+ */
 void PathTracker::start_remember(){
     is_recording = true;
 }
 
+/**
+ * @brief 停止路径录制
+ * @param key 为 true 时同时清空当前录制路径
+ */
 void PathTracker::stop_remember(bool key){
     if(key) reset();
     is_recording = false;

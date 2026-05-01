@@ -1,6 +1,15 @@
+/**
+ * @file IMU963R.cpp
+ * @brief IMU963R 原始数据读取、零偏校准和低通滤波实现
+ */
 #include "IMU963R.hpp"
 #include <unistd.h> // 用于 usleep
 
+/**
+ * @brief 构造 IMU 数据处理器
+ * @param a_acc 加速度低通滤波系数
+ * @param a_gyro 陀螺仪低通滤波系数
+ */
 IMUHandler::IMUHandler(float a_acc, float a_gyro) 
     : alpha_acc(a_acc), alpha_gyro(a_gyro) {
     for(int i = 0; i < 3; i++) {
@@ -10,6 +19,10 @@ IMUHandler::IMUHandler(float a_acc, float a_gyro)
     }
 }
 
+/**
+ * @brief 初始化 IMU 并执行静态零偏校准
+ * @return imu_device_type_enum 识别到的 IMU 设备类型
+ */
 imu_device_type_enum IMUHandler::init(void) {
     imu_device_type_enum type = imu_dev.init();
     if (type != DEV_NO_FIND) {
@@ -19,6 +32,11 @@ imu_device_type_enum IMUHandler::init(void) {
     return type;
 }
 
+/**
+ * @brief 统计静止状态下的陀螺仪零偏
+ * @param sample_counts 采样次数
+ * @note 调用该函数时小车必须保持静止，否则会把真实运动误认为零偏。
+ */
 void IMUHandler::calibrate_offsets(int sample_counts) {
     float sum_g[3] = {0, 0, 0};
     
@@ -36,6 +54,10 @@ void IMUHandler::calibrate_offsets(int sample_counts) {
     }
 }
 
+/**
+ * @brief 读取并更新 IMU 物理量
+ * @details 完成原始值读取、单位换算、陀螺仪零偏扣除和一阶低通滤波。
+ */
 void IMUHandler::update(void) {
     // 1. 获取并转换当前瞬时值 (物理单位)
     float cur_ax = (float)imu_dev.get_acc_x() * ACC_SCALE;
